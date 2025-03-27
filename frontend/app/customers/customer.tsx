@@ -5,17 +5,18 @@ import {
   FlatList,
   StyleSheet,
   TouchableOpacity,
+  Pressable,
 } from "react-native";
 import * as Contacts from "expo-contacts";
-import { Stack, useNavigation } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 
 const AddCustomerScreen = () => {
+  const router = useRouter();
   const [contacts, setContacts] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredContacts, setFilteredContacts] = useState<any[]>([]);
-  const navigation = useNavigation();
 
   useEffect(() => {
     async function fetchContacts() {
@@ -25,7 +26,7 @@ const AddCustomerScreen = () => {
           fields: [Contacts.Fields.PhoneNumbers],
         });
         setContacts(data);
-        setFilteredContacts(data); // Initially, show all contacts
+        setFilteredContacts(data);
       }
     }
     fetchContacts();
@@ -34,21 +35,21 @@ const AddCustomerScreen = () => {
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     if (query) {
-      const filteredData = contacts.filter((contact) =>
-        contact.name.toLowerCase().includes(query.toLowerCase())
+      const filteredData = contacts.filter(
+        (contact) =>
+          contact.name.toLowerCase().includes(query.toLowerCase()) ||
+          contact.phoneNumbers?.[0]?.number.includes(query)
       );
       setFilteredContacts(filteredData);
     } else {
-      setFilteredContacts(contacts); // If search is cleared, show all contacts
+      setFilteredContacts(contacts);
     }
   };
 
   const handleContactSelect = (contact) => {
-    // Pass selected contact to AddCustomerFormScreen
-    navigation.navigate("AddCustomerForm", {
-      name: contact.name,
-      phone: contact.phoneNumbers ? contact.phoneNumbers[0].number : "",
-    });
+    const name = contact.name;
+    const phone = contact.phoneNumbers ? contact.phoneNumbers[0].number : "";
+    router.push(`/customers/add-customer?name=${name}&phone=${phone}`);
   };
 
   const renderContact = ({ item }) => (
@@ -66,7 +67,7 @@ const AddCustomerScreen = () => {
     <ThemedView style={styles.container}>
       <Stack.Screen
         options={{
-          title: "Customer",
+          title: "Contacts",
         }}
       />
       <TextInput
@@ -75,6 +76,10 @@ const AddCustomerScreen = () => {
         value={searchQuery}
         onChangeText={handleSearch}
       />
+
+      <Pressable onPress={() => router.push(`/customers/add-customer`)}>
+        <ThemedText>Add Customer</ThemedText>
+      </Pressable>
 
       <FlatList
         data={filteredContacts}

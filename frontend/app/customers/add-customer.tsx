@@ -1,28 +1,22 @@
 import React, { useState } from "react";
-import { View, TextInput, Button, StyleSheet } from "react-native";
-import { useNavigation } from "expo-router";
-import { ThemedText } from "@/components/ThemedText";
+import { TextInput, Button, StyleSheet } from "react-native";
+import { Stack, useLocalSearchParams } from "expo-router";
 import { ThemedView } from "@/components/ThemedView";
 
 const AddCustomerFormScreen = () => {
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const navigation = useNavigation();
+  const { name: filledName, phone: filledPhone } = useLocalSearchParams();
+  const [name, setName] = useState(filledName ?? "");
+  const [phone, setPhone] = useState(filledPhone ?? "");
 
   const handleAddCustomer = () => {
     if (name && phone) {
-      // Add customer logic (e.g., save to Redux, API, etc.)
       console.log(`Customer Added: ${name} - ${phone}`);
-      navigation.goBack(); // Go back to the previous screen (e.g., Home screen)
     }
   };
 
   return (
     <ThemedView style={styles.container}>
-      <ThemedText type="title" style={styles.header}>
-        Add Customer
-      </ThemedText>
-
+      <Stack.Screen options={{ title: "Add Customer" }} />
       <TextInput
         style={styles.input}
         placeholder="Enter name"
