@@ -37,7 +37,10 @@ const AddCustomerScreen = () => {
     if (query) {
       const filteredData = contacts.filter(
         (contact) =>
-          contact.name.toLowerCase().includes(query.toLowerCase()) ||
+          contact.name
+            .toLowerCase()
+            .trim()
+            .includes(query.toLowerCase().trim()) ||
           contact.phoneNumbers?.[0]?.number.includes(query)
       );
       setFilteredContacts(filteredData);
@@ -49,7 +52,7 @@ const AddCustomerScreen = () => {
   const handleContactSelect = (contact) => {
     const name = contact.name;
     const phone = contact.phoneNumbers ? contact.phoneNumbers[0].number : "";
-    router.push(`/customers/add-customer?name=${name}&phone=${phone}`);
+    router.push(`/customers/contacts/add-contact?name=${name}&phone=${phone}`);
   };
 
   const renderContact = ({ item }) => (
@@ -77,7 +80,7 @@ const AddCustomerScreen = () => {
         onChangeText={handleSearch}
       />
 
-      <Pressable onPress={() => router.push(`/customers/add-customer`)}>
+      <Pressable onPress={() => router.push(`/customers/contacts/add-contact`)}>
         <ThemedText>Add Customer</ThemedText>
       </Pressable>
 
