@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   TextInput,
   StyleSheet,
@@ -11,12 +11,16 @@ import { useRouter, useLocalSearchParams, Stack } from "expo-router";
 import { format } from "date-fns";
 import { useForm, Controller } from "react-hook-form";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { addSellerTransactionApi } from "@/api";
 import Toast from "react-native-toast-message";
+import {
+  addSellerTransactionApi,
+  editSellerTransactionApi,
+} from "@/redux/slice/transactions/transactionApi";
 
 const AddTransactionScreen = () => {
   const router = useRouter();
-  const { type, id } = useLocalSearchParams();
+  const { type, id, desc, seller_mobile, amount, date, name } =
+    useLocalSearchParams();
   const [transactionDate, setTransactionDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
 
@@ -24,31 +28,52 @@ const AddTransactionScreen = () => {
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm();
+  } = useForm({
+    defaultValues: {
+      amount: amount || "",
+      description: desc || "",
+      date: date ? new Date(date) : new Date(),
+    },
+  });
+  // Update form fields when the params change (for editing)
+  useEffect(() => {
+    if (id) {
+      setTransactionDate(new Date(date)); // Set transaction date from the params
+    }
+  }, [id, amount, desc, date]);
 
   const onSubmit = async (data: any) => {
     try {
       const { amount, description, date } = data;
-      const res = await addSellerTransactionApi({
-        amount: amount,
-        custom_date: date,
-        expense_detail: description,
-        seller_mobile: id,
-        transaction_type: type?.toUpperCase(),
-      });
-      console.log(res);
+      const res = id
+        ? await editSellerTransactionApi({
+            id,
+            amount,
+            custom_date: format(date, "yyyy-MM-dd"),
+            expense_detail: description,
+            seller_mobile: seller_mobile,
+            transaction_type: type?.toUpperCase(),
+          })
+        : await addSellerTransactionApi({
+            amount,
+            custom_date: format(date, "yyyy-MM-dd"),
+            expense_detail: description,
+            seller_mobile: seller_mobile,
+            transaction_type: type?.toUpperCase(),
+          });
       if (res?.status === 200) {
         Toast.show({
           type: "success",
           text1: "Transaction Added",
           text2: `Successfully added ${type} transaction!`,
         });
-        router.back(); // Go back to the previous screen
+        router.push(
+          `/(app)/customers/transactions/${seller_mobile}?name=${name}`
+        );
       } else {
         throw new Error("Failed to add transaction.");
       }
     } catch (error: any) {
-      console.log(error.response.data);
       Toast.show({
         type: "error",
         text1: "Error",
@@ -92,7 +117,6 @@ const AddTransactionScreen = () => {
         <Text style={styles.errorText}>{errors?.amount?.message}</Text>
       )}
 
-      {/* Description (Note) Input */}
       <Controller
         control={control}
         name="description"
@@ -111,7 +135,6 @@ const AddTransactionScreen = () => {
         <Text style={styles.errorText}>{errors?.description?.message}</Text>
       )}
 
-      {/* Date Input */}
       <Controller
         control={control}
         name="date"
@@ -133,8 +156,8 @@ const AddTransactionScreen = () => {
                 mode="date"
                 display="default"
                 onChange={(event, selectedDate) => {
-                  onChange(selectedDate || value); // Update React Hook Form state
-                  handleDateChange(event, selectedDate); // Set date locally
+                  onChange(selectedDate || value);
+                  handleDateChange(event, selectedDate);
                 }}
               />
             )}
@@ -145,7 +168,6 @@ const AddTransactionScreen = () => {
         <Text style={styles.errorText}>{errors?.date?.message}</Text>
       )}
 
-      {/* Submit Button */}
       <TouchableOpacity
         style={[styles.button, { backgroundColor: "#6200ea" }]}
         onPress={handleSubmit(onSubmit)}
@@ -160,7 +182,7 @@ const AddTransactionScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f9f9f9", // Light background
+    backgroundColor: "#f9f9f9",
     padding: 20,
   },
   header: {
@@ -176,7 +198,7 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     borderRadius: 10,
     fontSize: 16,
-    backgroundColor: "#fff", // white background for inputs
+    backgroundColor: "#fff",
   },
   datePicker: {
     borderWidth: 1,
@@ -197,7 +219,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
-    elevation: 2, // Add shadow to buttons
+    elevation: 2,
   },
   buttonText: {
     color: "#fff",

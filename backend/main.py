@@ -654,15 +654,6 @@ class GetTransactionsRequest(BaseModel):
         ..., pattern="^[0-9]{10}$", description="10-digit seller mobile number"
     )
 
-    @validator("seller_mobile")
-    def validate_seller_mobile(cls, v):
-        if not v.isdigit() or len(v) != 10:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Seller mobile number must be a 10-digit number",
-            )
-        return v
-
 
 @app.get("/get_transactions")
 def get_transactions(

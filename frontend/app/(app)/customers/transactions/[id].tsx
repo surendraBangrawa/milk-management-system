@@ -1,9 +1,20 @@
 import React, { useState, useEffect } from "react";
-import { View, FlatList, StyleSheet, Pressable, Text } from "react-native";
+import {
+  View,
+  FlatList,
+  StyleSheet,
+  Pressable,
+  Text,
+  Alert,
+} from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { formatDistanceToNow } from "date-fns"; // For date formatting
-import { getSellerTransactionApi } from "@/api";
+import { formatDistanceToNow } from "date-fns";
 import Toast from "react-native-toast-message";
+import { FontAwesome } from "@expo/vector-icons";
+import {
+  deleteSellerTransactionApi,
+  getSellerTransactionApi,
+} from "@/redux/slice/transactions/transactionApi";
 
 const getInitials = (name: string) => {
   const nameParts = name.split(" ");
@@ -30,56 +41,183 @@ const TransactionScreen = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchCustomerData = async () => {
-      setLoading(true);
-      try {
-        const res = await getSellerTransactionApi(id ? id[0] : id);
-        if (res.status === 200) {
-          const sortedData = res?.data?.seller_details.sort((a, b) => {
-            const dateA = new Date(a.date);
-            const dateB = new Date(b.date);
-            return dateB - dateA;
-          });
-          setTransactions(sortedData);
-        }
-      } catch (err: any) {
-        setError(
-          err?.response?.data?.detail
-            ? err?.response?.data?.detail
-            : "Something went wrong"
-        );
-        Toast.show({
-          type: "error",
-          text1: "Error",
-          text2: "Failed to load customer data.",
+  // Fetch transaction data
+  const fetchCustomerData = async () => {
+    setLoading(true);
+    try {
+      const res = await getSellerTransactionApi(id);
+      console.log(res.data);
+      if (res.status === 200) {
+        const sortedData = res?.data?.sort((a, b) => {
+          const dateA = new Date(a.added_at); // Sort by 'added_at' for display purposes
+          const dateB = new Date(b.added_at);
+          return dateB - dateA;
         });
-      } finally {
-        setLoading(false);
+        setTransactions(sortedData);
       }
-    };
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.detail
+          ? err?.response?.data?.detail
+          : "Something went wrong"
+      );
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Failed to load customer data.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchCustomerData();
-  }, []);
+  }, [id]);
 
+  // Function to format the 'added_at' date
   const formatDate = (date: string) => {
     return formatDistanceToNow(new Date(date), { addSuffix: true });
   };
 
-  const renderTransaction = ({ item }) => (
-    <View style={styles.transactionCard}>
-      <Text style={styles.transactionDate}>{formatDate(item.date)}</Text>
-      <Text style={styles.transactionAmount}>Amount: ₹{item.amount}</Text>
-      <Text style={styles.transactionType}>{item.type}</Text>
-    </View>
-  );
-
-  const handlePress = (transactionType: string) => {
-    router.push(
-      `/(app)/customers/transactions/add-transaction?type=${transactionType}&id=${id}`
+  // Delete transaction handler
+  const handleDelete = (item) => {
+    Alert.alert(
+      "Delete Transaction",
+      "Are you sure you want to delete this transaction?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          onPress: async () => {
+            try {
+              const res = await deleteSellerTransactionApi({
+                record_id: item.id,
+                record_type: item.type,
+                seller_mobile: item.seller_mobile,
+              });
+              if (res.status === 200) {
+                Toast.show({
+                  type: "success",
+                  text1: "Success",
+                  text2: "Transaction deleted successfully.",
+                });
+                fetchCustomerData();
+              }
+            } catch (err: any) {
+              console.log(err.response);
+              Toast.show({
+                type: "error",
+                text1: "Error",
+                text2: "Failed to delete the transaction.",
+              });
+            }
+          },
+        },
+      ]
     );
   };
 
+  // Edit transaction handler
+  const handleEdit = (item) => {
+    if (item.type === "expense") {
+      router.push(
+        `/(app)/customers/transactions/add-transaction?id=${
+          item.id
+        }&seller_mobile=${item.seller_mobile}&type=${
+          item.amount < 0 ? "GAVE" : "GOT"
+        }&desc=${item.expense_detail}&date=${
+          item.custom_date
+        }&amount=${Math.abs(item.amount)}&name=${name}`
+      );
+    } else {
+      router.push(
+        `/(app)/customers/transactions/add-milk?id=${item.id}&seller_mobile=${item.seller_mobile}&desc=${item.milk_detail}&date=${item.custom_date}&rate=${item.rate}&name=${name}&quantity=${item.quantity}&snf=${item.snf}&fat=${item.fat}&type=${item.type}`
+      );
+    }
+  };
+
+  // Function to handle "Read More" click
+  const handleReadMore = (detail: string) => {
+    Alert.alert("Transaction Detail", detail);
+  };
+
+  const renderTransaction = ({ item }) => {
+    const truncatedDetail =
+      item.expense_detail?.length > 50
+        ? item.expense_detail.slice(0, 50) + "..."
+        : item.expense_detail;
+
+    return (
+      <View
+        style={[
+          styles.transactionCard,
+          { borderLeftColor: item.amount < 0 ? "#F44336" : "#4CAF50" },
+        ]}
+      >
+        <View style={styles.leftSection}>
+          <Text style={styles.transactionDate}>
+            {formatDate(item.added_at)}
+          </Text>
+          <Text style={styles.transactionAmount}>
+            Amount: ₹{Math.abs(item.amount)}
+          </Text>
+          <Text style={styles.transactionType}>
+            {item.type === "expense" ? "Expense" : "Milk"}
+          </Text>
+          {item.expense_detail && (
+            <View>
+              <Text style={styles.transactionExpenseDetail}>
+                Detail: {truncatedDetail}
+              </Text>
+              {item.expense_detail?.length > 50 && (
+                <Pressable onPress={() => handleReadMore(item.expense_detail)}>
+                  <Text style={styles.readMoreText}>Read More</Text>
+                </Pressable>
+              )}
+            </View>
+          )}
+        </View>
+
+        <View style={styles.rightSection}>
+          <Text style={styles.runningBalance}>
+            Running Balance: ₹{item.running_balance}
+          </Text>
+          <Text style={styles.totalTillRecord}>
+            Total Till Record: ₹{item.total_till_record}
+          </Text>
+          <View style={styles.actionButtons}>
+            <Pressable
+              style={styles.actionButton}
+              onPress={() => handleEdit(item)}
+            >
+              <FontAwesome name="edit" size={20} color="#333" />
+            </Pressable>
+            <Pressable
+              style={styles.actionButton}
+              onPress={() => handleDelete(item)}
+            >
+              <FontAwesome name="trash" size={20} color="#F44336" />
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
+  const handlePress = (transactionType: string) => {
+    router.push(
+      `/(app)/customers/transactions/add-transaction?type=${transactionType}&seller_mobile=${id}&name=${name}`
+    );
+  };
+  const handlePressMilk = (transactionType: string) => {
+    router.push(
+      `/(app)/customers/transactions/add-milk?type=${transactionType}&seller_mobile=${id}&name=${name}`
+    );
+  };
   return (
     <View style={styles.container}>
       <Stack.Screen
@@ -100,14 +238,13 @@ const TransactionScreen = () => {
       <FlatList
         data={transactions}
         renderItem={renderTransaction}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.transactionList}
       />
 
-      {/* Action Buttons */}
       <Pressable
         style={[styles.button, { backgroundColor: "#6200ea" }]}
-        onPress={() => handlePress("Add Milk")}
+        onPress={() => handlePressMilk("Add Milk")}
       >
         <Text style={styles.buttonText}>Add Milk</Text>
       </Pressable>
@@ -165,6 +302,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     marginVertical: 8,
     borderRadius: 10,
+    flexDirection: "row",
+    borderLeftWidth: 5,
+  },
+  leftSection: {
+    flex: 1,
   },
   transactionDate: {
     fontSize: 14,
@@ -173,13 +315,46 @@ const styles = StyleSheet.create({
   transactionAmount: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#4CAF50", // Green color for amounts
+    color: "#333",
     marginVertical: 5,
   },
   transactionType: {
     fontSize: 16,
     fontWeight: "500",
     color: "#333",
+  },
+  transactionExpenseDetail: {
+    fontSize: 14,
+    color: "#777",
+  },
+  readMoreText: {
+    color: "#2196F3",
+    fontSize: 14,
+    marginTop: 5,
+  },
+  rightSection: {
+    flex: 1,
+    alignItems: "flex-end",
+  },
+  runningBalance: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#333",
+    marginTop: 5,
+  },
+  totalTillRecord: {
+    fontSize: 14,
+    color: "#777",
+  },
+  actionButtons: {
+    marginTop: 10,
+    flexDirection: "row",
+  },
+  actionButton: {
+    backgroundColor: "transparent",
+    padding: 8,
+    marginHorizontal: 5,
+    borderRadius: 50,
   },
   transactionList: {
     marginTop: 20,
@@ -190,7 +365,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
-    elevation: 2, // Add shadow to buttons
   },
   buttonText: {
     color: "#fff",

@@ -10,8 +10,8 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import Toast from "react-native-toast-message";
-import { getSellerSummaryApi } from "@/api";
 import { formatDistanceToNow } from "date-fns"; // For time formatting
+import { getSellerSummaryApi } from "@/redux/slice/transactions/transactionApi";
 
 const getInitials = (name: string) => {
   const nameParts = name.split(" ");
