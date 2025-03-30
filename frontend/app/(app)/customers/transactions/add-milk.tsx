@@ -165,16 +165,16 @@ const AddMilk = () => {
         control={control}
         name="fat"
         rules={{
-          required: "Fat percentage is required",
+          required: "Fat % is required",
           pattern: {
             value: /^[0-9]+(\.[0-9]{1,2})?$/,
-            message: "Enter a valid fat percentage",
+            message: "Enter a valid fat %",
           },
         }}
         render={({ field: { onChange, value } }) => (
           <TextInput
             style={styles.input}
-            placeholder="Enter fat percentage"
+            placeholder="Enter fat %"
             value={value}
             onChangeText={onChange}
             keyboardType="numeric"
@@ -186,16 +186,16 @@ const AddMilk = () => {
         control={control}
         name="snf"
         rules={{
-          required: "SNF percentage is required",
+          required: "SNF % is required",
           pattern: {
             value: /^[0-9]+(\.[0-9]{1,2})?$/,
-            message: "Enter a valid SNF percentage",
+            message: "Enter a valid SNF %",
           },
         }}
         render={({ field: { onChange, value } }) => (
           <TextInput
             style={styles.input}
-            placeholder="Enter SNF percentage"
+            placeholder="Enter SNF %"
             value={value}
             onChangeText={onChange}
             keyboardType="numeric"
@@ -253,15 +253,21 @@ const AddMilk = () => {
         name="shift"
         rules={{ required: "Shift is required" }}
         render={({ field: { onChange, value } }) => (
-          <Picker selectedValue={value} onValueChange={onChange}>
-            <Picker.Item label="Morning" value="M" />
-            <Picker.Item label="Evening" value="E" />
-          </Picker>
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={value}
+              onValueChange={onChange}
+              style={styles.picker}
+            >
+              <Picker.Item label="Morning" value="M" />
+              <Picker.Item label="Evening" value="E" />
+            </Picker>
+            {errors.shift && (
+              <Text style={styles.errorText}>{errors.shift.message}</Text>
+            )}
+          </View>
         )}
       />
-      {errors.shift && (
-        <Text style={styles.errorText}>{errors.shift.message}</Text>
-      )}
 
       <View style={styles.rowContainer}>
         <Controller
@@ -271,25 +277,28 @@ const AddMilk = () => {
             required: "Rate is required",
           }}
           render={({ field: { onChange, value } }) => (
-            <TextInput
-              style={styles.input}
-              value={value || rate}
-              onChangeText={onChange}
-              keyboardType="numeric"
-              placeholder="Enter rate"
-            />
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                value={value || rate}
+                onChangeText={onChange}
+                keyboardType="numeric"
+                placeholder="Enter rate"
+              />
+              {errors.rate && (
+                <Text style={styles.errorText}>{errors.rate.message}</Text>
+              )}
+            </View>
           )}
         />
         <TouchableOpacity
-          style={[styles.button, { backgroundColor: "#6200ea" }]}
+          style={[styles.fetchButton, { backgroundColor: "#6200ea" }]}
           onPress={handleFetchRate}
         >
-          <Text style={styles.buttonText}>Fetch</Text>
+          <Text style={styles.fetchButtonText}>Fetch</Text>
         </TouchableOpacity>
       </View>
-      {errors.rate && (
-        <Text style={styles.errorText}>{errors.rate.message}</Text>
-      )}
+
       <TouchableOpacity
         style={[styles.button, { backgroundColor: "#6200ea" }]}
         onPress={handleSubmit(handleSubmitForm)}
@@ -327,16 +336,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#333",
   },
-  rowContainer: {
-    flexDirection: "row",
-    justifyContent: "space-evenly",
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#555",
-    marginBottom: 5,
-  },
   input: {
     borderWidth: 1,
     borderColor: "#ccc",
@@ -354,6 +353,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
+    elevation: 2,
   },
   fetchButtonText: {
     color: "#fff",
@@ -376,6 +376,22 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 12,
     color: "red",
+  },
+  pickerContainer: {
+    marginVertical: 10,
+  },
+  picker: {
+    height: 55,
+    backgroundColor: "#fff",
+  },
+  rowContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  inputContainer: {
+    flex: 1,
+    marginRight: 10,
   },
 });
 
