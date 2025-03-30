@@ -46,7 +46,6 @@ const TransactionScreen = () => {
     setLoading(true);
     try {
       const res = await getSellerTransactionApi(id);
-      console.log(res.data);
       if (res.status === 200) {
         const sortedData = res?.data?.sort((a, b) => {
           const dateA = new Date(a.added_at); // Sort by 'added_at' for display purposes
