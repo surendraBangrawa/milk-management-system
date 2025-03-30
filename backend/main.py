@@ -22,6 +22,8 @@ import pytz
 import os
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field, validator
+from fastapi import HTTPException, status
 
 # Load environment variables from .env file if available
 load_dotenv()
@@ -651,6 +653,15 @@ class GetTransactionsRequest(BaseModel):
     seller_mobile: str = Field(
         ..., pattern="^[0-9]{10}$", description="10-digit seller mobile number"
     )
+
+    @validator("seller_mobile")
+    def validate_seller_mobile(cls, v):
+        if not v.isdigit() or len(v) != 10:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Seller mobile number must be a 10-digit number",
+            )
+        return v
 
 
 @app.get("/get_transactions")

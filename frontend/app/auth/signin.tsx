@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
 import { useForm, Controller } from "react-hook-form";
 import Toast from "react-native-toast-message";
 import { sendOtpApi } from "@/api";
@@ -34,7 +34,7 @@ const Signin = () => {
     setLoading(true); // Show loading spinner
 
     try {
-      await AsyncStorage.setItem("user", JSON.stringify({ phone }));
+      await SecureStore.setItemAsync("user", JSON.stringify({ phone }));
       const sendOtp = await sendOtpApi({ mobile: phone });
       if (sendOtp.status === 200) {
         router.push("/auth/otp");

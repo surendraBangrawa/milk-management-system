@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
 import { useForm, Controller } from "react-hook-form";
 import { sendOtpApi, signUpApi } from "@/api";
 import Toast from "react-native-toast-message";
@@ -33,9 +33,9 @@ const Signup = () => {
     }
 
     try {
-      setLoading(true); // Show loading spinner
+      setLoading(true);
       const { name, phone, referral } = data;
-      await AsyncStorage.setItem(
+      await SecureStore.setItemAsync(
         "user",
         JSON.stringify({ name, phone, referral })
       );

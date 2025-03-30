@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
 import Toast from "react-native-toast-message";
 import { loginApi, sendOtpApi } from "@/api";
 import { useSession } from "@/context/AuthProvider";
@@ -42,7 +42,7 @@ const OTP = () => {
   const handleVerifyOTP = async (data) => {
     const { otp } = data;
     try {
-      const user = await AsyncStorage.getItem("user");
+      const user = await SecureStore.getItemAsync("user");
       const { phone } = user ? JSON.parse(user) : {};
       const response = await loginApi({ mobile: phone, otp });
       if (response.status === 200) {
@@ -61,7 +61,7 @@ const OTP = () => {
     if (canResend) {
       setTimer(180);
       setCanResend(false);
-      const user = await AsyncStorage.getItem("user");
+      const user = await SecureStore.getItemAsync("user");
       const { phone } = user ? JSON.parse(user) : {};
       const resendOtp = await sendOtpApi({ mobile: phone });
       if (resendOtp.status === 200) {
