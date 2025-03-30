@@ -1,21 +1,26 @@
 import React, { useState } from "react";
-import { TextInput, Button, StyleSheet } from "react-native";
+import { TextInput, Button, StyleSheet, View } from "react-native";
 import { Stack, useLocalSearchParams } from "expo-router";
-import { ThemedView } from "@/components/ThemedView";
+import { saveContact } from "@/api";
 
 const AddCustomerFormScreen = () => {
   const { name: filledName, phone: filledPhone } = useLocalSearchParams();
   const [name, setName] = useState(filledName ?? "");
   const [phone, setPhone] = useState(filledPhone ?? "");
 
-  const handleAddCustomer = () => {
-    if (name && phone) {
-      console.log(`Customer Added: ${name} - ${phone}`);
+  const handleAddCustomer = async () => {
+    try {
+      if (name && phone) {
+        console.log(`Customer Added: ${name} - ${phone}`);
+        await saveContact({ name, phone });
+      }
+    } catch (err) {
+      console.log(err);
     }
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <View style={styles.container}>
       <Stack.Screen options={{ title: "Add Customer" }} />
       <TextInput
         style={styles.input}
@@ -32,7 +37,7 @@ const AddCustomerFormScreen = () => {
       />
 
       <Button title="Add Customer" onPress={handleAddCustomer} />
-    </ThemedView>
+    </View>
   );
 };
 

@@ -6,11 +6,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   Pressable,
+  Text,
 } from "react-native";
 import * as Contacts from "expo-contacts";
 import { Stack, useRouter } from "expo-router";
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
 
 const AddCustomerScreen = () => {
   const router = useRouter();
@@ -58,16 +57,16 @@ const AddCustomerScreen = () => {
   const renderContact = ({ item }) => (
     <View style={styles.contactCard}>
       <TouchableOpacity onPress={() => handleContactSelect(item)}>
-        <ThemedText>{item.name}</ThemedText>
+        <Text>{item.name}</Text>
         {item.phoneNumbers && item.phoneNumbers[0] && (
-          <ThemedText>{item.phoneNumbers[0].number}</ThemedText>
+          <Text>{item.phoneNumbers[0].number}</Text>
         )}
       </TouchableOpacity>
     </View>
   );
 
   return (
-    <ThemedView style={styles.container}>
+    <View style={styles.container}>
       <Stack.Screen
         options={{
           title: "Contacts",
@@ -81,7 +80,7 @@ const AddCustomerScreen = () => {
       />
 
       <Pressable onPress={() => router.push(`/customers/contacts/add-contact`)}>
-        <ThemedText>Add Customer</ThemedText>
+        <Text>Add Customer</Text>
       </Pressable>
 
       <FlatList
@@ -90,7 +89,7 @@ const AddCustomerScreen = () => {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.contactList}
       />
-    </ThemedView>
+    </View>
   );
 };
 

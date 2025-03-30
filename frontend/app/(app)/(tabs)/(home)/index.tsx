@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Text, StyleSheet, SafeAreaView, Pressable, View } from "react-native";
-import CustomerScreen from "@/app/customers";
-import SupplierScreen from "@/app/suppliers";
+import CustomerScreen from "../../customers";
+import SupplierScreen from "../../suppliers";
 
 const HomeScreen = () => {
   const [mode, setMode] = useState<"customer" | "supplier">("customer");

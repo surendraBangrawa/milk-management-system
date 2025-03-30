@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, FlatList, StyleSheet, Pressable } from "react-native";
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
+import { View, FlatList, StyleSheet, Pressable, Text } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 
 const TransactionScreen = () => {
@@ -19,9 +17,9 @@ const TransactionScreen = () => {
 
   const renderTransaction = ({ item }) => (
     <View style={styles.transactionCard}>
-      <ThemedText>{item.date}</ThemedText>
-      <ThemedText>Amount: ₹{item.amount}</ThemedText>
-      <ThemedText>{item.type}</ThemedText>
+      <Text>{item.date}</Text>
+      <Text>Amount: ₹{item.amount}</Text>
+      <Text>{item.type}</Text>
     </View>
   );
 
@@ -32,19 +30,15 @@ const TransactionScreen = () => {
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <View style={styles.container}>
       <Stack.Screen
         options={{
           title: "Transactions",
         }}
       />
-      <ThemedText type="title" style={styles.header}>
-        Customer: {id}
-      </ThemedText>
+      <Text style={styles.header}>Customer: {id}</Text>
 
-      <ThemedText type="title" style={styles.transactionHeader}>
-        Transaction History
-      </ThemedText>
+      <Text style={styles.transactionHeader}>Transaction History</Text>
       <FlatList
         data={transactions}
         renderItem={renderTransaction}
@@ -56,23 +50,23 @@ const TransactionScreen = () => {
         style={[styles.button, { backgroundColor: "red" }]}
         onPress={() => handlePress("Add Milk")}
       >
-        <ThemedText style={styles.buttonText}>Add Milk</ThemedText>
+        <Text style={styles.buttonText}>Add Milk</Text>
       </Pressable>
 
       <Pressable
         style={[styles.button, { backgroundColor: "green" }]}
         onPress={() => handlePress("You Gave")}
       >
-        <ThemedText style={styles.buttonText}>You Gave</ThemedText>
+        <Text style={styles.buttonText}>You Gave</Text>
       </Pressable>
 
       <Pressable
         style={[styles.button, { backgroundColor: "blue" }]}
         onPress={() => handlePress("You Got")}
       >
-        <ThemedText style={styles.buttonText}>You Got</ThemedText>
+        <Text style={styles.buttonText}>You Got</Text>
       </Pressable>
-    </ThemedView>
+    </View>
   );
 };
 

@@ -1,8 +1,6 @@
 import React, { useState } from "react";
-import { TextInput, Button, StyleSheet } from "react-native";
+import { TextInput, Button, StyleSheet, Text, View } from "react-native";
 import { useRouter, useLocalSearchParams, Stack } from "expo-router";
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
 
 // Amount - INR
 // Note - Text
@@ -23,13 +21,13 @@ const AddTransactionScreen = () => {
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <View style={styles.container}>
       <Stack.Screen
         options={{
           title: type ?? "",
         }}
       />
-      <ThemedText type="title">{type} Transaction</ThemedText>
+      <Text>{type} Transaction</Text>
 
       <TextInput
         style={styles.input}
@@ -50,7 +48,7 @@ const AddTransactionScreen = () => {
         onPress={handleAddTransaction}
         disabled={!amount || !description}
       />
-    </ThemedView>
+    </View>
   );
 };
 
