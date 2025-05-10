@@ -6,12 +6,12 @@ from typing import Optional, List
 from datetime import datetime, timedelta, date
 import random
 from jose import jwt
-from auth import get_current_user
+from backend.auth import get_current_user
 from sqlalchemy import case
 import pytz
 import os
 from dotenv import load_dotenv
-from logger_config import logger
+from backend.logger_config import logger
 from fastapi.middleware.cors import CORSMiddleware
 
 # Load environment variables from .env file if available
