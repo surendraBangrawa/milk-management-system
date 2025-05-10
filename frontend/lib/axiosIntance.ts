@@ -2,7 +2,7 @@ import axios from "axios";
 import * as SecureStore from "expo-secure-store";
 
 const axiosInstance = axios.create({
-  baseURL: "http://192.168.1.2:8000",
+  baseURL: "https://milk-management-system.onrender.com",
   timeout: 10000,
 });
 
