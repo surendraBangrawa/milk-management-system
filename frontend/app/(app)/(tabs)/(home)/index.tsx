@@ -6,7 +6,7 @@ import { useSession } from "@/context/AuthProvider";
 
 const HomeScreen = () => {
   const [mode, setMode] = useState<"customer" | "supplier">("customer");
-  const { signOut } = useSession();
+  // const { signOut } = useSession();
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerContainer}>
@@ -44,9 +44,9 @@ const HomeScreen = () => {
               Supplier
             </Text>
           </Pressable>
-          <Pressable onPress={() => signOut()}>
+          {/* <Pressable onPress={() => signOut()}>
             <Text style={styles.logoutText}>Logout</Text>
-          </Pressable>
+          </Pressable> */}
         </View>
       </View>
       <View style={styles.screenContainer}>

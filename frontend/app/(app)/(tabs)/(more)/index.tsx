@@ -1,8 +1,10 @@
+import { useSession } from "@/context/AuthProvider";
 import { useRouter } from "expo-router";
 import { StyleSheet, View, Text, Pressable } from "react-native";
 
 export default function TabTwoScreen() {
   const router = useRouter();
+  const { signOut } = useSession();
   const handleOptionPress = (option: string) => {
     console.log(`${option} pressed`);
     if (option === "Profile") {
@@ -10,6 +12,12 @@ export default function TabTwoScreen() {
     }
     if (option === "Manage Subscription") {
       router.push("/(app)/subscription");
+    }
+    if (option === "Rate List") {
+      router.push("/(app)/ratelist");
+    }
+    if (option === "Logout") {
+      signOut();
     }
   };
 
@@ -41,6 +49,20 @@ export default function TabTwoScreen() {
           onPress={() => handleOptionPress("About")}
         >
           <Text style={styles.optionText}>About</Text>
+        </Pressable>
+
+        <Pressable
+          style={styles.option}
+          onPress={() => handleOptionPress("Rate List")}
+        >
+          <Text style={styles.optionText}>Rate List</Text>
+        </Pressable>
+
+        <Pressable
+          style={styles.option}
+          onPress={() => handleOptionPress("Logout")}
+        >
+          <Text style={styles.optionText}>Logout</Text>
         </Pressable>
       </View>
     </View>

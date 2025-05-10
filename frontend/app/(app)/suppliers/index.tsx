@@ -81,7 +81,7 @@ const SupplierScreen = () => {
         style={styles.personButton}
         onPress={() =>
           router.push(
-            `/(app)/customers/transactions/${item.mobile}?name=${item.name}`
+            `/(app)/suppliers/transactions/${item.mobile}?name=${item.name}`
           )
         }
       >
