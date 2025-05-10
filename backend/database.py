@@ -31,9 +31,15 @@ DB_USER = "root"
 DB_PASSWORD = "1234"
 DB_HOST = "localhost"
 DB_NAME = "nits"
+DB_PORT = "3306"
+# DB_USER = "milkManagementApp_sleepfine"
+# DB_PASSWORD = "7764640b5257b2d69877b37878213b289613ad91"
+# DB_HOST = "35xrn.h.filess.io"
+# DB_NAME = "milkManagementApp_sleepfine"
+# DB_PORT = "3307"
 
-DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}"
-
+DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+# DATABASE_URL = f"mysql://milkManagementApp_sleepfine:7764640b5257b2d69877b37878213b289613ad91@35xrn.h.filess.io:3307/milkManagementApp_sleepfine"
 # Create SQLAlchemy engine
 engine = create_engine(DATABASE_URL)
 

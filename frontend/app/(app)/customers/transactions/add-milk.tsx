@@ -104,10 +104,9 @@ const AddMilk = () => {
       rate: parseFloat(data.rate),
       seller_mobile: seller_mobile,
     };
-    console.log(data);
     try {
       const res = id
-        ? await editSellerTransactionApi({ ...milkData, id, type })
+        ? await editSellerTransactionApi({ ...milkData, id: id, type: type })
         : await addSellerMilkTransactionApi(milkData);
       if (res?.status === 200) {
         Toast.show({
@@ -122,7 +121,6 @@ const AddMilk = () => {
         throw new Error("Failed to add transaction.");
       }
     } catch (error: any) {
-      console.log(error);
       Toast.show({
         type: "error",
         text1: "Error",

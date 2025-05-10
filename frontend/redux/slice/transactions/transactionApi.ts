@@ -20,6 +20,12 @@ export interface EditSellerTransaction {
   custom_date: string;
   id: string;
   type: string;
+  quantity?: number;
+  fat?: number;
+  snf?: number;
+  milk_detail?: string;
+  shift?: string;
+  rate?: number;
 }
 export interface AddSellerMilkTransaction {
   quantity: number;
@@ -72,9 +78,7 @@ export const editSellerTransactionApi = async (data: EditSellerTransaction) => {
   try {
     return await axiosInstance.put(
       `/edit_transaction?record_id=${data.id}&record_type=${data.type}&seller_mobile=${data.seller_mobile}`,
-      {
-        data,
-      }
+      data
     );
   } catch (error) {
     throw error;

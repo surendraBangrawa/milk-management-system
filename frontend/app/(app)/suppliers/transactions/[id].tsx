@@ -42,101 +42,41 @@ const TransactionScreen = () => {
   const [loading, setLoading] = useState(false);
 
   // Fetch transaction data
-  const fetchCustomerData = async () => {
-    setLoading(true);
-    try {
-      const res = await getSellerTransactionApi(id);
-      if (res.status === 200) {
-        const sortedData = res?.data?.sort((a, b) => {
-          const dateA = new Date(a.added_at); // Sort by 'added_at' for display purposes
-          const dateB = new Date(b.added_at);
-          return dateB - dateA;
-        });
-        setTransactions(sortedData);
-      }
-    } catch (err: any) {
-      setError(
-        err?.response?.data?.detail
-          ? err?.response?.data?.detail
-          : "Something went wrong"
-      );
-      Toast.show({
-        type: "error",
-        text1: "Error",
-        text2: "Failed to load customer data.",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  // const fetchCustomerData = async () => {
+  //   setLoading(true);
+  //   try {
+  //     const res = await getBuyerTransactionApi(id);
+  //     if (res.status === 200) {
+  //       const sortedData = res?.data?.sort((a, b) => {
+  //         const dateA = new Date(a.added_at); // Sort by 'added_at' for display purposes
+  //         const dateB = new Date(b.added_at);
+  //         return dateB - dateA;
+  //       });
+  //       setTransactions(sortedData);
+  //     }
+  //   } catch (err: any) {
+  //     setError(
+  //       err?.response?.data?.detail
+  //         ? err?.response?.data?.detail
+  //         : "Something went wrong"
+  //     );
+  //     Toast.show({
+  //       type: "error",
+  //       text1: "Error",
+  //       text2: "Failed to load customer data.",
+  //     });
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
-  useEffect(() => {
-    fetchCustomerData();
-  }, [id]);
+  // useEffect(() => {
+  //   fetchCustomerData();
+  // }, [id]);
 
   // Function to format the 'added_at' date
   const formatDate = (date: string) => {
     return formatDistanceToNow(new Date(date), { addSuffix: true });
-  };
-
-  // Delete transaction handler
-  const handleDelete = (item) => {
-    Alert.alert(
-      "Delete Transaction",
-      "Are you sure you want to delete this transaction?",
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Delete",
-          onPress: async () => {
-            try {
-              const res = await deleteSellerTransactionApi({
-                record_id: item.id,
-                record_type: item.type,
-                seller_mobile: item.seller_mobile,
-              });
-              if (res.status === 200) {
-                Toast.show({
-                  type: "success",
-                  text1: "Success",
-                  text2: "Transaction deleted successfully.",
-                });
-                fetchCustomerData();
-              }
-            } catch (err: any) {
-              console.log(err.response);
-              Toast.show({
-                type: "error",
-                text1: "Error",
-                text2: "Failed to delete the transaction.",
-              });
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  // Edit transaction handler
-  const handleEdit = (item) => {
-    if (item.type === "expense") {
-      router.push(
-        `/(app)/customers/transactions/add-transaction?id=${
-          item.id
-        }&seller_mobile=${item.seller_mobile}&type=${
-          item.amount < 0 ? "GAVE" : "GOT"
-        }&desc=${item.expense_detail}&date=${
-          item.custom_date
-        }&amount=${Math.abs(item.amount)}&name=${name}`
-      );
-    } else {
-      router.push(
-        `/(app)/customers/transactions/add-milk?id=${item.id}&seller_mobile=${item.seller_mobile}&desc=${item.milk_detail}&date=${item.custom_date}&rate=${item.rate}&name=${name}&quantity=${item.quantity}&snf=${item.snf}&fat=${item.fat}&type=${item.type}`
-      );
-    }
   };
 
   // Function to handle "Read More" click
@@ -188,35 +128,11 @@ const TransactionScreen = () => {
           <Text style={styles.totalTillRecord}>
             Total Till Record: ₹{item.total_till_record}
           </Text>
-          <View style={styles.actionButtons}>
-            <Pressable
-              style={styles.actionButton}
-              onPress={() => handleEdit(item)}
-            >
-              <FontAwesome name="edit" size={20} color="#333" />
-            </Pressable>
-            <Pressable
-              style={styles.actionButton}
-              onPress={() => handleDelete(item)}
-            >
-              <FontAwesome name="trash" size={20} color="#F44336" />
-            </Pressable>
-          </View>
         </View>
       </View>
     );
   };
 
-  const handlePress = (transactionType: string) => {
-    router.push(
-      `/(app)/customers/transactions/add-transaction?type=${transactionType}&seller_mobile=${id}&name=${name}`
-    );
-  };
-  const handlePressMilk = (transactionType: string) => {
-    router.push(
-      `/(app)/customers/transactions/add-milk?type=${transactionType}&seller_mobile=${id}&name=${name}`
-    );
-  };
   return (
     <View style={styles.container}>
       <Stack.Screen
@@ -240,27 +156,6 @@ const TransactionScreen = () => {
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.transactionList}
       />
-
-      <Pressable
-        style={[styles.button, { backgroundColor: "#6200ea" }]}
-        onPress={() => handlePressMilk("Add Milk")}
-      >
-        <Text style={styles.buttonText}>Add Milk</Text>
-      </Pressable>
-
-      <Pressable
-        style={[styles.button, { backgroundColor: "#4CAF50" }]}
-        onPress={() => handlePress("Gave")}
-      >
-        <Text style={styles.buttonText}>You Gave</Text>
-      </Pressable>
-
-      <Pressable
-        style={[styles.button, { backgroundColor: "#2196F3" }]}
-        onPress={() => handlePress("Got")}
-      >
-        <Text style={styles.buttonText}>You Got</Text>
-      </Pressable>
     </View>
   );
 };
