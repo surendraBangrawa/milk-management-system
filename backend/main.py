@@ -597,15 +597,34 @@ class GetTransactionsRequest(BaseModel):
     seller_mobile: str = Field(..., pattern="^[0-9]{10}$", description="10-digit seller mobile number")
 
 
-@app.get("/get_transactions")
-def get_transactions(
+@app.get("/get_transactions_buyer")
+def get_transactions_buyer(
     db: Session = Depends(get_db), 
     buyer_mobile: str = Depends(get_current_user),
     request: GetTransactionsRequest = Depends()
 ):
     try:
-        logger.info(f"In get_transactions")
+        logger.info(f"In get_transactions_buyer")
         seller_mobile = request.seller_mobile
+        return update_balances(db, buyer_mobile, seller_mobile, negate_total=True)
+    except Exception as e:
+        logger.error(f"Error: {e}")
+        raise HTTPException(status_code=404, detail="Something went wrong")
+    
+class GetTransactionsSellerRequest(BaseModel):
+    buyer_mobile: str = Field(..., pattern="^[0-9]{10}$", description="10-digit buyer mobile number")
+    
+@app.get("/get_transactions_seller")
+def get_transactions_seller(
+    db: Session = Depends(get_db), 
+    seller_mobile: str = Depends(get_current_user),
+    request: GetTransactionsSellerRequest = Depends()
+):
+    try:
+        logger.info(f"In get_transactions_seller")
+        buyer_mobile = request.buyer_mobile
+        logger.info(f"buyer_mobile : {buyer_mobile}")
+        logger.info(f"seller_mobile : {seller_mobile}")
         return update_balances(db, buyer_mobile, seller_mobile)
     except Exception as e:
         logger.error(f"Error: {e}")
@@ -613,7 +632,8 @@ def get_transactions(
 
 
 
-def update_balances(db: Session, buyer_mobile: str, seller_mobile: str):
+
+def update_balances(db: Session, buyer_mobile: str, seller_mobile: str, negate_total: bool = False):
     transactions = []
     running_balance = 0.00  # ✅ Start with zero balance
 
@@ -652,16 +672,18 @@ def update_balances(db: Session, buyer_mobile: str, seller_mobile: str):
         # ✅ Update record's `total_till_record` in the database
         entry["record"].total_till_record = round(running_balance, 2)
 
+        total = -round(entry["record"].total_till_record, 2) if negate_total else round(entry["record"].total_till_record, 2)
+
         transaction_data = {
             "id": entry["record"].id if entry["type"] == "milk" else entry["record"].expense_id,
             "type": entry["type"],
             "amount": round(entry["amount"], 2),
-            "running_balance": round(running_balance, 2),
+            #"running_balance": round(running_balance, 2),
             "custom_date": entry["record"].custom_date,
             "added_at": entry["record"].added_at,
             "buyer_mobile": entry["record"].buyer_mobile,
             "seller_mobile": entry["record"].seller_mobile,
-            "total_till_record": round(entry["record"].total_till_record, 2),
+            "total_till_record": total,
             "updated_at": getattr(entry["record"], "updated_at", None)
         }
 
@@ -738,7 +760,7 @@ def get_seller_summary(
                 {
                     "name":seller_name,
                     "mobile": seller_mobile,
-                    "balance": seller_balance,
+                    "balance": -seller_balance,
                     "date": updated_date
                 }
             )
@@ -1138,6 +1160,27 @@ def fetch_rate(
     except Exception as e:
         logger.error(f"Error: {e}")
         raise HTTPException(status_code=404, detail="Something went wrong")
+    
+@app.get('/show_rate_list')
+def show_rate_list(
+    db : Session = Depends(get_db),
+    buyer_mobile : str = Depends(get_current_user)
+):
+    try:
+        logger.info(f"In show_rate_list_api")
+        rate_list = db.query(RateList).filter(
+            RateList.buyer_mobile == buyer_mobile,
+            RateList.is_deleted ==0
+        ).first()
+
+        if not rate_list:
+            raise HTTPException(status_code=404, detail = "Rate List not found")
+        
+        return {"rates": rate_list.rates}
+    
+    except Exception as e:
+        logger.error(f"Error: {e}")
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 @app.post('/take_subscription')
 def take_subscription(
