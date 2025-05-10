@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends, Body
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
-from database import User, AuthUser, get_db, Customer, MilkRecord, ExpenseRecord, RateList, Subscription, SubscriptionPlan  # Import DB session & User model
+from backend.database import User, AuthUser, get_db, Customer, MilkRecord, ExpenseRecord, RateList, Subscription, SubscriptionPlan  # Import DB session & User model
 from typing import Optional, List
 from datetime import datetime, timedelta, date
 import random
