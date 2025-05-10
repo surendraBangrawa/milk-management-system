@@ -28,7 +28,7 @@ local_timezone = pytz.timezone(time_zone)
 
 # MySQL Database Configuration
 DB_USER = "root"
-DB_PASSWORD = "1590"
+DB_PASSWORD = "1234"
 DB_HOST = "localhost"
 DB_NAME = "nits"
 
