@@ -1,17 +1,17 @@
 from fastapi import FastAPI, HTTPException, Depends, Body
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
-from database import User, AuthUser, get_db, Customer, MilkRecord, ExpenseRecord, RateList, Subscription, SubscriptionPlan  # Import DB session & User model
+from backend.database import User, AuthUser, get_db, Customer, MilkRecord, ExpenseRecord, RateList, Subscription, SubscriptionPlan  # Import DB session & User model
 from typing import Optional, List
 from datetime import datetime, timedelta, date
 import random
 from jose import jwt
-from auth import get_current_user
+from backend.auth import get_current_user
 from sqlalchemy import case
 import pytz
 import os
 from dotenv import load_dotenv
-from logger_config import logger
+from backend.logger_config import logger
 from fastapi.middleware.cors import CORSMiddleware
 
 # Load environment variables from .env file if available
