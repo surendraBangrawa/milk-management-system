@@ -673,11 +673,12 @@ def update_balances(db: Session, buyer_mobile: str, seller_mobile: str, negate_t
         entry["record"].total_till_record = round(running_balance, 2)
 
         total = -round(entry["record"].total_till_record, 2) if negate_total else round(entry["record"].total_till_record, 2)
+        amt = -round(entry["amount"], 2) if negate_total else round(entry["amount"], 2)
 
         transaction_data = {
             "id": entry["record"].id if entry["type"] == "milk" else entry["record"].expense_id,
             "type": entry["type"],
-            "amount": round(entry["amount"], 2),
+            "amount": amt,
             #"running_balance": round(running_balance, 2),
             "custom_date": entry["record"].custom_date,
             "added_at": entry["record"].added_at,
