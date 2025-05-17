@@ -48,7 +48,7 @@ export const getSellerSummaryApi = async () => {
 
 export const getSellerTransactionApi = async (data: string) => {
   try {
-    return await axiosInstance.get("/get_transactions", {
+    return await axiosInstance.get("/get_transactions_buyer", {
       params: { seller_mobile: data },
     });
   } catch (error) {

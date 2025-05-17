@@ -7,3 +7,13 @@ export const getBuyerSummaryApi = async () => {
     throw error;
   }
 };
+
+export const getBuyerTransactionApi = async (id: string) => {
+  try {
+    return await axiosInstance.get("/get_transactions_buyer", {
+      params: { seller_mobile: id },
+    });
+  } catch (error) {
+    throw error;
+  }
+};

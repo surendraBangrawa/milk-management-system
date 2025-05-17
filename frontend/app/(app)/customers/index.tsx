@@ -100,7 +100,16 @@ const CustomerScreen = () => {
         </View>
         {/* Move balance to the other side of the card */}
         <View style={styles.balanceContainer}>
-          <Text style={styles.personBalance}>₹{item.balance.toFixed(2)}</Text>
+          <Text
+            style={[
+              styles.personBalance,
+              { color: item.balance >= 0 ? "#4CAF50" : "#FF5252" }, // Green or Red
+            ]}
+          >
+            {item.balance < 0
+              ? `-₹${Math.abs(item.balance).toFixed(2)}`
+              : `₹${item.balance.toFixed(2)}`}
+          </Text>
         </View>
       </TouchableOpacity>
     </View>
@@ -188,7 +197,6 @@ const styles = StyleSheet.create({
   },
   personBalance: {
     fontSize: 16,
-    color: "#4CAF50", // Green for balance
     marginTop: 5,
   },
   personDate: {

@@ -4,17 +4,20 @@ from jose import jwt
 from datetime import datetime
 from typing import Callable
 from sqlalchemy.orm import Session
-from backend.database import get_db, User
-#from fastapi.security import OAuth2PasswordBearer
+from database import get_db, User
+
+# from fastapi.security import OAuth2PasswordBearer
 
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
 oauth2_scheme = HTTPBearer()  # Use direct Bearer Token authentication
 
 
-#oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+# oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 SECRET_KEY = "thisisthebestsecretkeythekey"
 ALGORITHM = "HS256"
+
 
 class JWTMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: Callable):
@@ -32,15 +35,23 @@ class JWTMiddleware(BaseHTTPMiddleware):
             mobile = token_data.get("sub")  # Extract user mobile from token
 
             if not mobile:
-                raise HTTPException(status_code=401, detail="Invalid token, no user information")
+                raise HTTPException(
+                    status_code=401, detail="Invalid token, no user information"
+                )
 
             # ✅ Create a new DB session for this request
             db: Session = next(get_db())
 
             # ✅ Retrieve user from database
-            user = db.query(User).filter(User.mobile == mobile, User.is_deleted ==0).first()
+            user = (
+                db.query(User)
+                .filter(User.mobile == mobile, User.is_deleted == 0)
+                .first()
+            )
             if not user:
-                raise HTTPException(status_code=401, detail="User not found or inactive")
+                raise HTTPException(
+                    status_code=401, detail="User not found or inactive"
+                )
 
             # ✅ Attach user to request state
             request.state.user = user
@@ -57,11 +68,11 @@ class JWTMiddleware(BaseHTTPMiddleware):
 # Function to get the current authenticated user
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Security(oauth2_scheme),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     token = credentials.credentials  # ✅ Extract actual token
 
-    #print(f"Received Token: {token}")  # Debugging output
+    # print(f"Received Token: {token}")  # Debugging output
 
     credentials_exception = HTTPException(
         status_code=401,
@@ -71,7 +82,7 @@ def get_current_user(
 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        #print(f"Decoded Payload: {payload}")  # Debugging output
+        # print(f"Decoded Payload: {payload}")  # Debugging output
 
         mobile: str = payload.get("sub")  # Extract mobile number from token
 
@@ -80,12 +91,14 @@ def get_current_user(
             raise credentials_exception
 
         # Fetch user from the database
-        user = db.query(User).filter(User.mobile == mobile, User.is_deleted==0).first()
+        user = (
+            db.query(User).filter(User.mobile == mobile, User.is_deleted == 0).first()
+        )
         if not user:
             print(f"User {mobile} not found in database!")  # Debugging output
             raise credentials_exception
 
-        #print(f"Authenticated User: {user.mobile}")  # Debugging output
+        # print(f"Authenticated User: {user.mobile}")  # Debugging output
         return mobile  # ✅ Return authenticated mobile number
 
     except jwt.ExpiredSignatureError:

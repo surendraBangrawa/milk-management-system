@@ -15,6 +15,7 @@ import {
   deleteSellerTransactionApi,
   getSellerTransactionApi,
 } from "@/redux/slice/transactions/transactionApi";
+import { getBuyerTransactionApi } from "@/redux/slice/supplier/supplierApi";
 
 const getInitials = (name: string) => {
   const nameParts = name.split(" ");
@@ -41,38 +42,37 @@ const TransactionScreen = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Fetch transaction data
-  // const fetchCustomerData = async () => {
-  //   setLoading(true);
-  //   try {
-  //     const res = await getBuyerTransactionApi(id);
-  //     if (res.status === 200) {
-  //       const sortedData = res?.data?.sort((a, b) => {
-  //         const dateA = new Date(a.added_at); // Sort by 'added_at' for display purposes
-  //         const dateB = new Date(b.added_at);
-  //         return dateB - dateA;
-  //       });
-  //       setTransactions(sortedData);
-  //     }
-  //   } catch (err: any) {
-  //     setError(
-  //       err?.response?.data?.detail
-  //         ? err?.response?.data?.detail
-  //         : "Something went wrong"
-  //     );
-  //     Toast.show({
-  //       type: "error",
-  //       text1: "Error",
-  //       text2: "Failed to load customer data.",
-  //     });
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
+  const fetchCustomerData = async () => {
+    setLoading(true);
+    try {
+      const res = await getBuyerTransactionApi(id);
+      if (res.status === 200) {
+        const sortedData = res?.data?.sort((a, b) => {
+          const dateA = new Date(a.added_at); // Sort by 'added_at' for display purposes
+          const dateB = new Date(b.added_at);
+          return dateB - dateA;
+        });
+        setTransactions(sortedData);
+      }
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.detail
+          ? err?.response?.data?.detail
+          : "Something went wrong"
+      );
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Failed to load customer data.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // useEffect(() => {
-  //   fetchCustomerData();
-  // }, [id]);
+  useEffect(() => {
+    fetchCustomerData();
+  }, [id]);
 
   // Function to format the 'added_at' date
   const formatDate = (date: string) => {
