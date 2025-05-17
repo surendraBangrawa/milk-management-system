@@ -20,9 +20,15 @@ from auth import get_current_user
 from sqlalchemy import case
 import pytz
 import os
+import re
 from dotenv import load_dotenv
 from logger_config import logger
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import File, UploadFile
+import shutil  # For saving the uploaded file
+import pandas as pd
+from fastapi.responses import JSONResponse
+from image_process import get_text_from_image_via_api, parse_extracted_text_to_dataframe
 
 # Load environment variables from .env file if available
 load_dotenv()
@@ -1284,6 +1290,144 @@ def store_rate_list(
     except Exception as e:
         logger.error(f"Error: {e}")
         db.rollback()
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+    
+
+@app.post("/upload_rate_list_image")
+async def upload_rate_list_image(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    buyer_mobile: str = Depends(get_current_user),
+):
+    """
+    API endpoint to receive an uploaded image file containing a rate list,
+    process it to extract data, and store the rate list in the database.
+    """
+    try:
+        if not file.content_type.startswith("image/"):
+            raise HTTPException(status_code=400, detail="Invalid file type. Only images are allowed.")
+
+        # Save the uploaded file temporarily
+        upload_folder = "temp_uploads"
+        os.makedirs(upload_folder, exist_ok=True)
+        file_extension = os.path.splitext(file.filename)[1]  # Get the file extension
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+        new_filename = f"{timestamp}{file_extension}"
+        file_path = os.path.join(upload_folder, new_filename)
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        logger.info(f"Image uploaded successfully to: {file_path}")
+
+        # Process the image to extract text
+        extracted_text = get_text_from_image_via_api(file_path)
+
+        # if not extracted_text:
+        #     raise HTTPException(status_code=500, detail="Failed to extract text from the image.")
+        
+
+        if not extracted_text or len(extracted_text.strip()) < 250:  # Example: Check for minimal extracted text
+            os.remove(file_path)
+            raise HTTPException(
+                status_code=400,
+                detail="Failed to extract sufficient text from the image. Please upload a clearer, higher quality image.",
+            )
+
+
+        logger.info(f"Text extracted from image:\n{extracted_text}")
+
+        # Parse the extracted text into a DataFrame
+        success, extracted_df = parse_extracted_text_to_dataframe(extracted_text)
+
+        if not success:
+            raise HTTPException(status_code=400, detail="No data rows identified in the extracted text.")
+
+        if extracted_df.empty:
+            raise HTTPException(status_code=400, detail="Failed to parse data from the extracted text.")
+
+        logger.info(f"DataFrame created successfully:\n{extracted_df.head().to_string()}")
+
+        rate_list_for_api: List[RateData] = []
+        snf_columns = [col for col in extracted_df.columns if re.match(r'^\d\.\d+$', col) or re.match(r'^\d+$', col)]
+
+        for index, row in extracted_df.iterrows():
+            fat_snf = row['Fat/SNF']
+            fat_value = None
+            snf_base_value = None
+
+            # Assuming 'Fat/SNF' column contains values like '3' or '3.5' (representing FAT)
+            try:
+                fat_value = float(fat_snf)
+            except ValueError:
+                print(f"Warning: Could not parse FAT value from '{fat_snf}' in row {index}.")
+                continue
+
+            for snf_col in snf_columns:
+                rate_value = row[snf_col]
+                try:
+                    snf_value = float(snf_col)
+                    if pd.notna(rate_value):
+                        rate_list_for_api.append(RateData(fat=fat_value, snf=snf_value, rate=float(rate_value)))
+                except ValueError:
+                    print(f"Warning: Could not parse SNF value from column '{snf_col}'.")
+                except TypeError:
+                    print(f"Warning: Rate value in column '{snf_col}' for FAT '{fat_value}' is not a valid number.")
+
+        # Now 'rate_list_for_api' is a list of RateData objects ready to be used
+        # to construct your RateListRequest object.
+        # Example:
+        record = RateListRequest(rates=rate_list_for_api)
+        print("\n--- Constructed RateListRequest (First Record) ---")
+        if record.rates:
+            print(record.rates[0].model_dump())
+
+        # Option to save to HTML (still useful for debugging)
+        # html_output = extracted_df.to_html(index=False)
+        # output_filename = "extracted_table_for_api_simulated.html"
+        # with open(output_filename, "w") as f:
+        #     f.write(html_output)
+        # print(f"\nTable data saved to '{output_filename}'")
+
+        # Convert rate_list_for_api to the format expected by the database
+        rates_for_db = [rate.model_dump() for rate in rate_list_for_api]
+
+        # Check if a RateList entry exists for the buyer
+        existing_rate_list = db.query(RateList).filter(RateList.buyer_mobile == buyer_mobile).first()
+
+        if existing_rate_list:
+            # Update the existing RateList entry
+            existing_rate_list.rates = rates_for_db
+            db.commit()
+            db.refresh(existing_rate_list)
+            message = "Rate list updated successfully"
+            logger.info(f"Rate list updated for buyer: {buyer_mobile}")
+        else:
+            # Create a new RateList entry
+            new_rate_list = RateList(buyer_mobile=buyer_mobile, rates=rates_for_db)
+            db.add(new_rate_list)
+            db.commit()
+            db.refresh(new_rate_list)
+            message = "Rate list created successfully"
+            logger.info(f"Rate list created for buyer: {buyer_mobile}")
+
+        # Clean up the temporary file
+        os.remove(file_path)
+
+
+        return JSONResponse(status_code=200, content={"message": "Rate list uploaded and stored successfully"})
+
+    except HTTPException as http_exc:
+        # No need to rollback the database here as we haven't started a transaction yet
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        return http_exc
+
+    except Exception as e:
+        logger.error(f"An error occurred during image upload and processing: {e}")
+        if db:
+            db.rollback()
+        if os.path.exists(file_path):
+            os.remove(file_path)
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 
