@@ -1,5 +1,4 @@
 from sqlalchemy import (
-    create_engine,
     Column,
     String,
     DateTime,
@@ -12,55 +11,29 @@ from sqlalchemy import (
     JSON,
 )
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 import enum
 import pytz
 import os
-from dotenv import load_dotenv
 
-# Load environment variables from .env file if available
-load_dotenv()
-time_zone = os.getenv("TZ", "Asia/Kolkata")
-
-# Get the current time in the time zone specified in the environment variable
-local_timezone = pytz.timezone(time_zone)
-
-# MySQL Database Configuration
-DB_USER = "root"
-DB_PASSWORD = "1590"
-DB_HOST = "localhost"
-DB_NAME = "nits"
-DB_PORT = "3306"
-# DB_USER = "milkManagementApp_sleepfine"
-# DB_PASSWORD = "7764640b5257b2d69877b37878213b289613ad91"
-# DB_HOST = "35xrn.h.filess.io"
-# DB_NAME = "milkManagementApp_sleepfine"
-# DB_PORT = "3307"
-
-DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-# DATABASE_URL = f"mysql://milkManagementApp_sleepfine:7764640b5257b2d69877b37878213b289613ad91@35xrn.h.filess.io:3307/milkManagementApp_sleepfine"
-# Create SQLAlchemy engine
-engine = create_engine(DATABASE_URL)
-
-# Create session
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# Note: dotenv is loaded in session.py, but you might load it here too
+# if you need env vars specifically for model definitions (like TZ)
 
 # Define Base for ORM models
 Base = declarative_base()
 
-
-# Dependency to get DB session
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# Load time zone from environment variable
+time_zone = os.getenv("TZ", "Asia/Kolkata")
+local_timezone = pytz.timezone(time_zone)
 
 
+# Helper function to get the current time in the specified timezone
 def local_now():
+    """Returns the current time in the configured local timezone."""
     return datetime.now(local_timezone)
+
+
+# --- Define your SQLAlchemy Models ---
 
 
 # User Table Schema
@@ -71,7 +44,9 @@ class User(Base):
     name = Column(String(100), nullable=False)
     referral_code = Column(String(20), nullable=True)
     is_deleted = Column(Boolean, default=False, nullable=False)
-    registered_at = Column(DateTime, default=local_now)
+    registered_at = Column(
+        DateTime, default=local_now
+    )  # Use local_now for timezone-aware timestamp
 
 
 # Customers Table Schema
@@ -83,7 +58,7 @@ class Customer(Base):
     name = Column(String(100), nullable=False)
     added_under = Column(String(255), nullable=False)  # Comma-separated list of sellers
     is_deleted = Column(Boolean, default=False, nullable=False)
-    added_at = Column(DateTime, default=local_now)
+    added_at = Column(DateTime, default=local_now)  # Use local_now
 
 
 class AuthUser(Base):
@@ -99,8 +74,8 @@ class AuthUser(Base):
 
 # Milk Transactions
 class ShiftEnum(str, enum.Enum):
-    M = "M"
-    E = "E"
+    M = "M"  # Morning
+    E = "E"  # Evening
 
 
 class MilkRecord(Base):
@@ -113,15 +88,15 @@ class MilkRecord(Base):
     fat = Column(Float, nullable=True)
     snf = Column(Float, nullable=True)
     rate = Column(Float, nullable=False)
-    shift = Column(Enum(ShiftEnum), nullable=False)  # ✅ Only 'M' or 'E' allowed
+    shift = Column(Enum(ShiftEnum), nullable=False)  # Only 'M' or 'E' allowed
     milk_detail = Column(String(256), nullable=True)
     total_till_record = Column(Float, nullable=False)
-    custom_date = Column(DateTime, nullable=False)  # ✅ Stores user-entered date
+    custom_date = Column(DateTime, nullable=False)  # Stores user-entered date/time
     is_deleted = Column(Boolean, default=False, nullable=False)
-    added_at = Column(DateTime, default=local_now)
-    updated_at = Column(DateTime, nullable=True, onupdate=local_now)
+    added_at = Column(DateTime, default=local_now)  # Use local_now
+    updated_at = Column(DateTime, nullable=True, onupdate=local_now)  # Use local_now
 
-    # ✅ Ensure shift only accepts 'M' or 'E'
+    # Ensure shift only accepts 'M' or 'E'
     __table_args__ = (
         CheckConstraint("shift IN ('M', 'E')", name="check_shift_values"),
     )
@@ -137,10 +112,10 @@ class ExpenseRecord(Base):
     amount = Column(Float, nullable=False)
     expense_detail = Column(String(256), nullable=True)
     total_till_record = Column(Float, nullable=False)
-    custom_date = Column(DateTime, nullable=False)  # ✅ Stores user-entered date
+    custom_date = Column(DateTime, nullable=False)  # Stores user-entered date/time
     is_deleted = Column(Boolean, default=False, nullable=False)
-    added_at = Column(DateTime, default=local_now)
-    updated_at = Column(DateTime, nullable=True, onupdate=local_now)
+    added_at = Column(DateTime, default=local_now)  # Use local_now
+    updated_at = Column(DateTime, nullable=True, onupdate=local_now)  # Use local_now
 
 
 class RateList(Base):
@@ -149,8 +124,8 @@ class RateList(Base):
     buyer_mobile = Column(String(10), primary_key=True, nullable=False)
     rates = Column(JSON, nullable=False)  # Store the JSON data in this column
     is_deleted = Column(Boolean, default=False, nullable=False)
-    created_at = Column(DateTime, default=local_now)
-    updated_at = Column(DateTime, nullable=True, onupdate=local_now)
+    created_at = Column(DateTime, default=local_now)  # Use local_now
+    updated_at = Column(DateTime, nullable=True, onupdate=local_now)  # Use local_now
 
 
 class Subscription(Base):
@@ -159,10 +134,10 @@ class Subscription(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     buyer_mobile = Column(String(10), nullable=False)
     subscription_type = Column(String(10), nullable=False)
-    start_date = Column(Date, nullable=False)
-    end_date = Column(Date, nullable=False)
-    created_at = Column(DateTime, default=local_now)
-    updated_at = Column(DateTime, nullable=True, onupdate=local_now)
+    start_date = Column(Date, nullable=False)  # Date only
+    end_date = Column(Date, nullable=False)  # Date only
+    created_at = Column(DateTime, default=local_now)  # Use local_now
+    updated_at = Column(DateTime, nullable=True, onupdate=local_now)  # Use local_now
 
 
 class AccessType(str, enum.Enum):
@@ -175,12 +150,8 @@ class SubscriptionPlan(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     price = Column(Float, nullable=False)
-    validity = Column(Integer, nullable=False)
+    validity = Column(Integer, nullable=False)  # e.g., days, months
     access_type = Column(Enum(AccessType), nullable=False)
     is_deleted = Column(Boolean, default=False, nullable=False)
-    created_at = Column(DateTime, default=local_now)
-    updated_at = Column(DateTime, nullable=True, onupdate=local_now)
-
-
-# Create tables in MySQL
-Base.metadata.create_all(bind=engine)
+    created_at = Column(DateTime, default=local_now)  # Use local_now
+    updated_at = Column(DateTime, nullable=True, onupdate=local_now)  # Use local_now

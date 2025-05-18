@@ -3,7 +3,6 @@ import {
   View,
   TextInput,
   Text,
-  Button,
   StyleSheet,
   TouchableOpacity,
 } from "react-native";
@@ -11,8 +10,8 @@ import { useRouter } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import * as SecureStore from "expo-secure-store";
 import Toast from "react-native-toast-message";
-import { loginApi, sendOtpApi } from "@/api";
 import { useSession } from "@/context/AuthProvider";
+import { loginApi, sendOtpApi } from "@/redux/slice/auth/authApi";
 
 const OTP = () => {
   const { signIn } = useSession();

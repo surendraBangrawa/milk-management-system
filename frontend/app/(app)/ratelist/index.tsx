@@ -13,12 +13,13 @@ import { useRouter } from "expo-router";
 import {
   deleteRatelist,
   getRatelist,
-} from "@/redux/slice/ratelist/rateListApi";
+} from "@/redux/slice/ratelist/rateListApi"; // Assuming the path is correct
 
 const RateListViewer = () => {
   const router = useRouter();
   const isFocused = useIsFocused();
 
+  // We still need the list to check if it exists to enable/disable buttons
   const [existingRateList, setExistingRateList] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -26,21 +27,36 @@ const RateListViewer = () => {
     if (isFocused) {
       fetchExistingRateList();
     }
+    // When the screen is unfocused, you might want to clear the list state
+    // or keep it depending on desired behavior when returning.
+    // For this case, refetching on focus is sufficient.
   }, [isFocused]);
 
   const fetchExistingRateList = async () => {
     setLoading(true);
     try {
       const data = await getRatelist();
-      setExistingRateList(data);
+      // Log the fetched data structure to debug if needed
+      // console.log("Fetched Rate List Data in Viewer:", data);
+      if (data && data.data && Array.isArray(data.data.rates)) {
+        setExistingRateList(data.data.rates); // Store the array (or just its length matters here)
+      } else {
+        console.warn(
+          "API returned non-array data or unexpected structure for Viewer:",
+          data
+        );
+        setExistingRateList([]); // Treat as no list found
+      }
     } catch (error) {
-      setExistingRateList([]);
+      console.error("Error fetching rate list for Viewer:", error);
+      setExistingRateList([]); // Assume no list on error
+      Alert.alert("Error", "Failed to fetch rate list status.");
     } finally {
       setLoading(false);
     }
   };
 
-  const deleteRateList = async () => {
+  const handleDeleteRateList = async () => {
     Alert.alert(
       "Confirm Deletion",
       "Are you sure you want to delete the existing rate list? This action cannot be undone.",
@@ -52,12 +68,16 @@ const RateListViewer = () => {
         {
           text: "Delete",
           onPress: async () => {
-            setLoading(true);
+            setLoading(true); // You might want a separate delete loading state
             try {
               await deleteRatelist();
+              Alert.alert("Success", "Rate list deleted successfully.");
+              setExistingRateList([]); // Clear the local state to reflect deletion
             } catch (error) {
+              console.error("Error deleting rate list:", error);
+              Alert.alert("Error", "Failed to delete rate list.");
             } finally {
-              setLoading(false);
+              setLoading(false); // Reset loading state
             }
           },
           style: "destructive",
@@ -67,8 +87,24 @@ const RateListViewer = () => {
     );
   };
 
-  const navigateToRangeInput = () => {
-    router.push("/(app)/ratelist/rangeinput");
+  const navigateToUploadRateList = () => {
+    router.push("/(app)/ratelist/uploadratelist");
+  };
+
+  const navigateToEditRateList = () => {
+    if (existingRateList.length > 0) {
+      router.push("/(app)/ratelist/editratelist");
+    } else {
+      Alert.alert(
+        "No Rate List",
+        "No existing rate list found to edit. Please upload a new rate list first."
+      );
+    }
+  };
+
+  // *** NEW: Navigate to the Table View screen ***
+  const navigateToViewTable = () => {
+    router.push("/(app)/ratelist/ratelisttable"); // Navigate to the new screen
   };
 
   const renderContent = () => {
@@ -76,7 +112,7 @@ const RateListViewer = () => {
       return (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#007BFF" />
-          <Text style={styles.loadingText}>Loading...</Text>
+          <Text style={styles.loadingText}>Loading status...</Text>
         </View>
       );
     }
@@ -85,69 +121,61 @@ const RateListViewer = () => {
       <ScrollView style={styles.container}>
         <Text style={styles.title}>Milk Rate List Manager</Text>
 
-        <Text style={styles.sectionTitle}>Existing Rate List</Text>
-        {existingRateList.length > 0 ? (
-          <View style={styles.rateListContainer}>
-            {/* Table Header */}
-            <View style={[styles.tableRow, styles.tableHeaderRow]}>
-              <Text style={[styles.tableHeader, styles.fatColumn]}>
-                Fat (%)
-              </Text>
-              <Text style={[styles.tableHeader, styles.snfColumn]}>
-                SNF (%)
-              </Text>
-              <Text style={[styles.tableHeader, styles.rateColumn]}>
-                Rate (₹)
-              </Text>
-            </View>
-            {/* Table Rows */}
-            {existingRateList.map((item, index) =>
-              // Add basic validation before rendering to prevent crashes
-              item &&
-              item.fat !== undefined &&
-              item.snf !== undefined &&
-              item.rate !== undefined ? (
-                <View key={index} style={styles.tableRow}>
-                  <Text style={[styles.tableCell, styles.fatColumn]}>
-                    {item.fat.toFixed(1)}
-                  </Text>
-                  <Text style={[styles.tableCell, styles.snfColumn]}>
-                    {item.snf.toFixed(1)}
-                  </Text>
-                  <Text style={[styles.tableCell, styles.rateColumn]}>
-                    {item.rate.toFixed(2)}
-                  </Text>
-                </View>
-              ) : (
-                <Text key={`error-${index}`} style={styles.errorText}>
-                  Invalid rate data found at index {index}
-                </Text>
-              )
-            )}
-          </View>
-        ) : (
-          <Text style={styles.noRateListText}>
-            No existing rate list found. Tap "Add New Rate List" below to create
-            one.
-          </Text>
-        )}
+        {/* Action Buttons */}
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={navigateToUploadRateList}
+        >
+          <Text style={styles.actionButtonText}>Upload New Rate List</Text>
+        </TouchableOpacity>
 
+        {/* Button to Edit - Disabled if no list exists */}
+        <TouchableOpacity
+          style={[
+            styles.actionButton,
+            existingRateList.length === 0 && styles.disabledButton,
+          ]}
+          onPress={navigateToEditRateList}
+          disabled={existingRateList.length === 0}
+        >
+          <Text
+            style={[
+              styles.actionButtonText,
+              existingRateList.length === 0 && styles.disabledButtonText,
+            ]}
+          >
+            Edit Rate List
+          </Text>
+        </TouchableOpacity>
+
+        {/* *** NEW: Button to View as Table *** */}
+        {/* This button can generally always be visible, as the target screen handles empty state */}
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={navigateToViewTable}
+        >
+          <Text style={styles.actionButtonText}>View Rate List (Table)</Text>
+        </TouchableOpacity>
+
+        {/* Delete Button - only shown if a rate list exists */}
         {existingRateList.length > 0 && (
           <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={deleteRateList}
+            style={styles.deleteButton} // Use the specific delete style
+            onPress={handleDeleteRateList}
           >
             <Text style={styles.deleteButtonText}>Delete Rate List</Text>
           </TouchableOpacity>
         )}
 
-        {/* Button to navigate to the screen for adding a new list */}
-        <TouchableOpacity
-          style={styles.addButton} // Reusing addButton style
-          onPress={navigateToRangeInput}
-        >
-          <Text style={styles.addButtonText}>Add New Rate List</Text>
-        </TouchableOpacity>
+        {/* Info message if no rate list found */}
+        {existingRateList.length === 0 && !loading && (
+          <Text style={styles.infoText}>
+            No rate list found. Upload a new one to enable editing and deletion.
+          </Text>
+        )}
+
+        {/* The actual display of the list content (items) is REMOVED from here */}
+        {/* It's now handled by the RateListTableScreen */}
       </ScrollView>
     );
   };
@@ -168,19 +196,9 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 20,
+    marginBottom: 30,
     textAlign: "center",
     color: "#333",
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginTop: 20,
-    marginBottom: 15,
-    color: "#555",
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-    paddingBottom: 5,
   },
   loadingContainer: {
     flex: 1,
@@ -193,84 +211,43 @@ const styles = StyleSheet.create({
     color: "#555",
   },
 
-  // --- Existing Rate List Styles ---
-  rateListContainer: {
-    maxHeight: 400, // Limit height for scrollability
-    borderWidth: 1,
-    borderColor: "#ddd",
+  // --- Action Button Styles ---
+  actionButton: {
+    backgroundColor: "#007BFF", // Blue color
+    padding: 15,
     borderRadius: 8,
-    marginBottom: 20,
-    backgroundColor: "#fff",
-    overflow: "hidden", // Hide overflowing content
-  },
-  tableHeaderRow: {
-    backgroundColor: "#f0f0f0", // Light grey background for header
-  },
-  tableRow: {
-    flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-    paddingVertical: 10,
     alignItems: "center",
+    marginBottom: 15, // Space between buttons
   },
-  tableHeader: {
+  actionButtonText: {
+    color: "#fff",
+    fontSize: 18,
     fontWeight: "bold",
+  },
+  disabledButton: {
+    backgroundColor: "#cccccc", // Grey color for disabled state
+  },
+  disabledButtonText: {
+    color: "#666666",
+  },
+  infoText: {
     textAlign: "center",
-    paddingHorizontal: 5,
-    color: "#333",
-    fontSize: 16,
-  },
-  tableCell: {
-    textAlign: "center",
-    paddingHorizontal: 5,
-    fontSize: 16,
-    color: "#555",
-  },
-  fatColumn: {
-    flex: 1,
-  },
-  snfColumn: {
-    flex: 1,
-  },
-  rateColumn: {
-    flex: 1.5, // Give rate column a bit more space
-  },
-  errorText: {
-    color: "red",
-    textAlign: "center",
-    padding: 10,
-  },
-  noRateListText: {
-    textAlign: "center",
-    fontSize: 16,
+    fontSize: 14,
     color: "#777",
     marginTop: 20,
-    marginBottom: 20,
     paddingHorizontal: 10,
   },
+
+  // --- Delete Button Style ---
   deleteButton: {
     backgroundColor: "#dc3545", // Red color
     padding: 15,
     borderRadius: 8,
     alignItems: "center",
-    marginBottom: 20,
+    marginTop: 20, // Added space above delete button
+    marginBottom: 15,
   },
   deleteButtonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-
-  // --- Add New Button Style (Placed at the bottom) ---
-  addButton: {
-    backgroundColor: "#007BFF", // Blue color
-    padding: 15,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 10, // Added margin top
-    marginBottom: 20, // Added margin bottom
-  },
-  addButtonText: {
     color: "#fff",
     fontSize: 18,
     fontWeight: "bold",

@@ -10,9 +10,9 @@ import {
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useForm, Controller } from "react-hook-form";
-import { sendOtpApi, signUpApi } from "@/api";
 import Toast from "react-native-toast-message";
 import Checkbox from "expo-checkbox"; // Import Checkbox from expo-checkbox
+import { sendOtpApi, signUpApi } from "@/redux/slice/auth/authApi";
 
 const Signup = () => {
   const router = useRouter();

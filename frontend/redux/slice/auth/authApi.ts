@@ -1,9 +1,5 @@
 import axiosInstance from "@/lib/axiosIntance";
 
-export interface SaveContact {
-  name: string;
-  mobile: string;
-}
 export interface Signup {
   name: string;
   mobile: string;
@@ -17,17 +13,9 @@ export interface Login {
   otp: string;
 }
 
-export const saveContactApi = async (data: SaveContact) => {
-  try {
-    return await axiosInstance.post("/add_customer", data);
-  } catch (error) {
-    throw error;
-  }
-};
-
 export const signUpApi = async (data: Signup) => {
   try {
-    return await axiosInstance.post("/signup", data);
+    return await axiosInstance.post("/auth/signup", data);
   } catch (error) {
     throw error;
   }
@@ -35,7 +23,7 @@ export const signUpApi = async (data: Signup) => {
 
 export const sendOtpApi = async (data: Otp) => {
   try {
-    return await axiosInstance.post("/send_login_otp", data);
+    return await axiosInstance.post("/auth/send_login_otp", data);
   } catch (error) {
     throw error;
   }
@@ -43,7 +31,7 @@ export const sendOtpApi = async (data: Otp) => {
 
 export const loginApi = async (data: Login) => {
   try {
-    return await axiosInstance.post("/login", data);
+    return await axiosInstance.post("/auth/login", data);
   } catch (error) {
     throw error;
   }

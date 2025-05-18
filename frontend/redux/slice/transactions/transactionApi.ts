@@ -40,7 +40,7 @@ export interface AddSellerMilkTransaction {
 
 export const getSellerSummaryApi = async () => {
   try {
-    return await axiosInstance.get("/get_seller_summary");
+    return await axiosInstance.get("/transactions/get_seller_summary");
   } catch (error) {
     throw error;
   }
@@ -48,7 +48,7 @@ export const getSellerSummaryApi = async () => {
 
 export const getSellerTransactionApi = async (data: string) => {
   try {
-    return await axiosInstance.get("/get_transactions_buyer", {
+    return await axiosInstance.get("/transactions/get_transactions_buyer", {
       params: { seller_mobile: data },
     });
   } catch (error) {
@@ -58,7 +58,7 @@ export const getSellerTransactionApi = async (data: string) => {
 
 export const addSellerTransactionApi = async (data: AddSellerTransaction) => {
   try {
-    return await axiosInstance.post(`/add_expense`, data);
+    return await axiosInstance.post(`/transactions/add_expense`, data);
   } catch (error) {
     throw error;
   }
@@ -68,7 +68,9 @@ export const deleteSellerTransactionApi = async (
   data: DeleteSellerTransaction
 ) => {
   try {
-    return await axiosInstance.delete(`/delete_transaction`, { params: data });
+    return await axiosInstance.delete(`/transactions/delete_transaction`, {
+      params: data,
+    });
   } catch (error) {
     throw error;
   }
@@ -77,7 +79,7 @@ export const deleteSellerTransactionApi = async (
 export const editSellerTransactionApi = async (data: EditSellerTransaction) => {
   try {
     return await axiosInstance.put(
-      `/edit_transaction?record_id=${data.id}&record_type=${data.type}&seller_mobile=${data.seller_mobile}`,
+      `/transactions/edit_transaction?record_id=${data.id}&record_type=${data.type}&seller_mobile=${data.seller_mobile}`,
       data
     );
   } catch (error) {
@@ -89,7 +91,7 @@ export const addSellerMilkTransactionApi = async (
   data: AddSellerMilkTransaction
 ) => {
   try {
-    return await axiosInstance.post(`/add_milk_record`, data);
+    return await axiosInstance.post(`/transactions/add_milk_record`, data);
   } catch (error) {
     throw error;
   }

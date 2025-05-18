@@ -11,7 +11,7 @@ import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useForm, Controller } from "react-hook-form";
 import Toast from "react-native-toast-message";
-import { sendOtpApi } from "@/api";
+import { sendOtpApi } from "@/redux/slice/auth/authApi";
 
 const Signin = () => {
   const router = useRouter();
