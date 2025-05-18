@@ -21,7 +21,6 @@ const RateListViewer = () => {
   const isFocused = useIsFocused();
   const { colors } = useTheme();
 
-  // We still need the list to check if it exists to enable/disable buttons
   const [existingRateList, setExistingRateList] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,30 +28,19 @@ const RateListViewer = () => {
     if (isFocused) {
       fetchExistingRateList();
     }
-    // When the screen is unfocused, you might want to clear the list state
-    // or keep it depending on desired behavior when returning.
-    // For this case, refetching on focus is sufficient.
   }, [isFocused]);
 
   const fetchExistingRateList = async () => {
     setLoading(true);
     try {
       const data = await getRatelist();
-      // Log the fetched data structure to debug if needed
-      // console.log("Fetched Rate List Data in Viewer:", data);
       if (data && data.data && Array.isArray(data.data.rates)) {
         setExistingRateList(data.data.rates); // Store the array (or just its length matters here)
       } else {
-        console.warn(
-          "API returned non-array data or unexpected structure for Viewer:",
-          data
-        );
         setExistingRateList([]); // Treat as no list found
       }
     } catch (error) {
-      console.error("Error fetching rate list for Viewer:", error);
       setExistingRateList([]); // Assume no list on error
-      Alert.alert("Error", "Failed to fetch rate list status.");
     } finally {
       setLoading(false);
     }
@@ -104,9 +92,8 @@ const RateListViewer = () => {
     }
   };
 
-  // *** NEW: Navigate to the Table View screen ***
   const navigateToViewTable = () => {
-    router.push("/(app)/ratelist/ratelisttable"); // Navigate to the new screen
+    router.push("/(app)/ratelist/ratelisttable");
   };
 
   const renderContent = () => {
@@ -121,53 +108,37 @@ const RateListViewer = () => {
 
     return (
       <ScrollView style={styles.container}>
-        {/* Action Buttons */}
         <TouchableOpacity
           style={styles.actionButton}
           onPress={navigateToUploadRateList}
         >
           <Text style={styles.actionButtonText}>Upload New Rate List</Text>
         </TouchableOpacity>
-
-        {/* Button to Edit - Disabled if no list exists */}
-        <TouchableOpacity
-          style={[
-            styles.actionButton,
-            existingRateList.length === 0 && styles.disabledButton,
-          ]}
-          onPress={navigateToEditRateList}
-          disabled={existingRateList.length === 0}
-        >
-          <Text
-            style={[
-              styles.actionButtonText,
-              existingRateList.length === 0 && styles.disabledButtonText,
-            ]}
-          >
-            Edit Rate List
-          </Text>
-        </TouchableOpacity>
-
-        {/* *** NEW: Button to View as Table *** */}
-        {/* This button can generally always be visible, as the target screen handles empty state */}
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={navigateToViewTable}
-        >
-          <Text style={styles.actionButtonText}>View Rate List (Table)</Text>
-        </TouchableOpacity>
-
-        {/* Delete Button - only shown if a rate list exists */}
         {existingRateList.length > 0 && (
           <TouchableOpacity
-            style={styles.deleteButton} // Use the specific delete style
+            onPress={navigateToEditRateList}
+            disabled={existingRateList.length === 0}
+          >
+            <Text>Edit Rate List</Text>
+          </TouchableOpacity>
+        )}
+        {existingRateList.length > 0 && (
+          <TouchableOpacity
+            onPress={navigateToViewTable}
+            disabled={existingRateList.length === 0}
+          >
+            <Text>View Rate List (Table)</Text>
+          </TouchableOpacity>
+        )}
+        {existingRateList.length > 0 && (
+          <TouchableOpacity
+            style={styles.deleteButton}
             onPress={handleDeleteRateList}
           >
             <Text style={styles.deleteButtonText}>Delete Rate List</Text>
           </TouchableOpacity>
         )}
 
-        {/* Info message if no rate list found */}
         {existingRateList.length === 0 && !loading && (
           <Text style={styles.infoText}>
             No rate list found. Upload a new one to enable editing and deletion.

@@ -10,11 +10,14 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as SecureStore from "expo-secure-store";
+import { Stack } from "expo-router";
+import useTheme from "@/context/theme/useTheme";
 
 const API_BASE_URL = "http://192.168.1.2:8000";
 
 const UploadRateListScreen = () => {
-  const [selectedImage, setSelectedImage] = useState(null);
+  const { colors } = useTheme();
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
   // Request permission to access the device's media library
@@ -36,20 +39,12 @@ const UploadRateListScreen = () => {
     if (!hasPermission) return;
 
     let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images, // Only allow image selection
-      // Include base64 to potentially get file type information if needed,
-      // although URI is preferred for FormData upload
-      // base64: true,
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
     });
 
     if (!result.canceled) {
-      // result.assets is an array, take the first one
       const selectedAsset = result.assets[0];
       setSelectedImage(selectedAsset.uri);
-
-      // You might get the type directly from the asset object
-      // console.log("Selected Asset Type:", selectedAsset.type); // Check if this exists and is accurate
-      // console.log("Selected Asset MIME Type:", selectedAsset.mimeType); // Check if this exists and is accurate
     }
   };
 
@@ -72,11 +67,11 @@ const UploadRateListScreen = () => {
 
     // Append the photo file in the correct format for React Native FormData
     const fileUri = selectedImage;
-    const fileName = fileUri.split("/").pop(); // Get file name from URI
+    const fileName = fileUri.split("/").pop() || `upload_${Date.now()}.jpg`;
 
     // --- Dynamically determine file type ---
     // Attempt to get type from URI extension
-    const fileExtension = fileName.split(".").pop().toLowerCase();
+    const fileExtension = fileName.split(".").pop()?.toLowerCase() || "jpg"; // Get extension, provide fallback
     let fileType = "image/jpeg"; // Default type
 
     if (fileExtension === "png") {
@@ -84,82 +79,35 @@ const UploadRateListScreen = () => {
     } else if (fileExtension === "jpg" || fileExtension === "jpeg") {
       fileType = "image/jpeg";
     } else if (fileExtension === "heic") {
-      // HEIC is common on iOS, but backend might not support it directly.
-      // You might need server-side conversion or ask user to pick a different format.
-      // For now, declare it as heic if needed, or default.
       fileType = "image/heic"; // Or 'image/heif'
-      console.warn(
-        "Uploading HEIC file. Ensure backend supports HEIC or handles conversion."
-      );
     }
-    // Add more cases for other image types if necessary
-    // If ImagePicker provided mimeType, you could use that:
-    // const fileType = selectedAsset.mimeType || 'image/jpeg'; // Fallback to jpeg if mimeType is not available
 
-    console.log(
-      `Preparing file: Name=${fileName}, Type=${fileType}, URI=${fileUri}`
-    );
-    // --- End Dynamic type ---
-
-    // *** CORRECTED PART (Same as before) ***
     formData.append("file", {
-      // Use 'file' as the key to match the backend parameter name
       uri: fileUri,
       name: fileName,
       type: fileType,
-    });
-    // *** END CORRECTED PART ***
+    } as any);
 
-    // Append other rate list data (example)
-    // formData.append('fatRange', fatRange);
-    // formData.append('snfRange', snfRange);
-    // formData.append('ratePerKg', ratePerKg);
-    // You would add all relevant rate list data fields here
-
-    // Log the internal structure (for debugging, won't show file content)
-    console.log(
-      "Simulating upload with FormData (internal structure):",
-      formData
-    );
-
-    // --- Using Fetch API ---
     const uploadUrl = `${API_BASE_URL}/ratelist/upload_image`; // Construct the full URL
     const token = await SecureStore.getItemAsync("accessToken");
     try {
-      console.log("Sending upload request using fetch...");
       const response = await fetch(uploadUrl, {
         method: "POST",
         body: formData,
-
-        // Note: When sending FormData with fetch, you typically DO NOT
-        // manually set the 'Content-Type' header. Fetch sets it automatically
-        // with the correct 'multipart/form-data' value including the boundary.
         headers: {
           Authorization: `Bearer ${token}`, // Add your auth token here if needed
         },
       });
 
-      // Check if the response was successful (status code 2xx)
       if (!response.ok) {
-        // Attempt to read the error response body
         const errorBody = await response.text(); // or response.json() if backend sends JSON errors
-        console.error(
-          `Fetch upload failed: HTTP status ${response.status}`,
-          errorBody
-        );
         throw new Error(
           `Upload failed with status ${response.status}: ${errorBody}`
         );
       }
-
-      const responseData = await response.json(); // Assuming your backend returns JSON
-      console.log("Fetch upload successful:", responseData);
       Alert.alert("Success", "Rate list and photo uploaded successfully!");
-      setSelectedImage(null); // Clear selected image after upload
-      // Reset other form fields here
-    } catch (error) {
-      console.error("Upload failed:", error);
-      // Display a more informative error if available
+      setSelectedImage(null);
+    } catch (error: any) {
       Alert.alert(
         "Upload Failed",
         `An error occurred during upload: ${error.message || error}`
@@ -171,9 +119,15 @@ const UploadRateListScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Upload New Rate List</Text>
-
-      {/* Button to select photo */}
+      <Stack.Screen
+        options={{
+          title: "Upload Ratelist",
+          headerStyle: {
+            backgroundColor: colors.surface, // Example header background
+          },
+          headerTintColor: colors.textPrimary, // Example header text color
+        }}
+      />
       <TouchableOpacity style={styles.selectPhotoButton} onPress={pickImage}>
         <Text style={styles.selectPhotoButtonText}>Select Rate List Photo</Text>
       </TouchableOpacity>
