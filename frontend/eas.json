@@ -1,0 +1,43 @@
+{
+  "cli": {
+    "version": ">= 16.6.1",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "APP_ENV": "development"
+      }
+    },
+    "prod": {
+      "distribution": "store", // For submitting to app stores
+      "env": {
+        "APP_ENV": "production" // Set the environment variable for production builds
+      },
+      "android": {
+        "buildType": "apk" // Specify APK build
+      },
+      "ios": {
+        "buildConfiguration": "Release" // Use Release build for production
+      }
+    },
+    "dev": {
+      "extends": "production", // Inherit settings from production profile (optional)
+      "distribution": "internal", // Or "store" if you want to submit to internal testing tracks
+      "env": {
+        "APP_ENV": "dev" // Set the environment variable for staging builds
+      },
+      "android": {
+        "buildType": "apk" // Specify APK build
+      },
+      "ios": {
+        "buildConfiguration": "Release" // Use Release build for staging
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
