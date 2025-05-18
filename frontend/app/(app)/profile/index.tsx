@@ -1,20 +1,11 @@
 import React, { useEffect, useState } from "react";
-import {
-  StyleSheet,
-  View,
-  Text,
-  Image,
-  Pressable,
-  ActivityIndicator,
-} from "react-native";
+import { StyleSheet, View, Text, Image, ActivityIndicator } from "react-native";
 import Toast from "react-native-toast-message";
 import { getProfileApi } from "@/redux/slice/profile/profileApi";
 import { Stack } from "expo-router";
-import { useSession } from "@/context/AuthProvider";
 const Avatar = require("../../../assets/images/avatar.jpg");
 
 export default function Profile() {
-  const { signOut } = useSession();
   const [userData, setUserData] = useState(null); // Initializing with null
   const [loading, setLoading] = useState(true); // State for loading
   const [error, setError] = useState<null | string>(null); // State to store errors
@@ -72,15 +63,6 @@ export default function Profile() {
           <Text style={styles.userEmail}>{userData?.mobile}</Text>
         </View>
       </View>
-
-      <Pressable
-        style={styles.logoutButton}
-        onPress={() => {
-          signOut();
-        }}
-      >
-        <Text style={styles.logoutButtonText}>Logout</Text>
-      </Pressable>
     </View>
   );
 }

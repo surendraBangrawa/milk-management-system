@@ -13,7 +13,7 @@ export interface EditProfile {
 
 export const getProfileApi = async () => {
   try {
-    return await axiosInstance.get("/get_profile");
+    return await axiosInstance.get("/profile/get");
   } catch (error) {
     throw error;
   }
@@ -21,7 +21,7 @@ export const getProfileApi = async () => {
 
 export const deleteProfileApi = async () => {
   try {
-    return await axiosInstance.delete(`/delete_account`);
+    return await axiosInstance.delete(`/profile/delete`);
   } catch (error) {
     throw error;
   }
@@ -29,7 +29,7 @@ export const deleteProfileApi = async () => {
 
 export const editProfileApi = async (data: EditProfile) => {
   try {
-    return await axiosInstance.put(`/edit_profile`, data);
+    return await axiosInstance.put(`/profile/edit`, data);
   } catch (error) {
     throw error;
   }

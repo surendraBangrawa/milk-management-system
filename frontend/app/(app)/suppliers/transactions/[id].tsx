@@ -10,11 +10,6 @@ import {
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { formatDistanceToNow } from "date-fns";
 import Toast from "react-native-toast-message";
-import { FontAwesome } from "@expo/vector-icons";
-import {
-  deleteSellerTransactionApi,
-  getSellerTransactionApi,
-} from "@/redux/slice/transactions/transactionApi";
 import { getBuyerTransactionApi } from "@/redux/slice/supplier/supplierApi";
 
 const getInitials = (name: string) => {
@@ -36,14 +31,10 @@ const RandomAvatar = ({ name }: { name: string }) => {
 };
 
 const TransactionScreen = () => {
-  const router = useRouter();
-  const { id, name } = useLocalSearchParams(); // Assuming 'name' is passed as a param
+  const { id, name } = useLocalSearchParams();
   const [transactions, setTransactions] = useState<any[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
   const fetchCustomerData = async () => {
-    setLoading(true);
     try {
       const res = await getBuyerTransactionApi(id);
       if (res.status === 200) {
@@ -55,18 +46,12 @@ const TransactionScreen = () => {
         setTransactions(sortedData);
       }
     } catch (err: any) {
-      setError(
-        err?.response?.data?.detail
-          ? err?.response?.data?.detail
-          : "Something went wrong"
-      );
       Toast.show({
         type: "error",
         text1: "Error",
         text2: "Failed to load customer data.",
       });
     } finally {
-      setLoading(false);
     }
   };
 
@@ -74,12 +59,10 @@ const TransactionScreen = () => {
     fetchCustomerData();
   }, [id]);
 
-  // Function to format the 'added_at' date
   const formatDate = (date: string) => {
     return formatDistanceToNow(new Date(date), { addSuffix: true });
   };
 
-  // Function to handle "Read More" click
   const handleReadMore = (detail: string) => {
     Alert.alert("Transaction Detail", detail);
   };
