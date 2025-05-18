@@ -11,8 +11,8 @@ import datetime
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
-    prefix="/customer",
-    tags=["customer"],
+    prefix="/customers",
+    tags=["customers"],
 )
 
 

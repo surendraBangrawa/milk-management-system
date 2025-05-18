@@ -6,7 +6,7 @@ export interface SaveContact {
 }
 export const saveContactApi = async (data: SaveContact) => {
   try {
-    return await axiosInstance.post("/customer/add", data);
+    return await axiosInstance.post("/customers/add", data);
   } catch (error) {
     throw error;
   }
