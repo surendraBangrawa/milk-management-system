@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   TextInput,
   StyleSheet,
@@ -6,6 +6,7 @@ import {
   View,
   TouchableOpacity,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { useForm, Controller } from "react-hook-form";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -18,21 +19,27 @@ import {
   editSellerTransactionApi,
 } from "@/redux/slice/transactions/transactionApi";
 import { getRate, Rate } from "@/redux/slice/ratelist/rateListApi";
+import useTheme from "@/context/theme/useTheme";
 
 const fetchRate = async (data: Rate) => {
   try {
     const res = await getRate(data);
-    if (res.status === 200) {
-      return res.data;
+    if (res.status === 200 && res.data && res.data.rate !== undefined) {
+      return res.data.rate;
     } else {
+      console.warn("Failed to fetch rate or rate is missing in response:", res);
       return null;
     }
   } catch (error) {
+    console.error("Error fetching rate:", error);
     return null;
   }
 };
 
 const AddMilk = () => {
+  const params = useLocalSearchParams();
+  const { colors } = useTheme();
+
   const {
     seller_mobile,
     name,
@@ -44,13 +51,41 @@ const AddMilk = () => {
     id,
     type,
     rate: qRate,
-  } = useLocalSearchParams();
+  } = params as {
+    seller_mobile?: string | string[];
+    name?: string | string[];
+    quantity?: string | string[];
+    fat?: string | string[];
+    snf?: string | string[];
+    desc?: string | string[];
+    date?: string | string[];
+    id?: string | string[];
+    type?: string | string[];
+    rate?: string | string[];
+  };
+
   const router = useRouter();
   const [rate, setRate] = useState("");
-  const [transactionDate, setTransactionDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const currentHour = new Date().getHours();
   const defaultShift = currentHour >= 3 && currentHour < 15 ? "M" : "E";
+
+  const effectiveDateParam = Array.isArray(date) ? date[0] : date;
+  const effectiveQuantity = Array.isArray(quantity) ? quantity[0] : quantity;
+  const effectiveFat = Array.isArray(fat) ? fat[0] : fat;
+  const effectiveSnf = Array.isArray(snf) ? snf[0] : snf;
+  const effectiveDesc = Array.isArray(desc) ? desc[0] : desc;
+  const effectiveId = Array.isArray(id) ? id[0] : id;
+  const effectiveType = Array.isArray(type) ? type[0] : type;
+  const effectiveQRate = Array.isArray(qRate) ? qRate[0] : qRate;
+  const effectiveSellerMobile = Array.isArray(seller_mobile)
+    ? seller_mobile[0]
+    : seller_mobile;
+  const effectiveName = Array.isArray(name) ? name[0] : name;
+
+  const initialDateValue = effectiveDateParam
+    ? new Date(effectiveDateParam)
+    : new Date();
 
   const {
     control,
@@ -58,67 +93,167 @@ const AddMilk = () => {
     watch,
     formState: { errors },
     setValue,
+    setError,
+    clearErrors,
   } = useForm({
     defaultValues: {
-      quantity: quantity ?? "",
-      fat: fat ?? "",
-      snf: snf ?? "",
-      note: desc ?? "",
+      quantity: effectiveQuantity ?? "",
+      fat: effectiveFat ?? "",
+      snf: effectiveSnf ?? "",
+      note: effectiveDesc ?? "",
       shift: defaultShift,
-      date: date ? new Date(date) : new Date(),
-      rate: qRate ?? "",
+      date: initialDateValue,
+      rate: effectiveQRate ?? "",
+    } as {
+      quantity: string;
+      fat: string;
+      snf: string;
+      note: string;
+      shift: string;
+      date: Date;
+      rate: string;
     },
   });
 
-  useEffect(() => {
-    if (id) {
-      setTransactionDate(new Date(date));
-    }
-  }, [desc, date, id, quantity, snf, rate]);
-
-  const handleDateChange = (event, selectedDate) => {
-    const currentDate = selectedDate || transactionDate;
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    const currentDate = selectedDate || watch("date");
     setShowDatePicker(Platform.OS === "ios");
-    setTransactionDate(currentDate);
     setValue("date", currentDate);
+    clearErrors("date");
   };
 
   const handleFetchRate = async () => {
-    const fat = parseFloat(watch("fat"));
-    const snf = parseFloat(watch("snf"));
-    const fetchedRate = await fetchRate({ fat, snf });
-    if (fetchedRate) {
-      setRate(fetchedRate.toString());
-      setValue("rate", fetchedRate.toString());
+    const fatValue = parseFloat(watch("fat"));
+    const snfValue = parseFloat(watch("snf"));
+
+    if (isNaN(fatValue) || isNaN(snfValue)) {
+      Toast.show({
+        type: "error",
+        text1: "Invalid Input",
+        text2: "Please enter valid numbers for Fat and SNF to fetch rate.",
+      });
+      if (isNaN(fatValue))
+        setError("fat", { type: "manual", message: "Invalid Fat %" });
+      if (isNaN(snfValue))
+        setError("snf", { type: "manual", message: "Invalid SNF %" });
+      return;
+    }
+    clearErrors(["fat", "snf"]);
+
+    const fetchedRateValue = await fetchRate({ fat: fatValue, snf: snfValue });
+
+    if (fetchedRateValue !== null && fetchedRateValue !== undefined) {
+      const rateString = fetchedRateValue.toString();
+      setRate(rateString);
+      setValue("rate", rateString);
+      Toast.show({
+        type: "success",
+        text1: "Rate Fetched",
+        text2: `Rate found: ₹${rateString}`,
+      });
+      clearErrors("rate");
+    } else {
+      Toast.show({
+        type: "info",
+        text1: "Rate Not Found",
+        text2: "Could not fetch rate for the provided Fat and SNF values.",
+      });
+      setRate("");
+      setValue("rate", "");
+      setError("rate", { type: "manual", message: "Rate not found" });
     }
   };
 
-  const handleSubmitForm = async (data) => {
+  const handleSubmitForm = async (data: {
+    quantity: string;
+    fat: string;
+    snf: string;
+    note: string;
+    date: Date;
+    shift: string;
+    rate: string;
+  }) => {
+    const quantityNum = parseFloat(data.quantity);
+    const fatNum = parseFloat(data.fat);
+    const snfNum = parseFloat(data.snf);
+    const rateNum = parseFloat(data.rate);
+
+    if (
+      isNaN(quantityNum) ||
+      isNaN(fatNum) ||
+      isNaN(snfNum) ||
+      isNaN(rateNum)
+    ) {
+      Toast.show({
+        type: "error",
+        text1: "Invalid Input",
+        text2: "Please enter valid numbers for Quantity, Fat, SNF, and Rate.",
+      });
+      // Set specific errors if needed
+      if (isNaN(quantityNum))
+        setError("quantity", { type: "manual", message: "Invalid Quantity" });
+      if (isNaN(fatNum))
+        setError("fat", { type: "manual", message: "Invalid Fat %" });
+      if (isNaN(snfNum))
+        setError("snf", { type: "manual", message: "Invalid SNF %" });
+      if (isNaN(rateNum))
+        setError("rate", { type: "manual", message: "Invalid Rate" });
+      return;
+    }
+    clearErrors(["quantity", "fat", "snf", "rate"]); // Clear errors if valid numbers
+
     const milkData = {
-      quantity: parseFloat(data.quantity),
-      fat: parseFloat(data.fat),
-      snf: parseFloat(data.snf),
+      quantity: quantityNum,
+      fat: fatNum,
+      snf: snfNum,
       milk_detail: data.note,
-      custom_date: format(data.date, "yyyy-MM-dd"),
+      custom_date: format(data.date, "yyyy-MM-dd"), // Ensure date is formatted correctly
       shift: data.shift,
-      rate: parseFloat(data.rate),
-      seller_mobile: seller_mobile,
+      rate: rateNum,
+      seller_mobile: effectiveSellerMobile,
     };
+
     try {
-      const res = id
-        ? await editSellerTransactionApi({ ...milkData, id: id, type: type })
+      const res = effectiveId
+        ? await editSellerTransactionApi({
+            ...milkData,
+            id: effectiveId,
+            type: effectiveType,
+          })
         : await addSellerMilkTransactionApi(milkData);
       if (res?.status === 200) {
         Toast.show({
           type: "success",
-          text1: "Transaction Added",
-          text2: `Successfully added transaction!`,
+          text1: effectiveId ? "Transaction Updated" : "Transaction Added",
+          text2: `Successfully ${
+            effectiveId ? "updated" : "added"
+          } transaction!`,
         });
-        router.push(
-          `/(app)/customers/transactions/${seller_mobile}?name=${name}`
-        );
+        if (effectiveSellerMobile && effectiveName) {
+          router.replace(
+            `/(app)/customers/transactions/${effectiveSellerMobile}?name=${encodeURIComponent(
+              effectiveName
+            )}`
+          );
+        } else {
+          console.error(
+            "Missing seller mobile or name for navigation:",
+            effectiveSellerMobile,
+            effectiveName
+          );
+          Toast.show({
+            type: "error",
+            text1: "Navigation Error",
+            text2: "Could not navigate back: Missing customer details.",
+          });
+        }
       } else {
-        throw new Error("Failed to add transaction.");
+        const errorMsg =
+          res?.data?.detail ||
+          (effectiveId
+            ? "Failed to update transaction."
+            : "Failed to add transaction.");
+        throw new Error(errorMsg);
       }
     } catch (error: any) {
       Toast.show({
@@ -126,14 +261,19 @@ const AddMilk = () => {
         text1: "Error",
         text2: error?.message || "Something went wrong.",
       });
+      console.error("Submit form error:", error);
     }
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen
         options={{
-          title: "Milk",
+          title: effectiveId ? "Edit Milk Transaction" : "Add Milk Transaction",
+          headerStyle: {
+            backgroundColor: colors.surface,
+          },
+          headerTintColor: colors.textPrimary,
         }}
       />
       <Controller
@@ -143,21 +283,32 @@ const AddMilk = () => {
           required: "Quantity is required",
           pattern: {
             value: /^[0-9]+(\.[0-9]{1,2})?$/,
-            message: "Enter a valid quantity",
+            message: "Enter a valid quantity (e.g., 5 or 5.25)",
           },
         }}
-        render={({ field: { onChange, value } }) => (
+        render={({ field: { onChange, value, onBlur } }) => (
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              {
+                borderColor: errors.quantity ? colors.error : colors.border,
+                backgroundColor: colors.surface,
+                color: colors.textPrimary,
+              },
+            ]}
             placeholder="Enter quantity (kg)"
+            placeholderTextColor={colors.textSecondary}
             value={value}
             onChangeText={onChange}
+            onBlur={onBlur} // Make sure onBlur is passed for validation
             keyboardType="numeric"
           />
         )}
       />
       {errors.quantity && (
-        <Text style={styles.errorText}>{errors.quantity.message}</Text>
+        <Text style={[styles.errorText, { color: colors.error }]}>
+          {errors.quantity.message}
+        </Text>
       )}
       <Controller
         control={control}
@@ -166,20 +317,33 @@ const AddMilk = () => {
           required: "Fat % is required",
           pattern: {
             value: /^[0-9]+(\.[0-9]{1,2})?$/,
-            message: "Enter a valid fat %",
+            message: "Enter a valid fat % (e.g., 4.5)", // Improved message
           },
         }}
-        render={({ field: { onChange, value } }) => (
+        render={({ field: { onChange, value, onBlur } }) => (
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              {
+                borderColor: errors.fat ? colors.error : colors.border,
+                backgroundColor: colors.surface,
+                color: colors.textPrimary,
+              },
+            ]}
             placeholder="Enter fat %"
+            placeholderTextColor={colors.textSecondary}
             value={value}
             onChangeText={onChange}
+            onBlur={onBlur}
             keyboardType="numeric"
           />
         )}
       />
-      {errors.fat && <Text style={styles.errorText}>{errors.fat.message}</Text>}
+      {errors.fat && (
+        <Text style={[styles.errorText, { color: colors.error }]}>
+          {errors.fat.message}
+        </Text>
+      )}
       <Controller
         control={control}
         name="snf"
@@ -187,55 +351,88 @@ const AddMilk = () => {
           required: "SNF % is required",
           pattern: {
             value: /^[0-9]+(\.[0-9]{1,2})?$/,
-            message: "Enter a valid SNF %",
+            message: "Enter a valid SNF % (e.g., 8.2)", // Improved message
           },
         }}
-        render={({ field: { onChange, value } }) => (
+        render={({ field: { onChange, value, onBlur } }) => (
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              {
+                borderColor: errors.snf ? colors.error : colors.border,
+                backgroundColor: colors.surface,
+                color: colors.textPrimary,
+              },
+            ]}
             placeholder="Enter SNF %"
+            placeholderTextColor={colors.textSecondary}
             value={value}
             onChangeText={onChange}
+            onBlur={onBlur}
             keyboardType="numeric"
           />
         )}
       />
-      {errors.snf && <Text style={styles.errorText}>{errors.snf.message}</Text>}
+      {errors.snf && (
+        <Text style={[styles.errorText, { color: colors.error }]}>
+          {errors.snf.message}
+        </Text>
+      )}
       <Controller
         control={control}
         name="note"
-        render={({ field: { onChange, value } }) => (
+        render={({ field: { onChange, value, onBlur } }) => (
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              styles.multilineInput,
+              {
+                borderColor: colors.border,
+                backgroundColor: colors.surface,
+                color: colors.textPrimary,
+              },
+            ]}
             value={value}
             onChangeText={onChange}
+            onBlur={onBlur}
             placeholder="Enter any notes (optional)"
+            placeholderTextColor={colors.textSecondary}
             multiline
+            numberOfLines={4} // Suggest a number of lines
           />
         )}
       />
       <Controller
         control={control}
         name="date"
-        defaultValue={transactionDate}
         rules={{ required: "Date is required" }}
         render={({ field: { onChange, value } }) => (
           <>
             <TouchableOpacity
-              style={styles.datePicker}
+              style={[
+                styles.datePicker,
+                {
+                  borderColor: errors.date ? colors.error : colors.border,
+                  backgroundColor: colors.surface,
+                },
+              ]}
               onPress={() => setShowDatePicker(true)}
             >
-              <Text style={styles.dateText}>
-                Date: {format(value, "yyyy-MM-dd")}
+              <Text
+                style={[
+                  styles.dateText,
+                  { color: value ? colors.textPrimary : colors.textSecondary },
+                ]}
+              >
+                Date: {value ? format(value, "yyyy-MM-dd") : "Select Date"}
               </Text>
             </TouchableOpacity>
             {showDatePicker && (
               <DateTimePicker
-                value={value}
+                value={value || new Date()}
                 mode="date"
                 display="default"
                 onChange={(event, selectedDate) => {
-                  onChange(selectedDate || value);
                   handleDateChange(event, selectedDate);
                 }}
               />
@@ -244,28 +441,43 @@ const AddMilk = () => {
         )}
       />
       {errors?.date && (
-        <Text style={styles.errorText}>{errors?.date?.message}</Text>
+        <Text style={[styles.errorText, { color: colors.error }]}>
+          {errors?.date?.message}
+        </Text>
       )}
       <Controller
         control={control}
         name="shift"
         rules={{ required: "Shift is required" }}
         render={({ field: { onChange, value } }) => (
-          <View style={styles.pickerContainer}>
+          <View
+            style={[
+              styles.pickerContainer,
+              {
+                borderColor: errors.shift ? colors.error : colors.border,
+                backgroundColor: colors.surface,
+                borderWidth: 1,
+                borderRadius: 10,
+              },
+            ]}
+          >
             <Picker
               selectedValue={value}
               onValueChange={onChange}
-              style={styles.picker}
+              style={[styles.picker, { color: colors.textPrimary }]} // Apply text color
+              dropdownIconColor={colors.textSecondary} // Style the dropdown icon
             >
               <Picker.Item label="Morning" value="M" />
               <Picker.Item label="Evening" value="E" />
             </Picker>
-            {errors.shift && (
-              <Text style={styles.errorText}>{errors.shift.message}</Text>
-            )}
           </View>
         )}
       />
+      {errors.shift && (
+        <Text style={[styles.errorText, { color: colors.error }]}>
+          {errors.shift.message}
+        </Text>
+      )}
 
       <View style={styles.rowContainer}>
         <Controller
@@ -273,36 +485,66 @@ const AddMilk = () => {
           name="rate"
           rules={{
             required: "Rate is required",
+            pattern: {
+              value: /^[0-9]+(\.[0-9]{1,2})?$/,
+              message: "Enter a valid rate",
+            },
           }}
-          render={({ field: { onChange, value } }) => (
+          render={({ field: { onChange, value, onBlur } }) => (
             <View style={styles.inputContainer}>
               <TextInput
-                style={styles.input}
-                value={value || rate}
-                onChangeText={onChange}
+                style={[
+                  styles.input,
+                  {
+                    borderColor: errors.rate ? colors.error : colors.border,
+                    backgroundColor: colors.surface,
+                    color: colors.textPrimary,
+                  },
+                ]}
+                value={value || rate} // Use value from form state, fallback to local state rate
+                onChangeText={(text) => {
+                  onChange(text); // Update form state
+                  setRate(text); // Update local state (optional, for visual sync)
+                }}
+                onBlur={onBlur}
                 keyboardType="numeric"
                 placeholder="Enter rate"
+                placeholderTextColor={colors.textSecondary}
               />
               {errors.rate && (
-                <Text style={styles.errorText}>{errors.rate.message}</Text>
+                <Text style={[styles.errorText, { color: colors.error }]}>
+                  {errors.rate.message}
+                </Text>
               )}
             </View>
           )}
         />
         <TouchableOpacity
-          style={[styles.fetchButton, { backgroundColor: "#6200ea" }]}
+          style={[styles.fetchButton, { backgroundColor: colors.primary }]}
           onPress={handleFetchRate}
         >
-          <Text style={styles.fetchButtonText}>Fetch</Text>
+          <Text style={[styles.fetchButtonText, { color: colors.surface }]}>
+            Fetch
+          </Text>
         </TouchableOpacity>
       </View>
 
       <TouchableOpacity
-        style={[styles.button, { backgroundColor: "#6200ea" }]}
+        style={[
+          styles.button,
+          {
+            backgroundColor:
+              Object.keys(errors).length > 0
+                ? colors.textSecondary
+                : colors.primary,
+          },
+        ]}
         onPress={handleSubmit(handleSubmitForm)}
         disabled={Object.keys(errors).length > 0}
       >
-        <Text style={styles.buttonText}>Submit</Text>
+        <Text style={[styles.buttonText, { color: colors.surface }]}>
+          Submit
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -311,76 +553,83 @@ const AddMilk = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f9f9f9",
-    padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 20,
-    textAlign: "center",
-  },
-  datePicker: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    padding: 10,
-    marginVertical: 10,
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  dateText: {
-    fontSize: 16,
-    color: "#333",
+    // Background color now from theme
+    padding: 16, // Adjusted padding
   },
   input: {
     borderWidth: 1,
-    borderColor: "#ccc",
-    padding: 10,
-    marginVertical: 10,
-    borderRadius: 10,
+    // Colors from theme applied inline
+    padding: 12,
+    marginVertical: 8,
+    borderRadius: 8,
     fontSize: 16,
-    backgroundColor: "#fff",
+    // Shadow (optional, add if desired)
+    // ...Platform.select({
+    //   ios: {
+    //     shadowColor: '#000',
+    //     shadowOffset: { width: 0, height: 1 },
+    //     shadowOpacity: 0.05,
+    //     shadowRadius: 2,
+    //   },
+    //   android: {
+    //     elevation: 2,
+    //   },
+    // }),
+  },
+  multilineInput: {
+    minHeight: 100,
+    textAlignVertical: "top",
+  },
+  datePicker: {
+    borderWidth: 1,
+    // Colors from theme applied inline
+    padding: 12,
+    marginVertical: 8,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "flex-start",
+  },
+  dateText: {
+    fontSize: 16,
+    // Color from theme applied inline
   },
   fetchButton: {
-    backgroundColor: "#007bff",
     paddingVertical: 12,
-    paddingHorizontal: 10,
+    paddingHorizontal: 20,
     marginLeft: 10,
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
-    elevation: 2,
+    elevation: 2, // Consider removing or styling shadows consistently via Platform
   },
   fetchButtonText: {
-    color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
+    // Color from theme applied inline
   },
   button: {
     padding: 15,
-    marginVertical: 10,
-    borderRadius: 10,
+    marginVertical: 16,
+    borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
-    elevation: 2,
+    elevation: 2, // Consider removing or styling shadows consistently via Platform
   },
   buttonText: {
-    color: "#fff",
     fontSize: 18,
     fontWeight: "600",
   },
   errorText: {
     fontSize: 12,
-    color: "red",
+    marginTop: -6,
+    marginBottom: 8,
   },
   pickerContainer: {
-    marginVertical: 10,
+    marginVertical: 8,
+    // Border, background, border radius, border color handled inline
   },
   picker: {
-    height: 55,
-    backgroundColor: "#fff",
+    height: 50,
   },
   rowContainer: {
     flexDirection: "row",
@@ -390,6 +639,14 @@ const styles = StyleSheet.create({
   inputContainer: {
     flex: 1,
     marginRight: 10,
+  },
+  overlayLoading: {
+    // Style for a full-screen overlay loading indicator (Not used in this version)
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(255, 255, 255, 0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1,
   },
 });
 

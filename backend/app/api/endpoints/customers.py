@@ -5,8 +5,8 @@ from app.db.session import get_db
 from app.db.models import Customer, MilkRecord, ExpenseRecord
 from app.core.security import get_current_user
 from app.core.config import local_timezone
+from datetime import datetime
 import logging
-import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,6 @@ def add_customer(
     current_mobile: str = Depends(get_current_user),
 ):
     try:
-        logger.info(f"In add_customer")
         local_time = datetime.now(local_timezone).replace(tzinfo=None)
         existing_customer = (
             db.query(Customer)

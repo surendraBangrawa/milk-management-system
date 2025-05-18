@@ -19,7 +19,7 @@ export interface EditSellerTransaction {
   transaction_type: "GAVE" | "GOT";
   custom_date: string;
   id: string;
-  type: string;
+  type?: string;
   quantity?: number;
   fat?: number;
   snf?: number;

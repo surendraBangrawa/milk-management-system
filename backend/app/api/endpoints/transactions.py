@@ -10,8 +10,8 @@ from app.db.session import get_db
 from app.db.models import Customer, MilkRecord, ExpenseRecord, User
 from app.core.security import get_current_user
 from app.core.config import local_timezone
+from datetime import datetime
 import logging
-import datetime
 
 logger = logging.getLogger(__name__)
 
