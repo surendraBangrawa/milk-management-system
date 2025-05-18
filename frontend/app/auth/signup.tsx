@@ -154,7 +154,7 @@ const Signup = () => {
                   style={styles.checkbox}
                 />
                 <Text style={styles.checkboxLabel}>
-                  I agree to the{" "}
+                  I agree to the
                   <Text style={styles.termsText}>Terms and Conditions</Text>
                 </Text>
               </View>
@@ -173,7 +173,6 @@ const Signup = () => {
         />
       </View>
 
-      {/* Sign Up Button */}
       <TouchableOpacity
         style={styles.button}
         onPress={handleSubmit(handleSignup)}
@@ -186,10 +185,9 @@ const Signup = () => {
         )}
       </TouchableOpacity>
 
-      {/* Sign In Link */}
       <TouchableOpacity onPress={handleSignInRedirect}>
         <Text style={styles.signInText}>
-          Already have an account?{" "}
+          Already have an account?
           <Text style={styles.signInLink}>Sign In</Text>
         </Text>
       </TouchableOpacity>

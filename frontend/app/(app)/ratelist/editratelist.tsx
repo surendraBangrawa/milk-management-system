@@ -239,9 +239,6 @@ const EditRateListScreen: React.FC = () => {
         ]}
       >
         <View style={styles.tableRowCells}>
-          {" "}
-          {/* Inner View for cells */}
-          {/* --- Fat Input controlled by RHF --- */}
           <Controller
             control={control}
             name={`rateItems[${originalIndex}].fat`} // Use the ORIGINAL index for the name
@@ -351,11 +348,7 @@ const EditRateListScreen: React.FC = () => {
           {fieldErrors?.rate && (
             <Text style={styles.cellErrorText}>{fieldErrors.rate.message}</Text>
           )}
-        </View>{" "}
-        {/* End tableRowCells */}
-        {/* --- Delete Button for the row --- */}
-        {/* Conditionally render delete if it's not the only row or if you always allow deleting */}
-        {/* {fields.length > 1 && ( ... )} */}
+        </View>
         <TouchableOpacity
           onPress={() => {
             Alert.alert(
@@ -486,22 +479,16 @@ const EditRateListScreen: React.FC = () => {
         ) : null // Don't show this message if the list was initially empty (handled above)
       }
 
-      {/* Add Button to append new row */}
-      {/* Only show if list is loaded and not in an error state */}
       {fields.length > 0 && !loading && !fetchError && (
         <TouchableOpacity
           onPress={() => append({ fat: 0, snf: 0, rate: 0 })}
           style={styles.appendButton}
         >
-          {" "}
-          // Append with default numbers
           <Text style={styles.appendButtonText}>Add New Row</Text>
         </TouchableOpacity>
       )}
 
-      {/* Save Button */}
       <TouchableOpacity
-        // Disable if saving, list empty, no changes made, or there's a fetch error blocking interaction
         style={[
           styles.saveButton,
           (saving || fields.length === 0 || !isDirty || fetchError) &&
@@ -516,11 +503,6 @@ const EditRateListScreen: React.FC = () => {
           <Text style={styles.saveButtonText}>Save Changes</Text>
         )}
       </TouchableOpacity>
-
-      {/* Display save error if any */}
-      {/* {error && saving === false && (
-        <Text style={styles.saveErrorText}>{error}</Text>
-      )} */}
     </KeyboardAvoidingView>
   );
 };

@@ -127,27 +127,20 @@ export default function Subscription() {
           key={plan.id}
           style={[styles.planCard, { backgroundColor: colors.surface }]}
         >
-          {" "}
-          {/* Use surface color */}
           <Text style={[styles.planTitle, { color: colors.textPrimary }]}>
             {plan.name}
-          </Text>{" "}
-          {/* Use textPrimary color */}
+          </Text>
           <Text style={[styles.planPrice, { color: colors.primary }]}>
             ₹{parseFloat(plan.price).toFixed(2)}/month
-          </Text>{" "}
-          {/* Use primary color and format price */}
+          </Text>
           <Text style={[styles.featuresTitle, { color: colors.textPrimary }]}>
             Features:
-          </Text>{" "}
-          {/* Use textPrimary color */}
+          </Text>
           {plan.features.map((feature, index) => (
             <Text
               key={index}
               style={[styles.featureItem, { color: colors.textSecondary }]}
             >
-              {" "}
-              {/* Use textSecondary color */}
               {feature}
             </Text>
           ))}
@@ -166,13 +159,10 @@ export default function Subscription() {
               style={[styles.subscribeButtonText, { color: colors.surface }]}
             >
               Subscribe Now
-            </Text>{" "}
-            {/* Use surface color */}
+            </Text>
           </Pressable>
         </View>
       ))}
-      {/* Toast Message component - ensure this is at the root of your app or screen */}
-      {/* <Toast /> */}
     </ScrollView>
   );
 }

@@ -13,12 +13,12 @@ import { format } from "date-fns";
 import { useForm, Controller } from "react-hook-form";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import Toast from "react-native-toast-message";
-import {
-  addSellerTransactionApi,
-  editSellerTransactionApi,
-} from "@/redux/slice/transactions/transactionApi";
 
 import useTheme from "@/context/theme/useTheme"; // Import useTheme
+import {
+  addCustomerTransactionApi,
+  editCustomerTransactionApi,
+} from "@/redux/slice/transactions/transactionApi";
 
 const AddTransactionScreen = () => {
   const router = useRouter();
@@ -62,7 +62,8 @@ const AddTransactionScreen = () => {
     formState: { errors },
     setValue, // Get setValue to update form date
     clearErrors, // Get clearErrors
-    setError, // Get setError
+    setError,
+    watch,
   } = useForm({
     defaultValues: {
       amount: effectiveAmount ?? "", // Use effectiveAmount
@@ -137,11 +138,11 @@ const AddTransactionScreen = () => {
       };
 
       const res = effectiveId
-        ? await editSellerTransactionApi({
+        ? await editCustomerTransactionApi({
             ...apiPayload,
             id: effectiveId,
           })
-        : await addSellerTransactionApi(apiPayload);
+        : await addCustomerTransactionApi(apiPayload);
 
       if (res?.status === 200) {
         Toast.show({
@@ -299,15 +300,12 @@ const AddTransactionScreen = () => {
                   { color: value ? colors.textPrimary : colors.textSecondary },
                 ]}
               >
-                {" "}
-                {/* Change color if date is set */}
-                Date: {value ? format(value, "yyyy-MM-dd") : "Select Date"}{" "}
-                {/* Show placeholder if no date */}
+                Date: {value ? format(value, "yyyy-MM-dd") : "Select Date"}
               </Text>
             </TouchableOpacity>
             {showDatePicker && (
               <DateTimePicker
-                value={value || new Date()} // Use current date as fallback for picker if value is null/undefined
+                value={value || new Date()}
                 mode="date"
                 display="default"
                 onChange={(event, selectedDate) => {

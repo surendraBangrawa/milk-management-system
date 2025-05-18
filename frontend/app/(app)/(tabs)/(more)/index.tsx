@@ -39,7 +39,6 @@ export default function TabTwoScreen() {
       <View style={styles.optionsContainer}>
         <Pressable
           style={({ pressed }) => [
-            // Use pressed state for feedback
             styles.option,
             {
               backgroundColor: pressed ? colors.primaryDark : colors.primary, // Darker on press

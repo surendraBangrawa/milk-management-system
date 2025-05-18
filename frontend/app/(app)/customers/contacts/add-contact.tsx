@@ -117,8 +117,6 @@ const AddCustomerFormScreen = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {" "}
-      {/* Use background color */}
       <Stack.Screen
         options={{
           title: effectiveMobile ? "Edit Customer" : "Add Customer", // Dynamic title

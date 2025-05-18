@@ -33,38 +33,37 @@ const HomeScreen = () => {
             style={[
               styles.navItem,
               mode === "customer" && styles.activeNavItem,
-              mode === "customer" && { borderBottomColor: colors.primary }, // Active border color from theme
+              mode === "customer" && { borderBottomColor: colors.primary },
             ]}
             onPress={() => handleModeChange("customer")}
-            android_ripple={{ color: colors.primaryLight }} // Add subtle ripple
+            android_ripple={{ color: colors.primaryLight }}
           >
             <Text
               style={[
                 styles.navText,
-                { color: colors.textSecondary }, // Default text color
+                { color: colors.textSecondary },
                 mode === "customer" && styles.activeNavText,
-                mode === "customer" && { color: colors.primary }, // Active text color from theme
+                mode === "customer" && { color: colors.primary },
               ]}
             >
               Customer
             </Text>
           </Pressable>
-          {/* Supplier Tab */}
           <Pressable
             style={[
               styles.navItem,
               mode === "supplier" && styles.activeNavItem,
-              mode === "supplier" && { borderBottomColor: colors.primary }, // Active border color from theme
+              mode === "supplier" && { borderBottomColor: colors.primary },
             ]}
             onPress={() => handleModeChange("supplier")}
-            android_ripple={{ color: colors.primaryLight }} // Add subtle ripple
+            android_ripple={{ color: colors.primaryLight }}
           >
             <Text
               style={[
                 styles.navText,
-                { color: colors.textSecondary }, // Default text color
+                { color: colors.textSecondary },
                 mode === "supplier" && styles.activeNavText,
-                mode === "supplier" && { color: colors.primary }, // Active text color from theme
+                mode === "supplier" && { color: colors.primary },
               ]}
             >
               Supplier
@@ -85,24 +84,11 @@ const styles = StyleSheet.create({
     // Background color from theme applied inline
   },
   headerContainer: {
-    // Background color from theme applied inline
     paddingVertical: 10,
     paddingHorizontal: 16, // Adjusted padding
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    // Optional subtle shadow for header
-    ...Platform.select({
-      ios: {
-        shadowColor: "rgba(0, 0, 0, 0.05)",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
   },
   title: {
     fontSize: 24,

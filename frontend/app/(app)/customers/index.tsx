@@ -218,7 +218,7 @@ const CustomerScreen = () => {
         onPress={() => router.push("/customers/contacts/contact")}
         activeOpacity={0.85}
       >
-        <Text style={[styles.buttonText, { color: colors.surface }]}>+</Text>{" "}
+        <Text style={[styles.buttonText, { color: colors.surface }]}>+</Text>
       </TouchableOpacity>
     </View>
   );
