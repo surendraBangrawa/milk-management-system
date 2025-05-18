@@ -233,9 +233,7 @@ const AddCustomerScreen = () => {
         <FlatList
           data={filteredContacts} // Use the filtered list
           renderItem={renderContact}
-          keyExtractor={(item) =>
-            item.id?.toString() || Math.random().toString()
-          } // Use item.id if available, fallback to random
+          keyExtractor={(item, index) => index.toString()}
           contentContainerStyle={styles.contactList}
           showsVerticalScrollIndicator={false}
         />

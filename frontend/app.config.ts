@@ -67,5 +67,6 @@ export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
       ...originalConfig.experiments,
       typedRoutes: originalConfig.experiments?.typedRoutes || true,
     },
+    newArchEnabled: true,
   };
 };

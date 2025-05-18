@@ -208,11 +208,7 @@ const CustomerScreen = () => {
         <FlatList
           data={filteredPeople}
           renderItem={renderPerson}
-          keyExtractor={(item) =>
-            item.mobile?.toString() ||
-            item.name?.toString() ||
-            Math.random().toString()
-          }
+          keyExtractor={(item, index) => index.toString()}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
         />

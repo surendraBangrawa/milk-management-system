@@ -10,7 +10,7 @@ import {
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { formatDistanceToNow } from "date-fns";
 import Toast from "react-native-toast-message";
-import { getBuyerTransactionApi } from "@/redux/slice/supplier/supplierApi";
+import { getSupplierTransactionApi } from "@/redux/slice/supplier/supplierApi";
 
 const getInitials = (name: string) => {
   const nameParts = name.split(" ");
@@ -36,7 +36,7 @@ const TransactionScreen = () => {
 
   const fetchCustomerData = async () => {
     try {
-      const res = await getBuyerTransactionApi(id);
+      const res = await getSupplierTransactionApi(id);
       if (res.status === 200) {
         const sortedData = res?.data?.sort((a, b) => {
           const dateA = new Date(a.added_at); // Sort by 'added_at' for display purposes
@@ -136,7 +136,7 @@ const TransactionScreen = () => {
       <FlatList
         data={transactions}
         renderItem={renderTransaction}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item, index) => index.toString()}
         contentContainerStyle={styles.transactionList}
       />
     </View>

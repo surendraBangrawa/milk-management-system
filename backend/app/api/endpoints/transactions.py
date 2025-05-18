@@ -393,8 +393,8 @@ def edit_transaction(
         raise HTTPException(status_code=404, detail="Something went wrong")
 
 
-@router.get("/get_transactions_buyer")
-def get_transactions_buyer(
+@router.get("/get_transactions_customer")
+def get_transactions_customer(
     db: Session = Depends(get_db),
     buyer_mobile: str = Depends(get_current_user),
     request: GetTransactionsRequest = Depends(),
@@ -407,8 +407,8 @@ def get_transactions_buyer(
         raise HTTPException(status_code=404, detail="Something went wrong")
 
 
-@router.get("/get_transactions_seller")
-def get_transactions_seller(
+@router.get("/get_transactions_supplier")
+def get_transactions_supplier(
     db: Session = Depends(get_db),
     seller_mobile: str = Depends(get_current_user),
     request: GetTransactionsSellerRequest = Depends(),
@@ -506,8 +506,8 @@ def update_balances(
     return transactions
 
 
-@router.get("/get_seller_summary")
-def get_seller_summary(
+@router.get("/get_customer_summary")
+def get_customer_summary(
     db: Session = Depends(get_db), buyer_mobile: str = Depends(get_current_user)
 ):
     try:
@@ -579,8 +579,8 @@ def get_seller_summary(
         raise HTTPException(status_code=404, detail="Something went wrong")
 
 
-@router.get("/get_buyer_summary")
-def get_Buyer_summary(
+@router.get("/get_supplier_summary")
+def get_supplier_summary(
     db: Session = Depends(get_db), seller_mobile: str = Depends(get_current_user)
 ):
     try:

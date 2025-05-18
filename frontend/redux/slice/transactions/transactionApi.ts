@@ -38,17 +38,17 @@ export interface AddSellerMilkTransaction {
   seller_mobile: string;
 }
 
-export const getSellerSummaryApi = async () => {
+export const getCustomerSummaryApi = async () => {
   try {
-    return await axiosInstance.get("/transactions/get_seller_summary");
+    return await axiosInstance.get("/transactions/get_customer_summary");
   } catch (error) {
     throw error;
   }
 };
 
-export const getSellerTransactionApi = async (data: string) => {
+export const getCustomerTransactionApi = async (data: string) => {
   try {
-    return await axiosInstance.get("/transactions/get_transactions_buyer", {
+    return await axiosInstance.get("/transactions/get_transactions_customer", {
       params: { seller_mobile: data },
     });
   } catch (error) {
@@ -56,7 +56,7 @@ export const getSellerTransactionApi = async (data: string) => {
   }
 };
 
-export const addSellerTransactionApi = async (data: AddSellerTransaction) => {
+export const addCustomerTransactionApi = async (data: AddSellerTransaction) => {
   try {
     return await axiosInstance.post(`/transactions/add_expense`, data);
   } catch (error) {
@@ -64,7 +64,7 @@ export const addSellerTransactionApi = async (data: AddSellerTransaction) => {
   }
 };
 
-export const deleteSellerTransactionApi = async (
+export const deleteCustomerTransactionApi = async (
   data: DeleteSellerTransaction
 ) => {
   try {
@@ -76,7 +76,9 @@ export const deleteSellerTransactionApi = async (
   }
 };
 
-export const editSellerTransactionApi = async (data: EditSellerTransaction) => {
+export const editCustomerTransactionApi = async (
+  data: EditSellerTransaction
+) => {
   try {
     return await axiosInstance.put(
       `/transactions/edit_transaction?record_id=${data.id}&record_type=${data.type}&seller_mobile=${data.seller_mobile}`,
@@ -87,7 +89,7 @@ export const editSellerTransactionApi = async (data: EditSellerTransaction) => {
   }
 };
 
-export const addSellerMilkTransactionApi = async (
+export const addCustomerMilkTransactionApi = async (
   data: AddSellerMilkTransaction
 ) => {
   try {

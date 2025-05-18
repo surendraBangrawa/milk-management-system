@@ -1,17 +1,17 @@
 import axiosInstance from "@/lib/axiosIntance";
 
-export const getBuyerSummaryApi = async () => {
+export const getSupplierSummaryApi = async () => {
   try {
-    return await axiosInstance.get("/transactions/get_buyer_summary");
+    return await axiosInstance.get("/transactions/get_supplier_summary");
   } catch (error) {
     throw error;
   }
 };
 
-export const getBuyerTransactionApi = async (id: string) => {
+export const getSupplierTransactionApi = async (id: string) => {
   try {
-    return await axiosInstance.get("/transactions/get_transactions_buyer", {
-      params: { seller_mobile: id },
+    return await axiosInstance.get("/transactions/get_transactions_supplier", {
+      params: { buyer_mobile: id },
     });
   } catch (error) {
     throw error;

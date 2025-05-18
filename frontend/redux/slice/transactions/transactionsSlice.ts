@@ -1,8 +1,8 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import {
-  getSellerSummaryApi,
-  getSellerTransactionApi,
-  deleteSellerTransactionApi,
+  deleteCustomerTransactionApi,
+  getCustomerSummaryApi,
+  getCustomerTransactionApi,
 } from "@/redux/slice/transactions/transactionApi"; // Assuming you have delete API here
 
 interface Transaction {
@@ -67,7 +67,7 @@ export const fetchSellerSummaries = createAsyncThunk(
   "transactions/fetchSellerSummaries",
   async (_, { rejectWithValue }) => {
     try {
-      const res = await getSellerSummaryApi();
+      const res = await getCustomerSummaryApi();
       if (
         res.status === 200 &&
         res?.data?.seller_details &&
@@ -98,7 +98,7 @@ export const fetchSellerTransactionsById = createAsyncThunk(
   "transactions/fetchSellerTransactionsById",
   async (sellerId: string, { rejectWithValue }) => {
     try {
-      const res = await getSellerTransactionApi(sellerId);
+      const res = await getCustomerTransactionApi(sellerId);
       if (res.status === 200 && res?.data && Array.isArray(res.data)) {
         const sortedData = res.data.sort((a, b) => {
           const dateA = a.added_at ? new Date(a.added_at) : null;
@@ -147,7 +147,7 @@ export const deleteTransaction = createAsyncThunk(
       ) {
         return rejectWithValue("Missing transaction details for deletion.");
       }
-      const res = await deleteSellerTransactionApi({
+      const res = await deleteCustomerTransactionApi({
         record_id,
         record_type,
         seller_mobile,

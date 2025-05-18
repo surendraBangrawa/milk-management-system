@@ -473,11 +473,7 @@ const TransactionScreen = () => {
         <FlatList
           data={transactions}
           renderItem={renderTransaction}
-          keyExtractor={(item) =>
-            item.id?.toString() ||
-            item.added_at?.toString() ||
-            Math.random().toString()
-          }
+          keyExtractor={(item, index) => index.toString()}
           contentContainerStyle={styles.transactionList}
           showsVerticalScrollIndicator={false}
         />

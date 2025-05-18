@@ -442,7 +442,7 @@ const InputTable = () => {
               columnWidths={columnWidths} // Pass widths
             />
           )}
-          keyExtractor={(item) => item.key} // Unique key for each row
+          keyExtractor={(item, index) => index.toString()}
           initialNumToRender={20} // Optimize initial rendering
           maxToRenderPerBatch={10} // Optimize rendering during scroll
           windowSize={15} // Optimize rendering window

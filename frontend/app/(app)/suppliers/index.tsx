@@ -12,7 +12,10 @@ import {
 import { useRouter } from "expo-router";
 import Toast from "react-native-toast-message";
 import { formatDistanceToNow } from "date-fns";
-import { getBuyerSummaryApi } from "@/redux/slice/supplier/supplierApi";
+import {
+  getBuyerSummaryApi,
+  getSupplierSummaryApi,
+} from "@/redux/slice/supplier/supplierApi";
 
 import useTheme from "@/context/theme/useTheme";
 
@@ -78,7 +81,7 @@ const SupplierScreen = () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await getBuyerSummaryApi();
+        const res = await getSupplierSummaryApi();
         if (
           res.status === 200 &&
           res?.data?.buyer_details &&
@@ -274,11 +277,7 @@ const SupplierScreen = () => {
         <FlatList
           data={filteredPeople} // Use the filtered list
           renderItem={renderPerson}
-          keyExtractor={(item) =>
-            item.mobile?.toString() ||
-            item.name?.toString() ||
-            Math.random().toString()
-          }
+          keyExtractor={(item, index) => index.toString()}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
         />
