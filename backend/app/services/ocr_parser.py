@@ -5,6 +5,7 @@ import os
 from typing import List, Tuple
 from pydantic import BaseModel
 import logging
+from app.core.config import GEMINI_API_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -16,40 +17,34 @@ class RateData(BaseModel):
 
 
 class RateListRequest(BaseModel):
-    rates: List[RateData]  # A list of RateData objects
+    rates: List[RateData]
 
 
 def get_text_from_image_via_api(image_path):
     import google.generativeai as genai
 
-    genai.configure(api_key="AIzaSyC1vxRQ97DGnZ7XtiEJOvZSLmQosOlpOjs")
-    model = genai.GenerativeModel("gemini-2.0-flash")  # Or another suitable model
+    genai.configure(api_key=GEMINI_API_KEY)
+    model = genai.GenerativeModel("gemini-2.0-flash")
     try:
-        # Read the image file
         with open(image_path, "rb") as f:
             image_bytes = f.read()
 
-        # Create a Generative Part from the image bytes
         image_part = {
             "mime_type": "image/jpeg",
             "data": image_bytes,
-        }  # Adjust mime_type if needed
+        }
 
-        # Send the image to the model with a prompt
-        # The prompt can guide the model to extract table data
         prompt_parts = [
             "Extract the data from the image, ensuring the output is clearly formatted as a table with rows and columns.",
             image_part,
         ]
         response = model.generate_content(prompt_parts)
 
-        # Return the extracted text
         return response.text
 
     except Exception as e:
         print(f"Error during simulated API call: {e}")
         return None
-    return simulated_extracted_text
 
 
 # --- Function to parse the extracted text into a DataFrame with dynamic columns ---

@@ -1,14 +1,12 @@
 from fastapi import Request, HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
+from sqlalchemy.orm import Session
 from jose import jwt, JWTError, ExpiredSignatureError
 from typing import Callable
+from app.db.session import get_db
+from app.db.models import User
+from app.core.security import SECRET_KEY, ALGORITHM
 
-# Import dependencies from other app modules
-from app.db.session import get_db  # Assuming get_db is in app/db/session.py
-from app.db.models import User  # Assuming User model is in app/db/models.py
-from app.core.security import SECRET_KEY, ALGORITHM  # Import security constants
-
-# Assuming you have a logger configured
 import logging
 
 logger = logging.getLogger(__name__)
@@ -22,15 +20,13 @@ class JWTMiddleware(BaseHTTPMiddleware):
     """
 
     async def dispatch(self, request: Request, call_next: Callable):
-        # Skip authentication for specific paths (e.g., login, docs)
-        # You'll need to define a list of paths to exclude
         excluded_paths = [
             "/docs",
             "/openapi.json",
             "/token",
             "/login",
             "/register",
-        ]  # Add your public paths here
+        ]
         if request.url.path in excluded_paths or request.url.path.startswith("/static"):
             return await call_next(request)
 
@@ -40,9 +36,7 @@ class JWTMiddleware(BaseHTTPMiddleware):
             raise HTTPException(status_code=401, detail="Authorization header missing")
 
         token_list = token_header.split(" ")
-        if (
-            len(token_list) != 2 or token_list[0].lower() != "bearer"
-        ):  # Use .lower() for case-insensitivity
+        if len(token_list) != 2 or token_list[0].lower() != "bearer":
             logger.warning("Invalid token format.")
             raise HTTPException(
                 status_code=401,
@@ -52,7 +46,6 @@ class JWTMiddleware(BaseHTTPMiddleware):
         token = token_list[1]
 
         try:
-            # Decode the JWT token
             payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
             mobile: str = payload.get("sub")  # Extract user mobile from token
 
@@ -62,17 +55,14 @@ class JWTMiddleware(BaseHTTPMiddleware):
                     status_code=401, detail="Invalid token, no user information"
                 )
 
-            # Create a new DB session for this request
-            # Using next(get_db()) gets the session yielded by the dependency
             db: Session = next(get_db())
 
-            # Retrieve user from database
             user = (
                 db.query(User)
                 .filter(User.mobile == mobile, User.is_deleted == 0)
                 .first()
             )
-            db.close()  # Close the session after fetching the user
+            db.close()
 
             if not user:
                 logger.warning(f"User {mobile} not found or inactive in DB.")
@@ -80,7 +70,6 @@ class JWTMiddleware(BaseHTTPMiddleware):
                     status_code=401, detail="User not found or inactive"
                 )
 
-            # Attach user object to request state for access in endpoints
             request.state.user = user
             logger.info(f"Authenticated request for user: {user.mobile}")
 
@@ -92,7 +81,6 @@ class JWTMiddleware(BaseHTTPMiddleware):
             raise HTTPException(status_code=401, detail="Invalid token")
         except Exception as e:
             logger.error(f"Unexpected error in JWTMiddleware: {e}", exc_info=True)
-            # Ensure db session is closed in case of unexpected errors
             if "db" in locals() and not db.closed:
                 db.close()
             raise HTTPException(

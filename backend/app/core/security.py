@@ -4,13 +4,10 @@ from jose import jwt, JWTError, ExpiredSignatureError
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 
-
+from app.core.config import SECRET_KEY, ALGORITHM
 from app.db.session import get_db
 from app.db.models import User
 
-
-SECRET_KEY = "thisisthebestsecretkeythekey"
-ALGORITHM = "HS256"
 
 oauth2_scheme = HTTPBearer()
 

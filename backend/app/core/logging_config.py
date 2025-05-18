@@ -1,18 +1,9 @@
-# app/core/logging_config.py
-
 import logging
 import sys
 import os
 from logging.handlers import RotatingFileHandler
 
-# Define log levels
-# logging.DEBUG: Detailed information, typically of interest only when diagnosing problems.
-# logging.INFO: Confirmation that things are working as expected.
-# logging.WARNING: An indication that something unexpected happened, or indicative of some problem in the near future (e.g. ‘disk space low’). The software is still working as expected.
-# logging.ERROR: Due to a more serious problem, the software has not been able to perform some function.
-# logging.CRITICAL: A serious error, indicating that the program itself may be unable to continue running.
 
-# Configuration options (can be loaded from environment variables or config.py)
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()  # Default to INFO
 LOG_FILE = os.getenv("LOG_FILE", "app.log")
 LOG_FILE_MAX_BYTES = int(os.getenv("LOG_FILE_MAX_BYTES", 1024 * 1024 * 5))  # 5 MB

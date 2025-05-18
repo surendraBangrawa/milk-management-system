@@ -13,27 +13,14 @@ from sqlalchemy import (
 from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
 import enum
-import pytz
-import os
+from app.core.config import local_timezone
 
-# Note: dotenv is loaded in session.py, but you might load it here too
-# if you need env vars specifically for model definitions (like TZ)
-
-# Define Base for ORM models
 Base = declarative_base()
 
-# Load time zone from environment variable
-time_zone = os.getenv("TZ", "Asia/Kolkata")
-local_timezone = pytz.timezone(time_zone)
 
-
-# Helper function to get the current time in the specified timezone
 def local_now():
     """Returns the current time in the configured local timezone."""
     return datetime.now(local_timezone)
-
-
-# --- Define your SQLAlchemy Models ---
 
 
 # User Table Schema
@@ -44,9 +31,7 @@ class User(Base):
     name = Column(String(100), nullable=False)
     referral_code = Column(String(20), nullable=True)
     is_deleted = Column(Boolean, default=False, nullable=False)
-    registered_at = Column(
-        DateTime, default=local_now
-    )  # Use local_now for timezone-aware timestamp
+    registered_at = Column(DateTime, default=local_now)
 
 
 # Customers Table Schema
