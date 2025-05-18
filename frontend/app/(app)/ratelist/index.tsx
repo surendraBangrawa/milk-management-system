@@ -9,15 +9,17 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useIsFocused } from "@react-navigation/native";
-import { useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import {
   deleteRatelist,
   getRatelist,
 } from "@/redux/slice/ratelist/rateListApi"; // Assuming the path is correct
+import useTheme from "@/context/theme/useTheme";
 
 const RateListViewer = () => {
   const router = useRouter();
   const isFocused = useIsFocused();
+  const { colors } = useTheme();
 
   // We still need the list to check if it exists to enable/disable buttons
   const [existingRateList, setExistingRateList] = useState([]);
@@ -119,8 +121,6 @@ const RateListViewer = () => {
 
     return (
       <ScrollView style={styles.container}>
-        <Text style={styles.title}>Milk Rate List Manager</Text>
-
         {/* Action Buttons */}
         <TouchableOpacity
           style={styles.actionButton}
@@ -180,7 +180,20 @@ const RateListViewer = () => {
     );
   };
 
-  return <View style={styles.mainContainer}>{renderContent()}</View>;
+  return (
+    <View style={styles.mainContainer}>
+      <Stack.Screen
+        options={{
+          title: "Subscription Plans",
+          headerStyle: {
+            backgroundColor: colors.surface, // Example header background
+          },
+          headerTintColor: colors.textPrimary, // Example header text color
+        }}
+      />
+      {renderContent()}
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({

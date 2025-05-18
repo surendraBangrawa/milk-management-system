@@ -84,7 +84,6 @@ export default function Subscription() {
     // Explicitly type plan
     try {
       const upiLink = generateUpiLink(plan);
-      console.log("Generated UPI Link:", upiLink); // Log the generated link
 
       // Check if any app can handle the UPI scheme
       const supported = await Linking.canOpenURL(upiLink);
@@ -113,11 +112,10 @@ export default function Subscription() {
       style={[styles.container, { backgroundColor: colors.background }]}
       keyboardShouldPersistTaps="handled"
     >
-      {" "}
       {/* Use background color */}
       <Stack.Screen
         options={{
-          title: "Subscription Plans",
+          title: "Ratelist",
           headerStyle: {
             backgroundColor: colors.surface, // Example header background
           },

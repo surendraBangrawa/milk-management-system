@@ -10,20 +10,12 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as SecureStore from "expo-secure-store";
-// No longer need to import axiosInstance or uploadRatelist if using fetch directly
-// import { uploadRatelistWithPhoto } from '@/redux/slice/ratelist/rateListApi';
 
-// Assuming you have a base URL for your backend API
-// It's better to get this from a config file or environment variable
-const API_BASE_URL = "http://192.168.1.2:8000"; // !! Replace with your actual backend URL !!
+const API_BASE_URL = "http://192.168.1.2:8000";
 
 const UploadRateListScreen = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [uploading, setUploading] = useState(false);
-  // You would typically have state for other rate list data here, e.g.:
-  // const [fatRange, setFatRange] = useState('');
-  // const [snfRange, setSnfRange] = useState('');
-  // const [ratePerKg, setRatePerKg] = useState('');
 
   // Request permission to access the device's media library
   const requestMediaLibraryPermission = async () => {
@@ -196,18 +188,6 @@ const UploadRateListScreen = () => {
         </View>
       )}
 
-      {/* You would add input fields for Fat Range, SNF Range, Rate, etc. here */}
-      {/* Example:
-      <TextInput
-        style={styles.input}
-        placeholder="Fat Range (%)"
-        value={fatRange}
-        onChangeText={setFatRange}
-        keyboardType="numeric"
-      />
-      */}
-
-      {/* Upload Button */}
       <TouchableOpacity
         style={styles.uploadButton}
         onPress={handleUpload}
