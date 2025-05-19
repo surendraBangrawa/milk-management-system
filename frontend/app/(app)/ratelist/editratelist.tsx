@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, memo, useCallback } from "react";
 import {
   View,
   Text,
@@ -11,74 +11,72 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { useRouter } from "expo-router";
-import {
-  getRatelist,
-  updateRatelist,
-} from "@/redux/slice/ratelist/rateListApi";
+import { Stack, useRouter } from "expo-router";
+import { getRatelist, saveRatelist } from "@/redux/slice/ratelist/rateListApi";
+import useTheme from "@/context/theme/useTheme";
+import Toast from "react-native-toast-message";
 
-// Import React Hook Form types and components
 import {
   useForm,
   Controller,
   useFieldArray,
   FieldErrors,
+  useFormState,
 } from "react-hook-form";
-// Import your defined types
 
-// Interface for a single rate list item object
-// Assuming fat, snf, and rate are numbers from the API.
-// Add 'id' if your items have unique identifiers from the backend.
-// Use optional properties (?) for fields that might be missing.
+// Define your types for better type safety and clarity
 export interface RateItem {
   fat: number;
   snf: number;
   rate: number;
-  id?: string | number; // Optional unique identifier
-  [key: string]: any; // Allow for other properties not explicitly listed
+  id?: string | number;
+  [key: string]: any;
 }
 
-// Interface for the form data structure used by React Hook Form
 export interface RateFormData {
-  rateItems: RateItem[]; // The array managed by useFieldArray
+  rateItems: RateItem[];
 }
 
-// Interface for items in the visibleFields array (used by FlatList)
-// This pairs the RHF field object with its original index in the full array
 export interface VisibleFieldItem {
-  field: RateItem; // The item data from the RHF fields array
-  originalIndex: number; // The original index in the full array
+  field: RateItem & { key: string }; // Add RHF 'key' to the field type
+  originalIndex: number; // The original index in the full array (crucial for RHF name paths)
 }
 
 const EditRateListScreen: React.FC = () => {
-  // Annotate component with React.FC
   const router = useRouter();
+  const { colors } = useTheme();
 
-  // Add type annotations to useState
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
-  const [fetchError, setFetchError] = useState<string | null>(null); // fetchError is a string or null
-  const [searchQuery, setSearchQuery] = useState<string>(""); // searchQuery is a string
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+
+  // Debounce state for search query
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>("");
 
   // --- React Hook Form Setup ---
-  // Add RateFormData as the generic type for useForm
   const {
     control,
     handleSubmit,
-    reset,
-    formState: { errors, isDirty },
+    formState: { isDirty, isValid },
   } = useForm<RateFormData>({
     defaultValues: {
-      rateItems: [], // Initial empty array matching RateFormData structure
+      rateItems: [],
     },
-    // mode: 'onBlur', // Optional: Validate on blur
+    // Changed to onBlur for slightly earlier feedback without onChange overhead.
+    // Also, when the form is submitted, it will trigger validation on all fields.
+    mode: "onBlur",
+    reValidateMode: "onBlur", // Re-validate on blur
   });
 
-  // Add RateFormData as the generic type for useFieldArray
+  // Get errors and dirtyFields using useFormState
+  // This is global for the form, individual row errors are accessed via useFormState within memo()
+  const { errors, dirtyFields } = useFormState({ control });
+
   const { fields, replace, append, remove } = useFieldArray<RateFormData>({
     control,
-    name: "rateItems", // This must match the key in RateFormData ('rateItems')
-    // keyName: 'id', // Use 'id' if your RateItem has an 'id' for better performance
+    name: "rateItems",
+    keyName: "key",
   });
   // --- End React Hook Form Setup ---
 
@@ -86,337 +84,486 @@ const EditRateListScreen: React.FC = () => {
     fetchRateListForEdit();
   }, []);
 
+  // Effect to debounce search query
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300); // 300ms debounce time
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchQuery]);
+
   const fetchRateListForEdit = async (): Promise<void> => {
-    // Annotate return type
     setLoading(true);
     setFetchError(null);
     try {
-      const data = await getRatelist(); // Assumed to return Promise<{ data: { rates: RateItem[] } }>
-      console.log("Fetched Data for Edit:", data);
-      if (data && data.data && Array.isArray(data.data.rates)) {
-        // The data directly matches the RateItem[] structure expected by replace
+      const data = await getRatelist();
+
+      if (
+        data &&
+        data.data &&
+        Array.isArray(data.data.rates) &&
+        data.data.rates.every(
+          (item: any) =>
+            typeof item === "object" &&
+            item !== null &&
+            "fat" in item &&
+            "snf" in item &&
+            "rate" in item
+        )
+      ) {
+        // Ensure fetched data has correct types for RHF default values if needed,
+        // but RHF handles type coercion for inputs well.
         replace(data.data.rates); // Populate the field array with fetched RateItem[]
       } else {
         console.warn(
           "API returned non-array data or unexpected structure for Edit:",
           data
         );
-        replace([]); // Replace with empty array RateItem[]
-        setFetchError(
-          "Failed to load rate list for editing due to data format."
-        );
+        replace([]);
+        const errorMessage = "Received unexpected data format from the server.";
+        setFetchError(errorMessage);
+        Toast.show({ type: "error", text1: "Data Error", text2: errorMessage });
       }
     } catch (err: any) {
-      // Catch error with 'any' or a more specific Error type
       console.error("Error fetching rate list for edit:", err);
-      setFetchError(
-        `Failed to load rate list for editing. ${err.message || ""}`
-      ); // Use error message
+      const errorMessage = `Failed to load rate list for editing. ${
+        err.message || "Please check your network."
+      }`;
+      setFetchError(errorMessage);
+      Toast.show({ type: "error", text1: "Fetch Failed", text2: errorMessage });
     } finally {
       setLoading(false);
     }
   };
 
-  // useMemo will re-calculate visibleFields only when 'fields' or 'searchQuery' changes
   const visibleFields: VisibleFieldItem[] = useMemo(() => {
-    // Annotate return type
-    if (!searchQuery) {
-      // If search is empty, return all fields along with their original index
-      return fields.map((field: RateItem, originalIndex: number) => ({
-        field,
-        originalIndex,
-      }));
-    }
+    // Use debounced search query here
+    const currentSearchQuery = debouncedSearchQuery.toLowerCase();
+    const filtered = currentSearchQuery
+      ? fields.filter((field) => {
+          // Ensure values are treated as strings for searching, handle null/undefined safely
+          const fatString = String(field.fat ?? "");
+          const snfString = String(field.snf ?? "");
+          const rateString = String(field.rate ?? "");
 
-    const lowerCaseQuery = searchQuery.toLowerCase();
+          return (
+            fatString.includes(currentSearchQuery) ||
+            snfString.includes(currentSearchQuery) ||
+            rateString.includes(currentSearchQuery)
+          );
+        })
+      : fields; // If no search query, use the full fields array
 
-    return fields
-      .map((field: RateItem, originalIndex: number) => ({
-        field,
-        originalIndex,
-      })) // Create objects with field and original index
-      .filter(({ field }: { field: RateItem }) => {
-        // Annotate filter parameter
-        // Filter based on string representation of relevant fields
-        const fatString =
-          field.fat !== undefined && field.fat !== null
-            ? field.fat.toString()
-            : "";
-        const snfString =
-          field.snf !== undefined && field.snf !== null
-            ? field.snf.toString()
-            : "";
-        const rateString =
-          field.rate !== undefined && field.rate !== null
-            ? field.rate.toString()
-            : "";
+    // Map the filtered fields back to the VisibleFieldItem structure
+    // The originalIndex is the index in the *current* 'fields' array, which is what RHF uses
+    return filtered.map((field, index) => ({
+      field,
+      originalIndex: fields.findIndex((f) => f.key === field.key), // Find the original index in the full fields array
+    }));
+  }, [fields, debouncedSearchQuery]); // Dependency changed to debouncedSearchQuery
 
-        return (
-          fatString.includes(lowerCaseQuery) ||
-          snfString.includes(lowerCaseQuery) ||
-          rateString.includes(lowerCaseQuery)
-        );
-      });
-  }, [fields, searchQuery]); // Dependencies
-
-  // This function is called by handleSubmit AFTER RHF validation passes
-  // It receives the entire form data object with type RateFormData
-  const onSubmit = async (formData: RateFormData): Promise<void> => {
-    // Annotate parameter and return type
-    setSaving(true);
-    setError(null);
-
-    // formData.rateItems contains the array of ALL items (visible or not) with their edited values
-    const dataToSave: RateItem[] = formData.rateItems.map((item) => {
-      // Annotate mapped array type
-      const parsedItem: RateItem = { ...item }; // Annotate item type
+  // Memoize the onSubmit function
+  const onSubmit = useCallback(
+    async (formData: RateFormData): Promise<void> => {
+      setSaving(true);
 
       // Perform final parsing and validation before sending
-      // RHF validation already ran, but this adds a safety net for types
-      const fat = parseFloat(item.fat as any); // Cast to any for parseFloat if RHF stored it as string
-      const snf = parseFloat(item.snf as any);
-      const rate = parseFloat(item.rate as any);
+      const dataToSave: RateItem[] = formData.rateItems.map((item) => {
+        const parsedItem: RateItem = { ...item };
 
-      // Replace with parsed numbers if valid, otherwise handle error or keep original (error case)
-      parsedItem.fat = !isNaN(fat) && fat >= 0 ? fat : item.fat; // Keep original value on error
-      parsedItem.snf = !isNaN(snf) && snf >= 0 ? snf : item.snf;
-      parsedItem.rate = !isNaN(rate) && rate >= 0 ? rate : item.rate;
+        // Parse values from string (as they come from TextInput via RHF) to number
+        // Use Number() for stricter parsing, parseFloat can be more lenient
+        parsedItem.fat = Number(item.fat);
+        parsedItem.snf = Number(item.snf);
+        parsedItem.rate = Number(item.rate);
 
-      return parsedItem;
-    });
+        return parsedItem;
+      });
 
-    // Optional: Add a final check if any parsing/validation failed here based on how you handled errors above
-    const hasInvalidData = dataToSave.some(
-      (item) =>
-        typeof item.fat !== "number" ||
-        item.fat < 0 ||
-        typeof item.snf !== "number" ||
-        item.snf < 0 ||
-        typeof item.rate !== "number" ||
-        item.rate < 0
-    );
-
-    if (hasInvalidData) {
-      Alert.alert(
-        "Validation Error",
-        "Some data is invalid (e.g., not a positive number) after parsing. Please correct before saving."
+      // Check if any numbers are invalid after parsing from string (e.g., if user types non-numeric chars)
+      // This is a safety net in case RHF validation was bypassed or for final data structure check
+      const hasInvalidDataAfterParsing = dataToSave.some(
+        (item) =>
+          isNaN(item.fat) ||
+          item.fat < 0 || // Also check for negative values
+          isNaN(item.snf) ||
+          item.snf < 0 ||
+          isNaN(item.rate) ||
+          item.rate < 0
       );
-      setSaving(false);
-      return;
-    }
 
-    try {
-      await updateRatelist(dataToSave); // Assumed to accept RateItem[]
+      if (hasInvalidDataAfterParsing) {
+        Toast.show({
+          type: "error",
+          text1: "Validation Error",
+          text2:
+            "Some data is invalid (e.g., not a positive number) after parsing. Please correct before saving.",
+        });
+        setSaving(false);
+        return;
+      }
 
-      Alert.alert("Success", "Rate list updated successfully!");
-      // router.back();
-      // reset(formData);
-    } catch (err: any) {
-      console.error("Error saving rate list:", err);
-      setError(`Failed to save rate list: ${err.message || ""}`);
-      Alert.alert("Error", `Failed to save rate list: ${err.message || ""}`);
-    } finally {
-      setSaving(false);
-    }
-  };
+      try {
+        // Assuming saveRatelist expects an array of RateItem
+        await saveRatelist(dataToSave);
+        Toast.show({
+          type: "success",
+          text1: "Success",
+          text2: "Rate list saved successfully!", // Specific success message for saving
+        });
+        // Delay navigation slightly to allow Toast to be seen
+        // Removed setTimeout for potentially faster navigation after Toast shows
+        router.back();
+      } catch (err: any) {
+        console.error("Error saving rate list:", err);
+        const errorMessage = `Failed to save rate list: ${
+          err.message || "Please try again."
+        }`;
+        Toast.show({
+          type: "error",
+          text1: "Save Failed",
+          text2: errorMessage,
+        });
+      } finally {
+        setSaving(false);
+      }
+    },
+    [router] // Dependencies for useCallback
+  );
 
-  // Define how each row in the FlatList is rendered
-  // Annotate renderItem parameters
-  const renderItem = ({ item }: { item: VisibleFieldItem }) => {
-    const { field, originalIndex } = item; // item is VisibleFieldItem
+  // Define a separate component for each row to use React.memo
+  // It now receives only the 'item' and necessary functions/states that don't change frequently
+  const RenderRateItem = memo(
+    ({
+      item,
+      control,
+      colors,
+      saving,
+      remove,
+      fieldsLength,
+    }: {
+      item: VisibleFieldItem;
+      control: any; // Type from useForm
+      colors: any; // Type from useTheme
+      saving: boolean;
+      remove: (index?: number | number[]) => void; // Type from useFieldArray
+      fieldsLength: number; // Pass fields.length to memoized component
+    }) => {
+      const { field, originalIndex } = item;
 
-    // Access errors for this specific field using the originalIndex
-    const fieldErrors = (errors.rateItems as FieldErrors<RateItem>[])?.[
-      originalIndex
-    ];
+      // Access errors for this specific field *inside* the memoized component
+      // This makes the component only re-render when *its* error state changes
+      const { errors: fieldErrorsParent } = useFormState({
+        control,
+        name: `rateItems[${originalIndex}]`,
+      });
+      // Cast the errors for better type safety
+      const fieldErrors = (errors.rateItems as FieldErrors<RateItem>[])?.[
+        originalIndex
+      ];
+      // Memoize the delete handler within RenderRateItem to ensure stability
+      const handleDelete = useCallback(() => {
+        Alert.alert("Delete Row", "Are you sure you want to delete this row?", [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: () => {
+              // Use originalIndex to remove the correct item from the RHF array
+              remove(originalIndex);
+              Toast.show({
+                type: "info",
+                text1: "Row Deleted",
+                text2: "Row removed from the list.",
+              });
+            },
+          },
+        ]);
+      }, [originalIndex, remove]); // Dependencies for useCallback
 
-    return (
-      // Wrap row content in a View to hold cells and delete button
-      <View
-        style={[
-          styles.tableRowContainer,
-          originalIndex % 2 === 0 ? styles.evenRow : styles.oddRow,
-        ]}
-      >
-        <View style={styles.tableRowCells}>
-          <Controller
-            control={control}
-            name={`rateItems[${originalIndex}].fat`} // Use the ORIGINAL index for the name
-            rules={{
-              required: "Req",
-              validate: (value) => {
-                const num = parseFloat(value as string); // Cast value from TextInput to string for parsing
-                if (value === "") return true; // Allow empty input temporarily
-                if (isNaN(num)) return "Num";
-                if (num < 0) return "Pos";
-                return true;
-              },
-            }}
-            // Annotate render callback parameters
-            render={({ field: { onChange, onBlur, value } }) => (
-              <TextInput
-                style={[
-                  styles.tableCellInput,
-                  styles.fatCell,
-                  // Check errors using the original index
-                  fieldErrors?.fat && styles.inputError,
-                ]}
-                keyboardType="decimal-pad"
-                onBlur={onBlur}
-                onChangeText={onChange}
-                // value might be number or string depending on initial data and typing
-                // Ensure it's a string for TextInput value prop
-                value={
-                  value !== undefined && value !== null ? String(value) : ""
-                }
-                placeholder="Fat"
-              />
-            )}
-          />
-          {/* Display validation error for Fat - positioned absolutely */}
-          {/* Access error message using the original index */}
-          {fieldErrors?.fat && (
-            <Text style={styles.cellErrorText}>{fieldErrors.fat.message}</Text>
-          )}
-          {/* --- SNF Input controlled by RHF --- */}
-          <Controller
-            control={control}
-            name={`rateItems[${originalIndex}].snf`} // Use the ORIGINAL index
-            rules={{
-              required: "Req",
-              validate: (value) => {
-                const num = parseFloat(value as string);
-                if (value === "") return true;
-                if (isNaN(num)) return "Num";
-                if (num < 0) return "Pos";
-                return true;
-              },
-            }}
-            render={({ field: { onChange, onBlur, value } }) => (
-              <TextInput
-                style={[
-                  styles.tableCellInput,
-                  styles.snfCell,
-                  fieldErrors?.snf && styles.inputError,
-                ]}
-                keyboardType="decimal-pad"
-                onBlur={onBlur}
-                onChangeText={onChange}
-                value={
-                  value !== undefined && value !== null ? String(value) : ""
-                }
-                placeholder="SNF"
-              />
-            )}
-          />
-          {/* Display validation error for SNF */}
-          {fieldErrors?.snf && (
-            <Text style={styles.cellErrorText}>{fieldErrors.snf.message}</Text>
-          )}
-          {/* --- Rate Input controlled by RHF --- */}
-          <Controller
-            control={control}
-            name={`rateItems[${originalIndex}].rate`} // Use the ORIGINAL index
-            rules={{
-              required: "Req",
-              validate: (value) => {
-                const num = parseFloat(value as string);
-                if (value === "") return true;
-                if (isNaN(num)) return "Num";
-                if (num < 0) return "Pos";
-                return true;
-              },
-            }}
-            render={({ field: { onChange, onBlur, value } }) => (
-              <TextInput
-                style={[
-                  styles.tableCellInput,
-                  styles.rateCell,
-                  fieldErrors?.rate && styles.inputError,
-                ]}
-                keyboardType="decimal-pad"
-                onBlur={onBlur}
-                onChangeText={onChange}
-                value={
-                  value !== undefined && value !== null ? String(value) : ""
-                }
-                placeholder="Rate"
-              />
-            )}
-          />
-          {/* Display validation error for Rate */}
-          {fieldErrors?.rate && (
-            <Text style={styles.cellErrorText}>{fieldErrors.rate.message}</Text>
-          )}
-        </View>
-        <TouchableOpacity
-          onPress={() => {
-            Alert.alert(
-              "Delete Row",
-              "Are you sure you want to delete this row?",
-              [
-                { text: "Cancel", style: "cancel" },
-                {
-                  text: "Delete",
-                  style: "destructive",
-                  onPress: () => remove(originalIndex),
-                }, // Call remove with original index
-              ]
-            );
-          }}
-          style={styles.deleteRowButton}
+      return (
+        <View
+          style={[
+            styles.tableRowContainer,
+            originalIndex % 2 === 0
+              ? { backgroundColor: colors.surface }
+              : { backgroundColor: colors.background },
+            { borderBottomColor: colors.border },
+          ]}
         >
-          <Text style={styles.deleteRowButtonText}>X</Text>
-        </TouchableOpacity>
-      </View> // End tableRowContainer
-    );
-  };
+          {/* Wrap cells in a View with flex: 1 to push delete button to the end */}
+          <View style={styles.tableRowCells}>
+            {/* Fat Input */}
+            <View style={styles.inputContainer}>
+              {/* Wrapper for input and error */}
+              <Controller
+                control={control}
+                name={`rateItems[${originalIndex}].fat`} // Use the ORIGINAL index for the name
+                rules={{
+                  required: "Fat is required", // More descriptive message
+                  validate: (value) => {
+                    // Allow empty string if not required, otherwise check number validity
+                    if (String(value).trim() === "") return true; // Handled by 'required' if needed
+                    const num = Number(value); // Use Number()
+                    if (isNaN(num)) return "Must be a number";
+                    if (num < 0) return "Must be positive";
+                    return true;
+                  },
+                }}
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <TextInput
+                    style={[
+                      styles.tableCellInput,
+                      styles.fatCell,
+                      {
+                        borderColor: fieldErrors?.fat
+                          ? colors.error
+                          : colors.border, // Apply error border color
+                        color: colors.textPrimary,
+                        backgroundColor: colors.surface,
+                      },
+                    ]}
+                    keyboardType="decimal-pad"
+                    onBlur={onBlur}
+                    onChangeText={onChange}
+                    value={String(value ?? "")} // Ensure value is a string, handle null/undefined
+                    placeholder="Fat"
+                    placeholderTextColor={colors.textSecondary}
+                    editable={!saving} // Disable input while saving
+                    accessibilityLabel={`Fat value for row ${
+                      originalIndex + 1
+                    }`}
+                  />
+                )}
+              />
+              {fieldErrors?.fat && (
+                <Text style={[styles.cellErrorText, { color: colors.error }]}>
+                  {fieldErrors.fat.message}
+                </Text>
+              )}
+            </View>
 
+            <View style={styles.inputContainer}>
+              <Controller
+                control={control}
+                name={`rateItems[${originalIndex}].snf`}
+                rules={{
+                  required: "SNF is required",
+                  validate: (value) => {
+                    if (String(value).trim() === "") return true;
+                    const num = Number(value); // Use Number()
+                    if (isNaN(num)) return "Must be a number";
+                    if (num < 0) return "Must be positive";
+                    return true;
+                  },
+                }}
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <TextInput
+                    style={[
+                      styles.tableCellInput,
+                      styles.snfCell,
+                      {
+                        borderColor: fieldErrors?.snf
+                          ? colors.error
+                          : colors.border, // Apply error border color
+                        color: colors.textPrimary,
+                        backgroundColor: colors.surface,
+                      },
+                    ]}
+                    keyboardType="decimal-pad"
+                    onBlur={onBlur}
+                    onChangeText={onChange}
+                    value={String(value ?? "")}
+                    placeholder="SNF"
+                    placeholderTextColor={colors.textSecondary}
+                    editable={!saving}
+                    accessibilityLabel={`SNF value for row ${
+                      originalIndex + 1
+                    }`}
+                  />
+                )}
+              />
+              {/* Display validation error for SNF */}
+              {fieldErrors?.snf && (
+                <Text style={[styles.cellErrorText, { color: colors.error }]}>
+                  {fieldErrors.snf.message}
+                </Text>
+              )}
+            </View>
+
+            {/* Rate Input */}
+            <View style={styles.inputContainer}>
+              {/* Wrapper for input and error */}
+              <Controller
+                control={control}
+                name={`rateItems[${originalIndex}].rate`}
+                rules={{
+                  required: "Rate is required",
+                  validate: (value) => {
+                    if (String(value).trim() === "") return true;
+                    const num = Number(value); // Use Number()
+                    if (isNaN(num)) return "Must be a number";
+                    if (num < 0) return "Must be positive";
+                    return true;
+                  },
+                }}
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <TextInput
+                    style={[
+                      styles.tableCellInput,
+                      styles.rateCell,
+                      {
+                        borderColor: fieldErrors?.rate
+                          ? colors.error
+                          : colors.border, // Apply error border color
+                        color: colors.textPrimary,
+                        backgroundColor: colors.surface,
+                      },
+                    ]}
+                    keyboardType="decimal-pad"
+                    onBlur={onBlur}
+                    onChangeText={onChange}
+                    value={String(value ?? "")}
+                    placeholder="Rate"
+                    placeholderTextColor={colors.textSecondary}
+                    editable={!saving}
+                    accessibilityLabel={`Rate value for row ${
+                      originalIndex + 1
+                    }`}
+                  />
+                )}
+              />
+              {/* Display validation error for Rate */}
+              {fieldErrors?.rate && (
+                <Text style={[styles.cellErrorText, { color: colors.error }]}>
+                  {fieldErrors.rate.message}
+                </Text>
+              )}
+            </View>
+          </View>
+
+          {/* Delete Button */}
+          {/* Position delete button within its own container */}
+          <View style={styles.deleteButtonContainer}>
+            <TouchableOpacity
+              onPress={handleDelete}
+              style={[
+                styles.deleteRowButton,
+                { backgroundColor: colors.error }, // Use theme error color
+                (saving || fieldsLength === 1) && { opacity: 0.5 }, // Disable if saving or only one row left
+              ]}
+              disabled={saving || fieldsLength === 1} // Disable while saving or if it's the last row
+              accessibilityLabel="Delete row"
+              accessibilityHint={`Delete row ${
+                originalIndex + 1
+              } from rate list`}
+            >
+              <Text
+                style={[styles.deleteRowButtonText, { color: colors.surface }]}
+              >
+                X
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    }
+  );
+
+  // Pass necessary props to the memoized component
+  const renderItem = useCallback(
+    ({ item }: { item: VisibleFieldItem }) => (
+      <RenderRateItem
+        item={item}
+        control={control} // Pass control
+        colors={colors} // Pass colors
+        saving={saving} // Pass saving state
+        remove={remove} // Pass remove function
+        fieldsLength={fields.length} // Pass fields.length
+      />
+    ),
+    [control, colors, saving, remove, fields.length] // Dependencies for useCallback
+  );
+
+  // Consider adding getItemLayout if rows have fixed height for extreme performance on very long lists
+  const getItemLayout = useCallback(
+    (data: ArrayLike<VisibleFieldItem> | null | undefined, index: number) => {
+      // Re-evaluate this height carefully based on your final layout.
+      // It should be the exact height of one row, including padding and margin.
+      // Approx: input minHeight (38) + input vertical padding (8*2) + inputContainer paddingBottom (15) + tableRowContainer paddingVertical (5*2) = 38 + 16 + 15 + 10 = 79
+      const rowHeight = 79; // Estimate this based on your row height, including padding/margins + error text
+      return {
+        length: rowHeight,
+        offset: rowHeight * index,
+        index,
+      };
+    },
+    []
+  );
+
+  // --- Conditional Rendering for Loading, Error, Empty States ---
   if (loading) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#007BFF" />
-        <Text style={styles.loadingText}>Loading Rate List for editing...</Text>
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+          Loading Rate List for editing...
+        </Text>
       </View>
     );
   }
 
   if (fetchError) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.errorText}>{fetchError}</Text>
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+        <Text style={[styles.errorText, { color: colors.error }]}>
+          {fetchError}
+        </Text>
         <TouchableOpacity
           onPress={fetchRateListForEdit}
-          style={styles.retryButton}
+          style={[styles.retryButton, { backgroundColor: colors.primary }]}
+          accessibilityLabel="Retry fetching rate list"
         >
-          <Text style={styles.retryButtonText}>Retry</Text>
+          <Text style={[styles.retryButtonText, { color: colors.onPrimary }]}>
+            Retry
+          </Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  // Check if the *full* fields array is empty after loading and no search is active
   if (fields.length === 0 && !loading && !searchQuery) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.infoText}>
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+        <Text style={[styles.infoText, { color: colors.textSecondary }]}>
           No rate list data available to edit.
         </Text>
         <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.retryButton}
-        >
-          <Text style={styles.retryButtonText}>Go Back</Text>
-        </TouchableOpacity>
-        {/* Option to add the first row if list is empty */}
-        <TouchableOpacity
-          onPress={() => append({ fat: 0, snf: 0, rate: 0 })} // Append with default numbers
+          onPress={() => append({ fat: 0, snf: 0, rate: 0 })}
           style={[
             styles.retryButton,
-            { marginTop: 10, backgroundColor: "#007BFF" },
+            { marginTop: 10, backgroundColor: colors.primary },
           ]}
+          accessibilityLabel="Add first row to rate list"
         >
-          <Text style={styles.retryButtonText}>Add First Row</Text>
+          <Text style={[styles.retryButtonText, { color: colors.onPrimary }]}>
+            Add First Row
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={[
+            styles.retryButton,
+            { marginTop: 10, backgroundColor: colors.border },
+          ]} // Use border for 'go back'
+          accessibilityLabel="Go back to previous screen"
+        >
+          <Text style={[styles.retryButtonText, { color: colors.textPrimary }]}>
+            Go Back
+          </Text>
         </TouchableOpacity>
       </View>
     );
@@ -424,174 +571,233 @@ const EditRateListScreen: React.FC = () => {
 
   return (
     <KeyboardAvoidingView
-      style={styles.mainContainer}
+      style={[styles.mainContainer, { backgroundColor: colors.background }]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
     >
-      <Text style={styles.title}>Edit Milk Rate List</Text>
-
-      {/* Search Input */}
+      <Stack.Screen
+        options={{
+          title: "Edit Ratelist",
+          headerStyle: {
+            backgroundColor: colors.surface,
+          },
+          headerTintColor: colors.textPrimary,
+        }}
+      />
       <TextInput
-        style={styles.searchInput}
+        style={[
+          styles.searchInput,
+          {
+            borderColor: colors.border,
+            color: colors.textPrimary,
+            backgroundColor: colors.surface,
+          },
+        ]}
         placeholder="Search by Fat, SNF, or Rate..."
+        placeholderTextColor={colors.textSecondary}
         value={searchQuery}
-        onChangeText={setSearchQuery} // Update search state
+        onChangeText={setSearchQuery} // Updates immediate searchQuery, which then debounces
         clearButtonMode="while-editing"
+        editable={!saving} // Disable search while saving
+        accessibilityLabel="Search rate list"
+        accessibilityHint="Filter rows by Fat, SNF, or Rate values"
       />
 
-      {/* Table Header */}
-      <View style={styles.tableHeader}>
-        <Text style={[styles.tableHeaderCell, styles.fatHeader]}>Fat</Text>
-        <Text style={[styles.tableHeaderCell, styles.snfHeader]}>SNF</Text>
-        <Text style={[styles.tableHeaderCell, styles.rateHeader]}>Rate</Text>
-        {/* Add a small header cell for the delete button column */}
+      <View
+        style={[
+          styles.tableHeader,
+          { borderBottomColor: colors.border, backgroundColor: colors.surface },
+        ]}
+      >
+        <Text
+          style={[
+            styles.tableHeaderCell,
+            styles.fatHeader,
+            { color: colors.textPrimary },
+          ]}
+        >
+          Fat
+        </Text>
+        <Text
+          style={[
+            styles.tableHeaderCell,
+            styles.snfHeader,
+            { color: colors.textPrimary },
+          ]}
+        >
+          SNF
+        </Text>
+        <Text
+          style={[
+            styles.tableHeaderCell,
+            styles.rateHeader,
+            { color: colors.textPrimary },
+          ]}
+        >
+          Rate
+        </Text>
         <View style={styles.deleteHeaderCell}>
-          <Text style={styles.tableHeaderCellText}>Del</Text>
+          <Text
+            style={[styles.tableHeaderCellText, { color: colors.textPrimary }]}
+          >
+            Del
+          </Text>
         </View>
       </View>
 
-      {/* FlatList for the list of editable rows */}
-      {/* Show FlatList if there are visible fields, otherwise show no results message */}
-      {
-        visibleFields.length > 0 ? (
-          <FlatList
-            data={visibleFields} // Use the memoized visibleFields array
-            renderItem={renderItem}
-            // Key Extractor should use a stable key, preferably item.field.id if available,
-            // otherwise use the original index which is stable even when filtered.
-            keyExtractor={(item: VisibleFieldItem) =>
-              item.field.id?.toString() || item.originalIndex.toString()
-            } // Annotate item type
-            style={styles.flatList}
-            contentContainerStyle={styles.flatListContent}
-            initialNumToRender={15}
-            maxToRenderPerBatch={15}
-            windowSize={25}
-            removeClippedSubviews={true}
-          />
-        ) : // Show message if search results are empty AND the overall list is not empty
-        fields.length > 0 && searchQuery ? (
+      {visibleFields.length > 0 ? (
+        <FlatList
+          data={visibleFields}
+          renderItem={renderItem} // Use the memoized renderItem
+          keyExtractor={
+            (item) => item.field.key // Use RHF's internal key for best performance
+          }
+          style={styles.flatList}
+          contentContainerStyle={styles.flatListContent}
+          initialNumToRender={15}
+          maxToRenderPerBatch={15}
+          windowSize={25}
+          removeClippedSubviews={true} // Performance optimization
+          keyboardShouldPersistTaps="handled" // Allow taps outside inputs to dismiss keyboard
+          // Pass the debouncedSearchQuery as extraData so FlatList knows to re-render
+          // when search results change, in case the memoization misses something.
+          extraData={debouncedSearchQuery}
+          getItemLayout={getItemLayout} // Add getItemLayout for performance
+        />
+      ) : (
+        // Show message if search results are empty AND the overall list is not empty
+        fields.length > 0 &&
+        searchQuery && (
           <View style={styles.centered}>
-            <Text style={styles.infoText}>
+            <Text style={[styles.infoText, { color: colors.textSecondary }]}>
               No results found for "{searchQuery}".
             </Text>
           </View>
-        ) : null // Don't show this message if the list was initially empty (handled above)
-      }
+        )
+      )}
 
       {fields.length > 0 && !loading && !fetchError && (
         <TouchableOpacity
           onPress={() => append({ fat: 0, snf: 0, rate: 0 })}
-          style={styles.appendButton}
+          style={[styles.appendButton, { backgroundColor: colors.primary }]}
+          disabled={saving} // Disable add button while saving
+          accessibilityLabel="Add new row"
         >
-          <Text style={styles.appendButtonText}>Add New Row</Text>
+          <Text style={[styles.appendButtonText, { color: colors.onPrimary }]}>
+            Add New Row
+          </Text>
         </TouchableOpacity>
       )}
 
       <TouchableOpacity
         style={[
           styles.saveButton,
-          (saving || fields.length === 0 || !isDirty || fetchError) &&
-            styles.disabledButton,
+          {
+            backgroundColor: colors.success,
+          },
         ]}
         onPress={handleSubmit(onSubmit)}
-        disabled={saving || fields.length === 0 || !isDirty || fetchError}
+        accessibilityLabel="Save changes to rate list"
       >
         {saving ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={colors.surface} />
         ) : (
-          <Text style={styles.saveButtonText}>Save Changes</Text>
+          <Text style={[styles.saveButtonText, { color: colors.surface }]}>
+            Save Changes
+          </Text>
         )}
       </TouchableOpacity>
     </KeyboardAvoidingView>
   );
 };
 
-// Styles remain mostly the same, ensure consistent typing if you move them to a separate file
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: "#f8f8f8",
     padding: 20,
-    paddingTop: 40,
+    paddingTop: 0, // Handled by Stack.Screen header
   },
   centered: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    padding: 20,
   },
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: "#555",
+    // color handled by theme
   },
   errorText: {
     fontSize: 16,
-    color: "red",
+    // color handled by theme
     textAlign: "center",
     marginBottom: 10,
+    fontWeight: "bold",
   },
   infoText: {
     fontSize: 16,
-    color: "#777",
+    // color handled by theme
     textAlign: "center",
   },
   retryButton: {
     marginTop: 10,
-    padding: 10,
-    backgroundColor: "#007BFF",
-    borderRadius: 5,
-    minWidth: 100,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    // backgroundColor handled by theme
+    borderRadius: 8,
+    minWidth: 120,
     alignItems: "center",
   },
   retryButtonText: {
-    color: "#fff",
+    // color handled by theme
     fontSize: 16,
+    fontWeight: "bold",
   },
   title: {
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 20,
     textAlign: "center",
-    color: "#333",
+    // color handled by theme
   },
   searchInput: {
     height: 50,
-    borderColor: "#ddd",
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 15,
     marginBottom: 15,
     fontSize: 16,
-    backgroundColor: "#fff",
+    marginTop: 10,
   },
   tableHeader: {
     flexDirection: "row",
     borderBottomWidth: 2,
-    borderBottomColor: "#ccc",
+    // borderBottomColor handled by theme
     paddingVertical: 10,
-    backgroundColor: "#e9e9e9",
+    // backgroundColor handled by theme
     marginBottom: 5,
+    borderRadius: 8, // Rounded corners for header
+    overflow: "hidden", // Ensures border radius clips content
   },
   tableHeaderCell: {
     fontWeight: "bold",
     fontSize: 15,
-    color: "#333",
+    // color handled by theme
     textAlign: "center",
     paddingHorizontal: 3,
-    flexBasis: "30%",
   },
   tableHeaderCellText: {
     fontWeight: "bold",
     fontSize: 15,
-    color: "#333",
+    // color handled by theme
     textAlign: "center",
   },
   fatHeader: { flexBasis: "28%" },
   snfHeader: { flexBasis: "28%" },
   rateHeader: { flexBasis: "30%" },
   deleteHeaderCell: {
-    flexBasis: "14%",
+    flexBasis: "15%",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -599,63 +805,53 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   flatListContent: {
-    paddingBottom: 20,
+    paddingBottom: 20, // Space for the last row above save button
   },
-
   tableRowContainer: {
     flexDirection: "row",
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-    paddingVertical: 5,
-    alignItems: "center",
+    paddingVertical: 5, // Keep this vertical padding
+    alignItems: "flex-start", // Align items to the top to accommodate error text below inputs
     position: "relative",
   },
   tableRowCells: {
     flexDirection: "row",
-    flex: 1,
-    alignItems: "center",
-  },
-  evenRow: {
-    backgroundColor: "#fff",
-  },
-  oddRow: {
-    backgroundColor: "#f9f9f9",
+    flex: 1, // Take available space to push delete button
+    alignItems: "flex-start", // Align items to the top to accommodate error text below inputs
   },
 
+  inputContainer: {
+    flexBasis: "30%", // Set flex basis for the container
+    marginHorizontal: 2, // Match margin of tableCellInput
+    position: "relative", // Needed for absolute positioning of error text
+    paddingVertical: 15, // Add padding at the bottom to make space for error text
+    flexGrow: 1,
+    flexShrink: 1,
+  },
   tableCellInput: {
+    flex: 1, // Make input take up available space within its container
     fontSize: 14,
-    color: "#333",
     textAlign: "center",
     paddingHorizontal: 3,
-    paddingVertical: Platform.OS === "ios" ? 8 : 6,
     borderWidth: 1,
-    borderColor: "#ccc",
     borderRadius: 4,
-    backgroundColor: "#fff",
-    marginHorizontal: 2,
-    minHeight: 38,
-    flexBasis: "30%",
+    minHeight: 40,
   },
   fatCell: { flexBasis: "28%" },
   snfCell: { flexBasis: "28%" },
   rateCell: { flexBasis: "30%" },
 
-  inputError: {
-    borderColor: "red",
-    borderWidth: 2,
-  },
   cellErrorText: {
     position: "absolute",
-    bottom: -14,
-    width: "33.3%",
+    bottom: 0, // Position at the very bottom of the inputContainer
+    left: 0,
+    right: 0,
     textAlign: "center",
     fontSize: 9,
-    color: "red",
     zIndex: 1,
   },
 
   appendButton: {
-    backgroundColor: "#17a2b8",
     padding: 12,
     borderRadius: 8,
     alignItems: "center",
@@ -663,47 +859,42 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   appendButtonText: {
-    color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
   },
+  deleteButtonContainer: {
+    flexBasis: "14%", // Allocate space for the delete button
+    alignItems: "center", // Center the button horizontally
+    paddingHorizontal: 5,
+    paddingVertical: 15,
+  },
   deleteRowButton: {
-    backgroundColor: "#dc3545",
     padding: 8,
     borderRadius: 5,
     alignItems: "center",
     justifyContent: "center",
-    width: 30,
-    height: 30,
-    marginLeft: 8,
+    width: 35,
+    height: 40,
+    // opacity handled inline
   },
   deleteRowButtonText: {
-    color: "#fff",
+    // color handled by theme
     fontSize: 14,
     fontWeight: "bold",
   },
 
   saveButton: {
-    backgroundColor: "#28a745",
+    // backgroundColor handled by theme
     padding: 15,
     borderRadius: 8,
     alignItems: "center",
     marginTop: 10,
-    marginBottom: Platform.OS === "ios" ? 0 : 10,
+    marginBottom: Platform.OS === "ios" ? 0 : 10, // Adjust for KeyboardAvoidingView on iOS
   },
   saveButtonText: {
-    color: "#fff",
+    // color handled by theme
     fontSize: 18,
     fontWeight: "bold",
-  },
-  disabledButton: {
-    backgroundColor: "#cccccc",
-  },
-  saveErrorText: {
-    color: "red",
-    textAlign: "center",
-    marginTop: 10,
-    fontSize: 14,
   },
 });
 

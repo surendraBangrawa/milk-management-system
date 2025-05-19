@@ -6,7 +6,6 @@ const { API_BASE_URL } = Constants.expoConfig?.extra || {};
 
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
 });
 
 axiosInstance.interceptors.request.use(
