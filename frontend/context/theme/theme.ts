@@ -31,19 +31,19 @@ const lightColors: ColorPalette = {
   shadow: "rgba(0, 0, 0, 0.1)", // Softer shadow color (iOS)
 };
 
-// Define your dark mode colors
+// Define your dark mode colors (Revised)
 const darkColors: ColorPalette = {
-  primary: "#bb86fc", // Lighter purple for dark mode primary
-  primaryLight: "#6200ea", // Deep purple (maybe used for accents in dark mode)
-  primaryDark: "#3700b3", // Darker purple
-  textPrimary: "#e0e0e0", // Light gray for main text
-  textSecondary: "#a0a0a0", // Lighter gray for secondary text
-  background: "#121212", // Very dark background
-  surface: "#1e1e1e", // Darker surfaces
-  error: "#cf6679", // Lighter error red for dark mode
-  success: "#81c784", // Lighter success green for dark mode
-  border: "#333333", // Darker border
-  shadow: "rgba(255, 255, 255, 0.1)", // White shadow for dark mode (low opacity)
+  primary: "#bb86fc", // A common Material Design dark mode primary purple
+  primaryLight: "#6200ea", // A deeper purple, potentially for accents or interactive states
+  primaryDark: "#3700b3", // A very dark purple, for backgrounds or less prominent elements
+  textPrimary: "#e0e0e0", // Light gray for main text - good contrast on dark backgrounds
+  textSecondary: "#a0a0a0", // Medium gray for secondary text - still readable but less prominent
+  background: "#121212", // Standard very dark background
+  surface: "#1e1e1e", // Slightly lighter dark for surfaces like cards and inputs
+  error: "#cf6679", // A dark mode friendly error red
+  success: "#81c784", // A dark mode friendly success green
+  border: "#333333", // Darker border color for subtle separation
+  shadow: "rgba(255, 255, 255, 0.1)", // White shadow with low opacity for dark mode
 };
 
 // Map mode names to color palettes
@@ -51,7 +51,8 @@ const themePalettes: Record<ColorSchemeName | "light" | "dark", ColorPalette> =
   {
     light: lightColors,
     dark: darkColors,
-    null: lightColors, // Default to light if system preference is null
+    "no-preference": lightColors, // Default to light mode for no preference
+    default: lightColors, // Fallback to light mode
   };
 
 export { lightColors, darkColors, themePalettes };

@@ -9,20 +9,16 @@ import {
   ActivityIndicator,
   Platform,
   Linking,
-  // TextInput, // Uncomment if you add other input fields
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as SecureStore from "expo-secure-store";
 import { Stack, useRouter } from "expo-router";
-import useTheme from "@/context/theme/useTheme"; // Assuming this hook provides the current theme's colors
+import useTheme from "@/context/theme/useTheme";
 import Constants from "expo-constants";
 import Toast from "react-native-toast-message";
-// import { APIError } from "@/types"; // Uncomment if you have a type for API errors
-// import Toast from 'react-native-toast-message'; // Uncomment if using a toast library
 
 const { API_BASE_URL } = Constants.expoConfig?.extra || {};
 
-// --- Constants for API Endpoints and Messages ---
 const UPLOAD_RATE_LIST_ENDPOINT = "/ratelist/upload_image";
 const PERMISSION_DENIED_MESSAGE =
   "Sorry, we need camera roll permissions to make this work! Please enable them in your device settings.";
@@ -49,6 +45,7 @@ const getFileType = (uri: string): string => {
 
 const UploadRateListScreen = () => {
   const router = useRouter();
+  // Access the theme colors
   const { colors } = useTheme();
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -205,34 +202,40 @@ const UploadRateListScreen = () => {
         options={{
           title: "Upload Ratelist",
           headerStyle: {
-            backgroundColor: colors.surface,
+            backgroundColor: colors.surface, // Use surface color for header background
           },
-          headerTintColor: colors.textPrimary,
+          headerTintColor: colors.textPrimary, // Use primary text color for title and icons
+          headerTitleStyle: {
+            color: colors.textPrimary, // Ensure title color is also themed
+          },
         }}
       />
-      {/* Add header title within the screen if not using Stack.Screen title */}
-      {/* <Text style={[styles.title, { color: colors.textPrimary }]}>Upload Rate List</Text> */}
       {!selectedImageUri && (
         <TouchableOpacity
           style={[
             styles.selectPhotoButton,
+            // Apply theme primary color to button background
             { backgroundColor: colors.primary },
           ]}
           onPress={pickImage}
           disabled={uploading} // Disable while uploading
         >
           <Text
-            style={[styles.selectPhotoButtonText, { color: colors.onPrimary }]}
+            style={[
+              styles.selectPhotoButtonText,
+              // Apply theme surface color to button text (assuming white/light text on primary)
+              { color: colors.surface },
+            ]}
           >
             Select Rate List Photo
           </Text>
         </TouchableOpacity>
       )}
-      {/* Display selected image */}
       {selectedImageUri && (
         <View
           style={[
             styles.imagePreviewContainer,
+            // Apply theme surface color to container background and border color
             { backgroundColor: colors.surface, borderColor: colors.border },
           ]}
         >
@@ -248,57 +251,48 @@ const UploadRateListScreen = () => {
             style={[
               styles.removeImageButton,
               {
-                backgroundColor: uploading ? colors.border : colors.error, // Change color when disabled
-                opacity: uploading ? 0.5 : 1, // Reduce opacity when disabled
+                // Apply theme colors based on uploading state
+                backgroundColor: uploading ? colors.border : colors.error,
+                opacity: uploading ? 0.5 : 1,
               },
             ]}
             disabled={uploading} // Disable the remove button while uploading
           >
             <Text
-              style={[styles.removeImageButtonText, { color: colors.surface }]}
+              style={[
+                styles.removeImageButtonText,
+                // Apply theme surface color to button text (assuming white/light text on error/border)
+                { color: colors.surface },
+              ]}
             >
               Remove Photo
             </Text>
           </TouchableOpacity>
         </View>
       )}
-      {/* --- Add Input Fields for other Rate List Data Here --- */}
-      {/* <TextInput
-            style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.surface }]}
-            placeholder="Rate List Name"
-            placeholderTextColor={colors.textSecondary}
-            value={rateListData.name}
-            onChangeText={(text) => setRateListData({ ...rateListData, name: text })}
-       />
-       <TextInput
-            style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.surface }]}
-            placeholder="Description"
-            placeholderTextColor={colors.textSecondary}
-            value={rateListData.description}
-            onChangeText={(text) => setRateListData({ ...rateListData, description: text })}
-            multiline
-       /> */}
       <TouchableOpacity
         style={[
           styles.uploadButton,
           {
+            // Apply theme colors based on uploading state and selected image
             backgroundColor:
-              uploading ||
-              !selectedImageUri /* Add other validation checks here */
-                ? colors.border // Use border color for disabled state, or define a specific disabled color in your theme
-                : colors.success, // Use success color for the primary action button
+              uploading || !selectedImageUri ? colors.border : colors.success,
           },
         ]}
         onPress={handleUpload}
-        disabled={
-          uploading ||
-          !selectedImageUri /* Add validation for other fields here */
-        }
+        disabled={uploading || !selectedImageUri}
       >
         {uploading ? (
-          <ActivityIndicator color={colors.surface} /> // Use a contrasting color for the indicator
+          // Apply theme surface color to the activity indicator
+          <ActivityIndicator color={colors.surface} />
         ) : (
-          <Text style={[styles.uploadButtonText, { color: colors.surface }]}>
+          <Text
+            style={[
+              styles.uploadButtonText,
+              // Apply theme surface color to button text (assuming white/light text on success/border)
+              { color: colors.surface },
+            ]}
+          >
             Upload Rate List
           </Text>
         )}
@@ -311,17 +305,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    // backgroundColor handled by theme
+    // backgroundColor handled by theme inline
   },
   title: {
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 30,
     textAlign: "center",
-    // color handled by theme
+    // color handled by theme inline
   },
   selectPhotoButton: {
-    // backgroundColor handled by theme
+    // backgroundColor handled by theme inline
     padding: 15,
     borderRadius: 8,
     alignItems: "center",
@@ -330,7 +324,7 @@ const styles = StyleSheet.create({
   selectPhotoButtonText: {
     fontSize: 18,
     fontWeight: "bold",
-    // color handled by theme
+    // color handled by theme inline
   },
   imagePreviewContainer: {
     alignItems: "center",
@@ -338,7 +332,7 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 8,
     borderWidth: 1,
-    // backgroundColor and borderColor handled by theme
+    // backgroundColor and borderColor handled by theme inline
   },
   imagePreview: {
     width: 200,
@@ -352,19 +346,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
     fontStyle: "italic",
-    // color handled by theme
+    // color handled by theme inline
   },
   removeImageButton: {
     marginTop: 10,
     paddingVertical: 5,
     paddingHorizontal: 10,
     borderRadius: 5,
-    // backgroundColor handled by theme (based on state)
-    // opacity handled by theme (based on state)
+    // backgroundColor handled by theme inline (based on state)
+    // opacity handled by theme inline (based on state)
   },
   removeImageButtonText: {
     fontSize: 14,
-    // color handled by theme
+    // color handled by theme inline
   },
   input: {
     borderWidth: 1,
@@ -372,10 +366,10 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 15,
     fontSize: 16,
-    // borderColor, color, backgroundColor handled by theme
+    // borderColor, color, backgroundColor handled by theme inline
   },
   uploadButton: {
-    // backgroundColor handled by theme (based on state)
+    // backgroundColor handled by theme inline (based on state)
     padding: 15,
     borderRadius: 8,
     alignItems: "center",
@@ -384,7 +378,7 @@ const styles = StyleSheet.create({
   uploadButtonText: {
     fontSize: 18,
     fontWeight: "bold",
-    // color handled by theme
+    // color handled by theme inline
   },
 });
 

@@ -23,15 +23,12 @@ const RateTableRow = React.memo(
     // console.log(`Rendering row: ${item.key}`); // Uncomment to debug re-renders
     return (
       <View style={styles.tableRow}>
-        {/* Fat Column (Text) */}
         <View style={[styles.cell, { width: columnWidths.fat }]}>
           <Text style={styles.cellText}>{item.fat.toFixed(1)}</Text>
         </View>
-        {/* SNF Column (Text) */}
         <View style={[styles.cell, { width: columnWidths.snf }]}>
           <Text style={styles.cellText}>{item.snf.toFixed(1)}</Text>
         </View>
-        {/* Rate Column (TextInput) */}
         <View
           style={[styles.cell, styles.rateCell, { width: columnWidths.rate }]}
         >
@@ -418,7 +415,6 @@ const InputTable = () => {
           Enter the rate (₹) for each Fat and SNF combination.
         </Text>
 
-        {/* Table Header Row */}
         <View style={[styles.tableRow, styles.headerRow]}>
           <View style={[styles.headerCell, { width: columnWidths.fat }]}>
             <Text style={styles.headerText}>Fat (%)</Text>
@@ -431,7 +427,6 @@ const InputTable = () => {
           </View>
         </View>
 
-        {/* FlatList for Table Rows (scrolls vertically) */}
         <FlatList
           data={tableData}
           renderItem={({ item }) => (

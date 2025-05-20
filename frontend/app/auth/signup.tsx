@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  StatusBar,
 } from "react-native";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
@@ -14,8 +15,17 @@ import Toast from "react-native-toast-message";
 import Checkbox from "expo-checkbox"; // Import Checkbox from expo-checkbox
 import { sendOtpApi, signUpApi } from "@/redux/slice/auth/authApi";
 
+// Import your useTheme hook
+import useTheme from "@/context/theme/useTheme";
+
 const Signup = () => {
   const router = useRouter();
+  // Access the theme colors and mode
+  const { colors, themeMode } = useTheme();
+  // Determine status bar style based on theme mode
+  const statusBarStyle =
+    themeMode === "dark" ? "light-content" : "dark-content";
+
   const {
     control,
     handleSubmit,
@@ -24,39 +34,69 @@ const Signup = () => {
   const [loading, setLoading] = useState(false); // Loading state
 
   const handleSignup = async (data) => {
-    if (!data.agreeToTerms) {
-      Toast.show({
-        type: "error",
-        text1: "You must agree to the terms and conditions",
-      });
-      return;
-    }
+    // React Hook Form's rules handle the required check for agreeToTerms
+    // if (!data.agreeToTerms) {
+    //   Toast.show({
+    //     type: "error",
+    //     text1: "You must agree to the terms and conditions",
+    //   });
+    //   return; // This return is not strictly necessary if using RHF validation
+    // }
 
     try {
       setLoading(true);
       const { name, phone, referral } = data;
-      await SecureStore.setItemAsync(
-        "user",
-        JSON.stringify({ name, phone, referral })
-      );
-      const response = await signUpApi({
+
+      // Call the signUpApi first
+      const signUpResponse = await signUpApi({
         name: name,
         mobile: phone,
         referral_code: referral,
       });
-      console.log(response);
-      if (response.status === 200) {
-        const sendOtp = await sendOtpApi({ mobile: phone });
-        if (sendOtp.status === 200) {
+
+      console.log("Sign Up Response:", signUpResponse);
+
+      if (signUpResponse.status === 200 || signUpResponse.status === 201) {
+        // Assuming 200 or 201 for success
+        // Store user data *after* successful signup API call
+        await SecureStore.setItemAsync(
+          "user",
+          JSON.stringify({ name, phone, referral })
+        );
+
+        // Then send OTP
+        const sendOtpResponse = await sendOtpApi({ mobile: phone });
+
+        if (sendOtpResponse.status === 200) {
+          Toast.show({
+            type: "success",
+            text1: "Sign up successful! OTP sent.",
+          });
           router.push("/auth/otp");
+        } else {
+          // Handle send OTP API errors
+          const sendOtpErrorData = await sendOtpResponse.json();
+          const sendOtpErrorMessage =
+            sendOtpErrorData?.detail || "Failed to send OTP.";
+          Toast.show({ type: "error", text1: sendOtpErrorMessage });
         }
+      } else {
+        // Handle Sign Up API errors
+        const signUpErrorData = await signUpResponse.json();
+        const signUpErrorMessage = signUpErrorData?.detail || "Sign up failed.";
+        Toast.show({ type: "error", text1: signUpErrorMessage });
       }
-    } catch (err) {
+    } catch (err: any) {
+      console.error("Sign Up Process Error:", err); // Log the actual error
+      // Check if it's an Axios error with a response
+      const errorMessage =
+        err?.response?.data?.detail ||
+        err.message ||
+        "Something went wrong. Please try again.";
       Toast.show({
         type: "error",
-        text1: err?.response?.data?.detail,
+        text1: errorMessage,
       });
-      console.log(err);
     } finally {
       setLoading(false); // Hide loading spinner after the API call is complete
     }
@@ -67,16 +107,28 @@ const Signup = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Sign Up</Text>
+    // Apply theme background color to the main container
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={statusBarStyle} backgroundColor={colors.surface} />
+
+      <Text style={[styles.title, { color: colors.textPrimary }]}>Sign Up</Text>
 
       <View style={styles.inputContainer}>
         <Controller
           control={control}
           render={({ field: { onChange, value } }) => (
             <TextInput
-              style={[styles.input, errors.name && { borderColor: "red" }]}
+              style={[
+                styles.input,
+                // Apply theme colors to input border, background, and text
+                {
+                  borderColor: errors.name ? colors.error : colors.border,
+                  backgroundColor: colors.surface,
+                  color: colors.textPrimary,
+                },
+              ]}
               placeholder="Enter name"
+              placeholderTextColor={colors.textSecondary} // Themed placeholder color
               value={value}
               onChangeText={onChange}
             />
@@ -87,10 +139,13 @@ const Signup = () => {
         <Text
           style={[
             styles.errorText,
-            { visibility: errors.name ? "visible" : "hidden" },
+            {
+              color: colors.error,
+              opacity: errors.name ? 1 : 0, // Control visibility with opacity
+            },
           ]}
         >
-          {errors.name?.message}
+          {errors.name?.message as string}
         </Text>
       </View>
 
@@ -99,11 +154,21 @@ const Signup = () => {
           control={control}
           render={({ field: { onChange, value } }) => (
             <TextInput
-              style={[styles.input, errors.phone && { borderColor: "red" }]}
+              style={[
+                styles.input,
+                // Apply theme colors to input border, background, and text
+                {
+                  borderColor: errors.phone ? colors.error : colors.border,
+                  backgroundColor: colors.surface,
+                  color: colors.textPrimary,
+                },
+              ]}
               placeholder="Enter phone number"
+              placeholderTextColor={colors.textSecondary} // Themed placeholder color
               value={value}
               onChangeText={onChange}
               keyboardType="phone-pad"
+              maxLength={10} // Added maxLength for phone number
             />
           )}
           name="phone"
@@ -118,10 +183,13 @@ const Signup = () => {
         <Text
           style={[
             styles.errorText,
-            { visibility: errors.phone ? "visible" : "hidden" },
+            {
+              color: colors.error,
+              opacity: errors.phone ? 1 : 0, // Control visibility with opacity
+            },
           ]}
         >
-          {errors.phone?.message}
+          {errors.phone?.message as string}
         </Text>
       </View>
 
@@ -130,17 +198,29 @@ const Signup = () => {
           control={control}
           render={({ field: { onChange, value } }) => (
             <TextInput
-              style={styles.input}
-              placeholder="Enter referral code"
+              style={[
+                styles.input,
+                // Apply theme colors to input border, background, and text
+                {
+                  borderColor: colors.border, // Referral doesn't have specific error styling here
+                  backgroundColor: colors.surface,
+                  color: colors.textPrimary,
+                },
+              ]}
+              placeholder="Enter referral code (Optional)" // Added Optional to placeholder
+              placeholderTextColor={colors.textSecondary} // Themed placeholder color
               value={value}
               onChangeText={onChange}
             />
           )}
           name="referral"
+          // No rules needed if it's optional
         />
+        <Text style={[styles.errorText, { opacity: 0 }]}>
+          Placeholder error text
+        </Text>
       </View>
 
-      {/* Terms and Conditions Checkbox */}
       <View style={styles.checkboxContainer}>
         <Controller
           control={control}
@@ -152,43 +232,73 @@ const Signup = () => {
                   value={value}
                   onValueChange={onChange}
                   style={styles.checkbox}
+                  color={value ? colors.primary : colors.textSecondary} // Themed checkbox color
                 />
-                <Text style={styles.checkboxLabel}>
+                <Text
+                  style={[styles.checkboxLabel, { color: colors.textPrimary }]}
+                >
                   I agree to the
-                  <Text style={styles.termsText}>Terms and Conditions</Text>
+                  <Text
+                    style={[styles.termsText, { color: colors.primary }]} // Themed terms link color
+                    // You might want to add an onPress handler here to open terms
+                    onPress={() => {
+                      // Logic to navigate to or open terms and conditions
+                      console.log("Terms and Conditions pressed");
+                      // Example: router.push('/terms'); or Linking.openURL('your-terms-url');
+                    }}
+                  >
+                    Terms and Conditions
+                  </Text>
                 </Text>
               </View>
               <Text
                 style={[
                   styles.errorText,
-                  { visibility: errors.agreeToTerms ? "visible" : "hidden" },
+                  {
+                    color: colors.error,
+                    marginTop: 0, // Adjusted margin for checkbox error
+                    opacity: errors.agreeToTerms ? 1 : 0, // Control visibility with opacity
+                  },
                 ]}
               >
-                {errors?.agreeToTerms &&
-                  "You must agree to the terms and conditions"}
+                {errors?.agreeToTerms?.message as string}
               </Text>
             </>
           )}
-          rules={{ required: "You must agree to the terms and conditions" }}
+          rules={{
+            required: "You must agree to the terms and conditions",
+            // You can add a custom validation function here if needed, e.g., to check if value is true
+            // validate: value => value === true || 'You must agree to the terms and conditions'
+          }}
         />
       </View>
 
       <TouchableOpacity
-        style={styles.button}
+        style={[
+          styles.button,
+          // Apply theme primary color to button background, or border color when disabled
+          { backgroundColor: loading ? colors.border : colors.primary },
+        ]}
         onPress={handleSubmit(handleSignup)}
         disabled={loading} // Disable if loading
       >
         {loading ? (
-          <ActivityIndicator size="small" color="#fff" />
+          // Apply theme surface color to the activity indicator
+          <ActivityIndicator size="small" color={colors.surface} />
         ) : (
-          <Text style={styles.buttonText}>Sign Up</Text>
+          // Apply theme surface color to button text (assuming white/light text on primary/border)
+          <Text style={[styles.buttonText, { color: colors.surface }]}>
+            Sign Up
+          </Text>
         )}
       </TouchableOpacity>
 
       <TouchableOpacity onPress={handleSignInRedirect}>
-        <Text style={styles.signInText}>
+        <Text style={[styles.signInText, { color: colors.textPrimary }]}>
           Already have an account?
-          <Text style={styles.signInLink}>Sign In</Text>
+          <Text style={[styles.signInLink, { color: colors.primary }]}>
+            Sign In
+          </Text>
         </Text>
       </TouchableOpacity>
     </View>
@@ -201,34 +311,33 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
-    backgroundColor: "#f9f9f9",
+    // backgroundColor handled by theme inline
   },
   title: {
     fontSize: 32,
     fontWeight: "bold",
-    color: "#333",
     marginBottom: 40,
+    // color handled by theme inline
   },
   inputContainer: {
     width: "100%",
-    marginBottom: 15,
+    marginBottom: 15, // Keep marginBottom to provide space below the error text placeholder
   },
   label: {
     fontSize: 16,
-    color: "#333",
+    // color handled by theme inline (if used)
     marginBottom: 5,
   },
   input: {
     height: 50,
     borderWidth: 1,
-    borderColor: "#ddd",
     borderRadius: 8,
     paddingHorizontal: 15,
-    backgroundColor: "#fff",
     fontSize: 16,
+    // borderColor, backgroundColor, color, and placeholderTextColor handled by theme inline
   },
   button: {
-    backgroundColor: "#6200ea",
+    // backgroundColor handled by theme inline (based on state)
     paddingVertical: 15,
     borderRadius: 8,
     width: "100%",
@@ -236,20 +345,22 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   buttonText: {
-    color: "#fff",
     fontSize: 18,
     fontWeight: "500",
+    // color handled by theme inline
   },
   errorText: {
-    color: "red",
+    // color handled by theme inline
     fontSize: 12,
-    marginTop: 5,
-    visibility: "hidden",
+    marginTop: 5, // Keep margin top to space from input
+    // opacity is handled inline now
   },
   checkboxContainer: {
-    flexDirection: "column",
-    alignItems: "center",
+    width: "100%", // Make container take full width for better alignment
+    // flexDirection: "column", // Keep column layout
+    alignItems: "flex-start", // Align items to the start (left)
     marginTop: 15,
+    marginBottom: 15, // Add marginBottom to account for checkbox error text placeholder
   },
   checkboxWrapper: {
     flexDirection: "row",
@@ -257,22 +368,24 @@ const styles = StyleSheet.create({
   },
   checkbox: {
     marginRight: 10,
+    // color handled by theme inline (via prop)
   },
   checkboxLabel: {
+    flex: 1, // Allow label text to wrap
     fontSize: 14,
-    color: "#333",
+    // color handled by theme inline
   },
   termsText: {
-    color: "#6200ea",
+    // color handled by theme inline
     textDecorationLine: "underline",
   },
   signInText: {
     fontSize: 14,
-    color: "#333",
+    // color handled by theme inline
     marginTop: 20,
   },
   signInLink: {
-    color: "#6200ea",
+    // color handled by theme inline
     fontWeight: "bold",
   },
 });

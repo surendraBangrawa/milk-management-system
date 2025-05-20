@@ -197,7 +197,6 @@ const AddTransactionScreen = () => {
           headerTintColor: colors.textPrimary, // Example header text color
         }}
       />
-      {/* Show loading indicator */}
       {isLoading && (
         <View style={styles.overlayLoading}>
           <ActivityIndicator size="large" color={colors.primary} />

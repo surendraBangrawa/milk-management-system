@@ -441,11 +441,16 @@ const TransactionScreen = () => {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen
         options={{
-          title: "",
+          // Use colors from your theme for header styling
+          headerStyle: {
+            backgroundColor: colors.surface, // Use surface color for header background
+          },
+          headerTintColor: colors.textPrimary, // Use primary text color for title and icons
+          title: "", // Keep your empty title if you're using headerRight
           headerRight: () => (
             <View style={styles.headerRight}>
               <Text
-                style={[styles.headerName, { color: colors.textPrimary }]}
+                style={[styles.headerName, { color: colors.textPrimary }]} // Use primary text color for the name
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
@@ -456,7 +461,6 @@ const TransactionScreen = () => {
           ),
         }}
       />
-
       {loading ? (
         <ActivityIndicator
           size="large"
@@ -611,7 +615,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   transactionList: {
-    paddingBottom: 100,
+    paddingBottom: 220,
   },
   loadingIndicator: {
     flex: 1,

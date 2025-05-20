@@ -112,7 +112,6 @@ export default function Subscription() {
       style={[styles.container, { backgroundColor: colors.background }]}
       keyboardShouldPersistTaps="handled"
     >
-      {/* Use background color */}
       <Stack.Screen
         options={{
           title: "Ratelist",

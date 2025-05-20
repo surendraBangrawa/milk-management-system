@@ -208,7 +208,7 @@ const EditRateListScreen: React.FC = () => {
 
       try {
         // Assuming saveRatelist expects an array of RateItem
-        await saveRatelist(dataToSave);
+        await saveRatelist({ rates: dataToSave });
         Toast.show({
           type: "success",
           text1: "Success",
@@ -294,11 +294,8 @@ const EditRateListScreen: React.FC = () => {
             { borderBottomColor: colors.border },
           ]}
         >
-          {/* Wrap cells in a View with flex: 1 to push delete button to the end */}
           <View style={styles.tableRowCells}>
-            {/* Fat Input */}
             <View style={styles.inputContainer}>
-              {/* Wrapper for input and error */}
               <Controller
                 control={control}
                 name={`rateItems[${originalIndex}].fat`} // Use the ORIGINAL index for the name
@@ -386,7 +383,6 @@ const EditRateListScreen: React.FC = () => {
                   />
                 )}
               />
-              {/* Display validation error for SNF */}
               {fieldErrors?.snf && (
                 <Text style={[styles.cellErrorText, { color: colors.error }]}>
                   {fieldErrors.snf.message}
@@ -394,9 +390,7 @@ const EditRateListScreen: React.FC = () => {
               )}
             </View>
 
-            {/* Rate Input */}
             <View style={styles.inputContainer}>
-              {/* Wrapper for input and error */}
               <Controller
                 control={control}
                 name={`rateItems[${originalIndex}].rate`}
@@ -436,7 +430,6 @@ const EditRateListScreen: React.FC = () => {
                   />
                 )}
               />
-              {/* Display validation error for Rate */}
               {fieldErrors?.rate && (
                 <Text style={[styles.cellErrorText, { color: colors.error }]}>
                   {fieldErrors.rate.message}
@@ -445,8 +438,6 @@ const EditRateListScreen: React.FC = () => {
             </View>
           </View>
 
-          {/* Delete Button */}
-          {/* Position delete button within its own container */}
           <View style={styles.deleteButtonContainer}>
             <TouchableOpacity
               onPress={handleDelete}

@@ -1,3 +1,4 @@
+import React from "react"; // useEffect might not be needed here, but keeping it if used elsewhere
 import { useSession } from "@/context/AuthProvider";
 import { useRouter } from "expo-router";
 import { StyleSheet, View, Text, Pressable } from "react-native";
@@ -64,7 +65,7 @@ const sections: Section[] = [
 export default function TabTwoScreen() {
   const router = useRouter();
   const { signOut } = useSession();
-  const { colors } = useTheme();
+  const { colors } = useTheme(); // Get colors from your theme context
 
   const handleOptionPress = (option: Option) => {
     console.log(`${option.label} pressed`);
@@ -86,9 +87,11 @@ export default function TabTwoScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {sections.map((section, sectionIndex) => (
         <View key={`section-${sectionIndex}`} style={styles.sectionContainer}>
-          {/* Render section title if it exists */}
           {section.title && (
-            <Text style={[styles.sectionTitle]}>{section.title}</Text>
+            // Apply theme color to section title
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+              {section.title}
+            </Text>
           )}
           <View
             style={[styles.optionsList, { backgroundColor: colors.surface }]}
@@ -99,8 +102,9 @@ export default function TabTwoScreen() {
                 style={({ pressed }) => [
                   styles.optionButton,
                   {
-                    // Subtle background change on press
-                    backgroundColor: colors.surface,
+                    // Subtle background change on press (optional, surface is fine)
+                    // backgroundColor: pressed ? colors.border : colors.surface,
+                    backgroundColor: colors.surface, // Keep surface for consistent background
                   },
                 ]}
                 onPress={() => handleOptionPress(option)}
@@ -108,35 +112,34 @@ export default function TabTwoScreen() {
                 accessibilityLabel={`${option.label} option`}
               >
                 <View style={styles.optionContent}>
-                  {/* Icon */}
                   <Ionicons
                     name={option.icon}
                     size={24}
-                    // Use iconColor if specified, otherwise use onSurface
-                    color={option.iconColor}
+                    // Use iconColor if specified, otherwise use textPrimary from theme
+                    color={option.iconColor || colors.textPrimary}
                     style={styles.optionIcon}
                   />
-                  {/* Label Text */}
                   <Text
                     style={[
                       styles.optionText,
                       {
-                        // Use error color for logout text, otherwise onSurface
+                        // Use error color for logout text, otherwise textPrimary from theme
                         color:
                           option.type === "logout"
                             ? colors.error
-                            : colors.onSurface,
+                            : colors.textPrimary,
                       },
                     ]}
                   >
                     {option.label}
                   </Text>
 
-                  {/* Navigation Arrow (Chevron) */}
                   {option.path && !option.hideChevron && (
                     <Ionicons
                       name="chevron-forward-outline"
                       size={20}
+                      // Use textSecondary from theme for chevron color
+                      color={colors.textSecondary}
                       style={styles.chevronIcon}
                     />
                   )}
@@ -164,15 +167,17 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginBottom: 8, // Space between title and options list
     paddingHorizontal: 8, // Align title roughly with list padding
+    // color applied inline from theme
   },
   optionsList: {
     borderRadius: 12, // Rounded corners for the option group container
     overflow: "hidden", // Ensures children respect border radius
     elevation: 2, // Android shadow
-    shadowColor: "#000", // iOS shadow
+    // shadowColor applied inline from theme if needed for Android
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.1, // iOS shadow opacity (can be adjusted)
+    shadowRadius: 4, // iOS shadow blur radius
+    // backgroundColor applied inline from theme
   },
   optionButton: {
     // Background color applied inline based on press state/type
@@ -187,6 +192,7 @@ const styles = StyleSheet.create({
   },
   optionIcon: {
     marginRight: 16, // Space between icon and text
+    // color applied inline from theme or option.iconColor
   },
   optionText: {
     flex: 1, // Allows the text to take up available space
@@ -196,5 +202,6 @@ const styles = StyleSheet.create({
   },
   chevronIcon: {
     marginLeft: 16, // Space between text and chevron
+    // color applied inline from theme
   },
 });

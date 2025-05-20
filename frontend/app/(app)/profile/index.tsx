@@ -5,10 +5,14 @@ import { getProfileApi } from "@/redux/slice/profile/profileApi";
 import { Stack } from "expo-router";
 const Avatar = require("../../../assets/images/avatar.jpg");
 
+import useTheme from "@/context/theme/useTheme";
+
 export default function Profile() {
-  const [userData, setUserData] = useState(null); // Initializing with null
-  const [loading, setLoading] = useState(true); // State for loading
-  const [error, setError] = useState<null | string>(null); // State to store errors
+  const [userData, setUserData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<null | string>(null);
+
+  const { colors } = useTheme();
 
   const fetchProfile = async () => {
     try {
@@ -16,6 +20,13 @@ export default function Profile() {
       const res = await getProfileApi();
       if (res.status === 200) {
         setUserData(res.data);
+      } else {
+        setError("Failed to load profile data.");
+        Toast.show({
+          type: "error",
+          text1: "Error",
+          text2: "Failed to load profile data.",
+        });
       }
     } catch (err) {
       setError("Failed to load profile data.");
@@ -35,32 +46,43 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#6200ea" />
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.errorText}>{error}</Text>
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+        <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen
         options={{
           title: "Profile",
+          headerStyle: {
+            backgroundColor: colors.surface, // Use surface color for header background
+          },
+          headerTintColor: colors.textPrimary, // Use primary text color for title and icons
+          headerTitleStyle: {
+            color: colors.textPrimary, // Ensure title color is also themed
+          },
         }}
       />
       <View style={styles.header}>
         <Image source={Avatar} style={styles.profilePic} />
         <View style={styles.userInfo}>
-          <Text style={styles.userName}>{userData?.name}</Text>
-          <Text style={styles.userEmail}>{userData?.mobile}</Text>
+          <Text style={[styles.userName, { color: colors.textPrimary }]}>
+            {userData?.name}
+          </Text>
+          <Text style={[styles.userEmail, { color: colors.textSecondary }]}>
+            {userData?.mobile}
+          </Text>
         </View>
       </View>
     </View>
@@ -70,16 +92,17 @@ export default function Profile() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f9f9f9",
+    // backgroundColor applied inline from theme
     padding: 20,
   },
   centered: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    // backgroundColor applied inline from theme
   },
   errorText: {
-    color: "red",
+    // color applied inline from theme
     fontSize: 14,
     textAlign: "center",
   },
@@ -100,61 +123,68 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 22,
     fontWeight: "bold",
-    color: "#333",
+    // color applied inline from theme
   },
   userEmail: {
     fontSize: 16,
-    color: "#777",
+    // color applied inline from theme
   },
+  // Example styles for potential future elements, themed
   input: {
-    backgroundColor: "#fff",
+    // backgroundColor applied inline from theme
     padding: 12,
     marginVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#ddd",
+    // borderColor applied inline from theme
+    // color applied inline from theme for text input
   },
   editButton: {
-    backgroundColor: "#6200ea",
+    // backgroundColor applied inline from theme
     paddingVertical: 12,
     marginVertical: 10,
     borderRadius: 8,
     alignItems: "center",
   },
   editButtonText: {
-    color: "#fff",
+    color: "#fff", // Keep white text for contrast on colored buttons
     fontSize: 16,
   },
   saveButton: {
-    backgroundColor: "#4CAF50",
+    // backgroundColor applied inline from theme
     paddingVertical: 12,
     marginVertical: 10,
     borderRadius: 8,
     alignItems: "center",
   },
   saveButtonText: {
-    color: "#fff",
+    color: "#fff", // Keep white text for contrast on colored buttons
     fontSize: 16,
   },
   logoutButton: {
-    backgroundColor: "#f44336",
+    // backgroundColor applied inline from theme
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: "center",
   },
   logoutButtonText: {
-    color: "#fff",
+    color: "#fff", // Keep white text for contrast on colored buttons
     fontSize: 16,
   },
   deleteButton: {
-    backgroundColor: "#d32f2f", // Red color for destructive action
+    // backgroundColor applied inline from theme
     paddingVertical: 12,
     marginTop: 20,
     borderRadius: 8,
     alignItems: "center",
   },
   deleteButtonText: {
-    color: "#fff",
+    color: "#fff", // Keep white text for contrast on colored buttons
     fontSize: 16,
+  },
+  label: {
+    fontSize: 14,
+    marginTop: 10,
+    // color applied inline from theme
   },
 });

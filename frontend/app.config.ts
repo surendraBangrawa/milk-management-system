@@ -13,7 +13,7 @@ export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
   return {
     ...originalConfig,
 
-    name: APP_ENV === "dev" ? "Milky Dev" : "Milky Prod",
+    name: APP_ENV === "dev" ? "DigiDairy Dev" : "DigiDairy",
     extra: {
       ...originalConfig.extra,
       eas: {

@@ -220,14 +220,12 @@ const RateListViewer = () => {
         style={themedStyles.container}
         contentContainerStyle={{ paddingBottom: 30 }} // Add padding at the bottom
       >
-        {/* Upload Button (Primary Action) */}
         <Pressable
           style={({ pressed }) => [
             themedStyles.button,
             themedStyles.primaryButton,
-            (deleting || loading) && themedStyles.buttonDisabled, // Apply disabled style
+            (deleting || loading) && themedStyles.buttonDisabled,
             {
-              // Visual feedback on press
               backgroundColor: pressed
                 ? colors.primaryDark || darkenColor(colors.primary, 20)
                 : colors.primary, // Darker on press
@@ -237,7 +235,7 @@ const RateListViewer = () => {
           disabled={deleting || loading} // Disable while deleting or initial loading
           android_ripple={{
             color: colors.primaryDark || darkenColor(colors.primary, 30),
-          }} // Ripple effect
+          }}
         >
           <Text
             style={[themedStyles.buttonText, themedStyles.primaryButtonText]}
@@ -248,7 +246,6 @@ const RateListViewer = () => {
 
         {existingRateList.length > 0 ? (
           <>
-            {/* Existing Rate List Actions */}
             <Text
               style={{
                 fontSize: 16,
@@ -261,7 +258,6 @@ const RateListViewer = () => {
               Rate List Actions:
             </Text>
 
-            {/* View Rate List Button */}
             <Pressable
               style={({ pressed }) => [
                 themedStyles.button,
@@ -302,7 +298,6 @@ const RateListViewer = () => {
               </Text>
             </Pressable>
 
-            {/* Delete Rate List Button */}
             <Pressable
               style={({ pressed }) => [
                 themedStyles.button,

@@ -1,24 +1,20 @@
 import { Tabs } from "expo-router";
 import React from "react";
-import { Platform } from "react-native";
-import { Colors } from "@/constants/Colors";
-import { useColorScheme } from "@/hooks/useColorScheme";
 import { TabBarIcon } from "@/components/TabbarIcon";
+import useTheme from "@/context/theme/useTheme";
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const { colors } = useTheme();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textSecondary,
         headerShown: false,
-        tabBarStyle: Platform.select({
-          ios: {
-            position: "absolute",
-          },
-          default: {},
-        }),
+        tabBarStyle: {
+          backgroundColor: colors.surface,
+        },
       }}
     >
       <Tabs.Screen

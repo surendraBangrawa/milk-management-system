@@ -5,7 +5,7 @@ import {
   SafeAreaView,
   Pressable,
   View,
-  Platform,
+  StatusBar,
 } from "react-native";
 import CustomerScreen from "../../customers";
 import SupplierScreen from "../../suppliers";
@@ -14,7 +14,9 @@ import useTheme from "@/context/theme/useTheme"; // Import useTheme
 
 const HomeScreen = () => {
   const [mode, setMode] = useState<"customer" | "supplier">("customer");
-  const { colors } = useTheme();
+  const { colors, themeMode } = useTheme();
+  const statusBarStyle =
+    themeMode === "dark" ? "light-content" : "dark-content";
 
   const handleModeChange = (newMode: "customer" | "supplier") => {
     setMode(newMode);
@@ -24,6 +26,7 @@ const HomeScreen = () => {
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
     >
+      <StatusBar barStyle={statusBarStyle} backgroundColor={colors.surface} />
       <View
         style={[styles.headerContainer, { backgroundColor: colors.surface }]}
       >
