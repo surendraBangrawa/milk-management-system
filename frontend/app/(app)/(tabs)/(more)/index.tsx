@@ -3,99 +3,82 @@ import { useSession } from "@/context/AuthProvider";
 import { useRouter } from "expo-router";
 import { StyleSheet, View, Text, Pressable, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 
 import useTheme from "@/context/theme/useTheme";
 
-// Define the structure for an option
 interface Option {
-  label: string;
-  path?: string; // Path for navigation
-  type?: "logout" | "language"; // Special type for actions like logout or language selector
-  icon: keyof typeof Ionicons.glyphMap; // Type for Ionicons names
-  iconColor?: string; // Optional: specific color for the icon
-  hideChevron?: boolean; // Optional: hide navigation arrow
+  labelKey: string;
+  path?: string;
+  type?: "logout";
+  icon: keyof typeof Ionicons.glyphMap;
+  iconColor?: string;
+  hideChevron?: boolean;
 }
 
-// Define the structure for a section
 interface Section {
-  title?: string; // Optional title for the section
+  titleKey?: string;
   data: Option[];
 }
 
-// Placeholder for LanguageSelector component - assuming it exists elsewhere
-const LanguageSelector = () => {
-  const { colors } = useTheme();
-  return (
-    <View style={[styles.optionButton, { backgroundColor: colors.surface }]}>
-      <View style={styles.optionContent}>
-        <Ionicons
-          name="language-outline"
-          size={24}
-          color={colors.textPrimary}
-          style={styles.optionIcon}
-        />
-        <Text style={[styles.optionText, { color: colors.textPrimary }]}>
-          English
-        </Text>
-        <Ionicons
-          name="chevron-forward-outline"
-          size={20}
-          color={colors.textSecondary}
-          style={styles.chevronIcon}
-        />
-      </View>
-    </View>
-  );
-};
-
-// Define the structured list of options in sections
 const sections: Section[] = [
   {
-    title: "Account",
+    titleKey: "account.title",
     data: [
-      { label: "Profile", path: "/(app)/profile", icon: "person-outline" },
       {
-        label: "Summary",
+        labelKey: "account.profile",
+        path: "/(app)/profile",
+        icon: "person-outline",
+      },
+      {
+        labelKey: "account.summary",
         path: "/(app)/summary",
         icon: "document-text-outline",
       },
       {
-        label: "Manage Subscription",
+        labelKey: "account.manage_subscription",
         path: "/(app)/subscription",
         icon: "card-outline",
       },
-    ],
-  },
-  {
-    data: [
-      { label: "Rate List", path: "/(app)/ratelist", icon: "star-outline" },
-    ],
-  },
-  {
-    title: "Support",
-    data: [
-      { label: "Help", icon: "help-circle-outline" },
-      { label: "About", icon: "information-circle-outline" },
-    ],
-  },
-  {
-    title: "Language", // Changed title to "Language" for consistency
-    data: [
-      // This section will now render the LanguageSelector component directly
       {
-        label: "Language Selector",
-        type: "language",
+        labelKey: "account.rate_list",
+        path: "/(app)/ratelist",
+        icon: "star-outline",
+      },
+    ],
+  },
+  {
+    titleKey: "settings.title",
+    data: [
+      {
+        labelKey: "account.language",
+        path: "/(app)/language",
         icon: "language-outline",
-        hideChevron: false,
+      },
+    ],
+  },
+  {
+    titleKey: "account.support",
+    data: [
+      {
+        labelKey: "account.help",
+        icon: "help-circle-outline",
+        path: "/(app)/help",
+      },
+      {
+        labelKey: "account.about",
+        icon: "information-circle-outline",
+        path: "/(app)/about",
       },
     ],
   },
   {
     data: [
       {
-        label: "Logout",
+        labelKey: "account.logout",
         type: "logout",
         icon: "log-out-outline",
+        iconColor: "#e74c3c",
         hideChevron: true,
       },
     ],
@@ -105,20 +88,16 @@ const sections: Section[] = [
 export default function TabTwoScreen() {
   const router = useRouter();
   const { signOut } = useSession();
-  const { colors } = useTheme(); // Get colors from your theme context
+  const { colors } = useTheme();
+  const { t } = useTranslation();
 
   const handleOptionPress = (option: Option) => {
-    console.log(`${option.label} pressed`);
-
     if (option.type === "logout") {
       signOut();
     } else if (option.path) {
-      // Navigate if a path is defined
       router.push(option.path);
     } else {
-      // Handle options without a path or specific type
-      console.log(`${option.label}: Action not implemented or handled.`);
-      // Add specific logic here if needed for 'Help', 'About', etc.
+      console.log(`${t(option.labelKey)}: Action not implemented or handled.`);
     }
   };
 
@@ -128,65 +107,64 @@ export default function TabTwoScreen() {
     >
       {sections.map((section, sectionIndex) => (
         <View key={`section-${sectionIndex}`} style={styles.sectionContainer}>
-          {section.title && (
+          {section.titleKey && ( // Check if titleKey exists
             <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-              {section.title}
+              {t(section.titleKey)} {/* Use t() for section title */}
             </Text>
           )}
           <View
             style={[styles.optionsList, { backgroundColor: colors.surface }]}
           >
-            {section.data.map((option, optionIndex) => {
-              // Conditionally render LanguageSelector if type is 'language'
-              if (option.type === "language") {
-                return <LanguageSelector key={option.label} />;
-              }
-              return (
-                <Pressable
-                  key={option.label}
-                  style={({ pressed }) => [
-                    styles.optionButton,
-                    {
-                      backgroundColor: colors.surface,
-                    },
-                  ]}
-                  onPress={() => handleOptionPress(option)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${option.label} option`}
-                >
-                  <View style={styles.optionContent}>
-                    <Ionicons
-                      name={option.icon}
-                      size={24}
-                      color={option.iconColor || colors.textPrimary}
-                      style={styles.optionIcon}
-                    />
-                    <Text
-                      style={[
-                        styles.optionText,
-                        {
-                          color:
-                            option.type === "logout"
-                              ? colors.error
-                              : colors.textPrimary,
-                        },
-                      ]}
-                    >
-                      {option.label}
-                    </Text>
+            {section.data.map((option, optionIndex) => (
+              <Pressable
+                key={option.labelKey} // Use labelKey as key for stability
+                style={({ pressed }) => [
+                  styles.optionButton,
+                  {
+                    backgroundColor: colors.surface,
+                    borderBottomWidth:
+                      optionIndex === section.data.length - 1
+                        ? 0
+                        : StyleSheet.hairlineWidth,
+                    borderBottomColor: colors.border,
+                  },
+                ]}
+                onPress={() => handleOptionPress(option)}
+                accessibilityRole="button"
+                accessibilityLabel={`${t(option.labelKey)} option`} // Translate accessibility label
+              >
+                <View style={styles.optionContent}>
+                  <Ionicons
+                    name={option.icon}
+                    size={24}
+                    color={option.iconColor || colors.textPrimary}
+                    style={styles.optionIcon}
+                  />
+                  <Text
+                    style={[
+                      styles.optionText,
+                      {
+                        color:
+                          option.type === "logout"
+                            ? colors.error
+                            : colors.textPrimary,
+                      },
+                    ]}
+                  >
+                    {t(option.labelKey)} {/* Use t() for option label */}
+                  </Text>
 
-                    {option.path && !option.hideChevron && (
-                      <Ionicons
-                        name="chevron-forward-outline"
-                        size={20}
-                        color={colors.textSecondary}
-                        style={styles.chevronIcon}
-                      />
-                    )}
-                  </View>
-                </Pressable>
-              );
-            })}
+                  {option.path && !option.hideChevron && (
+                    <Ionicons
+                      name="chevron-forward-outline"
+                      size={20}
+                      color={colors.textSecondary}
+                      style={styles.chevronIcon}
+                    />
+                  )}
+                </View>
+              </Pressable>
+            ))}
           </View>
         </View>
       ))}
@@ -212,6 +190,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: "hidden",
     elevation: 2,
+    shadowColor: "#000", // Add shadow color for consistent appearance
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,

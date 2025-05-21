@@ -3,7 +3,7 @@ import axiosInstance from "@/lib/axiosIntance";
 export interface Signup {
   name: string;
   mobile: string;
-  referral_code: string;
+  referral_code: string | undefined;
 }
 export interface Otp {
   mobile: string;

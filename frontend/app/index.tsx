@@ -5,29 +5,91 @@ import {
   View,
   StatusBar,
   StyleSheet,
-  ActivityIndicator, // Import ActivityIndicator for loading state
-  ImageBackground, // Use ImageBackground for a potential background image
+  ActivityIndicator,
+  ImageBackground,
+  Platform,
+  ScrollView,
+  Dimensions,
+  Image,
 } from "react-native";
-import React from "react";
+import React, { useRef, useEffect } from "react"; // Import useEffect
 import { useSession } from "@/context/AuthProvider";
 import { Redirect, useRouter } from "expo-router";
-// Import your useTheme hook
 import useTheme from "@/context/theme/useTheme";
+import { useTranslation } from "react-i18next";
 
-// Optional: Import a background image if you have one
-// const backgroundImage = require("../assets/images/hero-background.jpg"); // Replace with your image path
+const { width: viewportWidth } = Dimensions.get("window");
+
+interface CarouselItem {
+  image?: any;
+  titleKey: string;
+  descriptionKey: string;
+}
+
+// Define your marketing content (using translation keys)
+const marketingSlides: CarouselItem[] = [
+  {
+    image: require("@/assets/images/slides/slide1.png"), // Ensure these paths are correct
+    titleKey: "carousel.slide1_title",
+    descriptionKey: "carousel.slide1_desc",
+  },
+  {
+    image: require("@/assets/images/slides/slide2.png"),
+    titleKey: "carousel.slide2_title",
+    descriptionKey: "carousel.slide2_desc",
+  },
+  {
+    image: require("@/assets/images/slides/slide3.png"),
+    titleKey: "carousel.slide3_title",
+    descriptionKey: "carousel.slide3_desc",
+  },
+];
 
 const HeroScreen = () => {
   const router = useRouter();
   const { session, isLoading } = useSession();
-  // Access theme colors and mode
   const { colors, themeMode } = useTheme();
+  const { t } = useTranslation();
 
-  // Determine status bar style based on theme mode
   const statusBarStyle =
     themeMode === "dark" ? "light-content" : "dark-content";
 
-  // Show a themed loading indicator while checking session
+  const carouselScrollViewRef = useRef<ScrollView>(null);
+  const [activeSlide, setActiveSlide] = React.useState(0);
+
+  // Auto-scroll logic for carousel
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const nextSlide = (activeSlide + 1) % marketingSlides.length;
+      if (carouselScrollViewRef.current) {
+        carouselScrollViewRef.current.scrollTo({
+          x: nextSlide * viewportWidth,
+          animated: true,
+        });
+      }
+      setActiveSlide(nextSlide);
+    }, 3000); // Change slide every 3 seconds
+
+    return () => clearInterval(interval); // Clear interval on unmount
+  }, [activeSlide, marketingSlides.length]); // Re-run effect if activeSlide or number of slides changes
+
+  const onScroll = (event: any) => {
+    const slide = Math.round(event.nativeEvent.contentOffset.x / viewportWidth);
+    if (slide !== activeSlide) {
+      setActiveSlide(slide);
+    }
+  };
+
+  const scrollToSlide = (index: number) => {
+    if (carouselScrollViewRef.current) {
+      carouselScrollViewRef.current.scrollTo({
+        x: index * viewportWidth,
+        animated: true,
+      });
+    }
+    setActiveSlide(index);
+  };
+
   if (isLoading) {
     return (
       <View
@@ -44,66 +106,144 @@ const HeroScreen = () => {
             { color: colors.textPrimary, marginTop: 10 },
           ]}
         >
-          Loading session...
+          {t("hero.loading_session")}
         </Text>
       </View>
     );
   }
 
-  // Redirect if a session exists
   if (session) {
     return <Redirect href="/(app)/(tabs)/(home)" />;
   }
 
-  // Main Hero Screen content
   return (
-    // Use ImageBackground for a potential background image, falling back to theme background color
     <ImageBackground
-      style={[styles.container, { backgroundColor: colors.background }]} // Fallback background color
-      resizeMode="cover" // Cover the entire container
+      style={[styles.container, { backgroundColor: colors.background }]}
+      resizeMode="cover"
     >
       <StatusBar barStyle={statusBarStyle} backgroundColor={colors.surface} />
 
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.heroContent}>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>
-            Welcome to DigiDairy
+          <Text style={[styles.appLogoText, { color: colors.textPrimary }]}>
+            {t("app_name")}
           </Text>
 
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Your journey starts here
-          </Text>
-
-          <Pressable
-            style={[styles.button, { backgroundColor: colors.primary }]}
-            onPress={() => {
-              router.push("/auth/signin");
-            }}
+          {/* Marketing Carousel */}
+          <ScrollView
+            ref={carouselScrollViewRef}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onScroll={onScroll}
+            scrollEventThrottle={16}
+            style={styles.carouselScrollView}
           >
-            <Text style={[styles.buttonText, { color: colors.surface }]}>
-              Sign In
-            </Text>
-          </Pressable>
+            {marketingSlides.map((item, index) => (
+              <View key={index} style={styles.carouselItem}>
+                {item.image && (
+                  <Image
+                    source={item.image}
+                    style={styles.carouselImage}
+                    resizeMode="contain"
+                  />
+                )}
+                <Text
+                  style={[styles.carouselTitle, { color: colors.textPrimary }]}
+                >
+                  {t(item.titleKey)}
+                </Text>
+                <Text
+                  style={[
+                    styles.carouselDescription,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  {t(item.descriptionKey)}
+                </Text>
+              </View>
+            ))}
+          </ScrollView>
 
-          <Pressable
-            style={[
-              styles.button,
-              styles.secondaryButton,
-              {
-                backgroundColor: colors.surface, // Use surface for secondary button background
-                borderColor: colors.primary, // Use primary for secondary button border
-              },
-            ]}
-            onPress={() => {
-              router.push("/auth/signup");
-            }}
-          >
-            <Text
-              style={[styles.secondaryButtonText, { color: colors.primary }]}
+          {/* Pagination Dots */}
+          <View style={styles.paginationDotsContainer}>
+            {marketingSlides.map((_, index) => (
+              <Pressable
+                key={`dot-${index}`}
+                style={[
+                  styles.dot,
+                  {
+                    backgroundColor:
+                      index === activeSlide
+                        ? colors.primary
+                        : colors.textSecondary,
+                    opacity: index === activeSlide ? 1 : 0.4,
+                  },
+                ]}
+                onPress={() => scrollToSlide(index)}
+                accessibilityLabel={t("carousel.dot_label", {
+                  index: index + 1,
+                })}
+              />
+            ))}
+          </View>
+
+          {/* Action Buttons */}
+          <View style={styles.buttonGroup}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.button,
+                { backgroundColor: colors.primary },
+                Platform.select({
+                  ios: {
+                    shadowOpacity: pressed ? 0.2 : 0.1,
+                    shadowRadius: pressed ? 3 : 4,
+                  },
+                  android: {
+                    elevation: pressed ? 2 : 3,
+                  },
+                }),
+              ]}
+              onPress={() => {
+                router.push("/auth/signin");
+              }}
+              accessibilityLabel={t("hero.signin_button")}
             >
-              Sign Up
-            </Text>
-          </Pressable>
+              <Text style={[styles.buttonText, { color: colors.onPrimary }]}>
+                {t("hero.signin_button")}
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.button,
+                styles.secondaryButton,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.primary,
+                },
+                Platform.select({
+                  ios: {
+                    shadowOpacity: pressed ? 0.2 : 0.1,
+                    shadowRadius: pressed ? 3 : 4,
+                  },
+                  android: {
+                    elevation: pressed ? 2 : 3,
+                  },
+                }),
+              ]}
+              onPress={() => {
+                router.push("/auth/signup");
+              }}
+              accessibilityLabel={t("hero.signup_button")}
+            >
+              <Text
+                style={[styles.secondaryButtonText, { color: colors.primary }]}
+              >
+                {t("hero.signup_button")}
+              </Text>
+            </Pressable>
+          </View>
         </View>
       </SafeAreaView>
     </ImageBackground>
@@ -113,87 +253,125 @@ const HeroScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // backgroundColor handled by theme inline or ImageBackground
-    justifyContent: "center", // Center content vertically
-    alignItems: "center", // Center content horizontally
-    paddingHorizontal: 20,
+    justifyContent: "center",
+    alignItems: "center",
   },
   centeredContainer: {
-    // Style for the loading state container
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    // backgroundColor handled by theme inline
   },
   safeArea: {
     flex: 1,
-    width: "100%", // Take full width
-    justifyContent: "center", // Center content vertically within safe area
-    alignItems: "center", // Center content horizontally within safe area
+    width: "100%",
+    justifyContent: "space-between", // Distribute content vertically
+    alignItems: "center",
+    paddingVertical: Platform.OS === "android" ? StatusBar.currentHeight : 0, // Handle Android notch/status bar space
   },
   heroContent: {
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "center", // Keep centered within its own space
+    width: "100%",
+    maxWidth: 400, // Max width for content on larger screens
+    flex: 1, // Allow hero content to take available space
+  },
+  appLogoText: {
+    fontSize: 42, // Slightly reduced for better balance, still prominent
+    fontWeight: "800", // Bolder font weight
+    marginBottom: 20, // Reduced margin
     textAlign: "center",
-    width: "100%", // Take full width
-    maxWidth: 400, // Optional: Limit width on larger screens
-  },
-  appLogo: {
-    // Optional style for a prominent app logo/name
-    fontSize: 48,
-    fontWeight: "bold",
-    marginBottom: 30,
-    // color handled by theme inline
-  },
-  title: {
-    fontSize: 36, // Increased font size
-    fontWeight: "bold",
-    marginBottom: 15, // Increased spacing
-    textAlign: "center", // Center text
-    // color handled by theme inline
+    paddingHorizontal: 20,
+    letterSpacing: 0.5, // Subtle letter spacing
   },
   subtitle: {
-    fontSize: 18,
-    // color handled by theme inline
-    marginBottom: 40, // Increased spacing
-    textAlign: "center", // Center text
-    paddingHorizontal: 20, // Add some horizontal padding
+    fontSize: 18, // Kept same
+    lineHeight: 26, // Added line height for readability
+    marginBottom: 30, // Reduced margin to bring elements closer
+    textAlign: "center",
+    paddingHorizontal: 20,
   },
-  button: {
-    // backgroundColor handled by theme inline
-    paddingVertical: 15, // Increased padding
-    paddingHorizontal: 30,
-    borderRadius: 10, // More rounded corners
-    marginBottom: 15, // Spacing between buttons
+  // --- Carousel Styles ---
+  carouselScrollView: {
+    height: 320, // Slightly increased height for more image/text room
+    width: viewportWidth,
+    marginBottom: 25, // Increased space below carousel
+  },
+  carouselItem: {
+    width: viewportWidth,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 15, // Slightly reduced vertical padding for tighter fit
+  },
+  carouselImage: {
+    width: "90%",
+    height: 180, // Kept same
+    marginBottom: 20, // Increased margin to separate image from title
+    // If your images have transparent backgrounds, and you want a solid background
+    // backgroundColor: 'transparent', // Ensure no unwanted background
+  },
+  carouselTitle: {
+    fontSize: 24, // Slightly increased title size
+    fontWeight: "700", // Bolder
+    textAlign: "center",
+    marginBottom: 8, // Reduced margin to bring description closer
+  },
+  carouselDescription: {
+    fontSize: 15, // Slightly reduced for better hierarchy with title
+    textAlign: "center",
+    lineHeight: 22, // Adjusted line height
+    paddingHorizontal: 10, // Added padding to description
+  },
+  paginationDotsContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 40, // Increased space below dots
+  },
+  dot: {
+    width: 8, // Slightly smaller dots
+    height: 8,
+    borderRadius: 4, // Fully rounded
+    marginHorizontal: 5, // Slightly less margin
+  },
+  // --- Button Group ---
+  buttonGroup: {
     width: "100%",
     alignItems: "center",
-    justifyContent: "center", // Center text vertically
-    // Added subtle shadow for depth
-    shadowColor: "#000", // Default shadow color (can be themed if needed)
+    paddingHorizontal: 20, // Padding for the group itself
+    marginTop: "auto", // Push button group to the bottom (within heroContent)
+    marginBottom: 20, // Space from the bottom of the screen
+  },
+  // --- Button Styles ---
+  button: {
+    paddingVertical: 14, // Slightly reduced button height
+    paddingHorizontal: 30,
+    borderRadius: 8, // Slightly less rounded for a more modern look
+    marginBottom: 12, // Reduced space between buttons
+    width: "100%",
+    maxWidth: 260, // Slightly reduced max width for a less "blocky" feel
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3, // Android shadow
+    elevation: 3,
   },
   buttonText: {
-    // color handled by theme inline
-    fontSize: 18,
-    fontWeight: "600", // Slightly bolder text
+    fontSize: 17, // Slightly smaller text
+    fontWeight: "700", // Bolder
   },
   secondaryButton: {
-    // backgroundColor handled by theme inline
-    borderWidth: 2, // Add a border for the secondary button
-    // borderColor handled by theme inline
+    borderWidth: 1.5, // Slightly thinner border
   },
   secondaryButtonText: {
-    // color handled by theme inline
-    fontSize: 18,
-    fontWeight: "600",
+    fontSize: 17,
+    fontWeight: "700",
   },
   loadingText: {
-    fontSize: 18, // Adjusted size
+    fontSize: 18,
     textAlign: "center",
-    // color handled by theme inline
   },
 });
 

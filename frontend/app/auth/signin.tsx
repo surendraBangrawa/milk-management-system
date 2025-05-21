@@ -16,10 +16,13 @@ import { sendOtpApi } from "@/redux/slice/auth/authApi";
 
 // Import your useTheme hook
 import useTheme from "@/context/theme/useTheme";
+// Import useTranslation hook
+import { useTranslation } from "react-i18next";
 
 const Signin = () => {
   const router = useRouter();
   const { colors, themeMode } = useTheme();
+  const { t } = useTranslation(); // Initialize useTranslation
   const statusBarStyle =
     themeMode === "dark" ? "light-content" : "dark-content";
 
@@ -30,40 +33,34 @@ const Signin = () => {
   } = useForm();
   const [loading, setLoading] = useState(false); // Loading state
 
-  const handleLogin = async (data) => {
+  const handleLogin = async (data: { phone: string }) => {
+    // Added type for data
     const { phone } = data;
-    // react-hook-form rules handle the required check
-    // if (!phone) {
-    //   Toast.show({
-    //     type: "error",
-    //     text1: "Please enter your phone number",
-    //   });
-    //   return;
-    // }
     setLoading(true); // Show loading spinner
 
     try {
       // Store the phone number after successful validation, before sending OTP
       await SecureStore.setItemAsync("user", JSON.stringify({ phone }));
 
-      const sendOtp = await sendOtpApi({ mobile: phone });
+      // Assuming sendOtpApi returns a Response object or similar
+      const sendOtpResponse = await sendOtpApi({ mobile: phone });
 
-      if (sendOtp.status === 200) {
-        Toast.show({ type: "success", text1: "OTP sent successfully!" }); // Added success toast
+      if (sendOtpResponse.status === 200) {
+        Toast.show({ type: "success", text1: t("signin.otp_success") }); // Translated success toast
         router.push("/auth/otp");
       } else {
         // Handle API errors with specific messages if available
-        const errorData = await sendOtp.json(); // Assuming JSON error response
+        const errorData = await sendOtpResponse.json(); // Assuming JSON error response
         const errorMessage =
-          errorData?.message || "Failed to send OTP. Please try again.";
+          errorData?.message || t("signin.otp_failed_fallback"); // Translated fallback
         Toast.show({ type: "error", text1: errorMessage });
       }
     } catch (err: any) {
       console.error("Sign In Error:", err); // Log the actual error
       Toast.show({
         type: "error",
-        text1: "Something went wrong.",
-        text2: err.message || "Please try again.", // Display error message
+        text1: t("common.error"), // Translated generic error
+        text2: err.message || t("common.try_again"), // Translated generic error detail
       });
     } finally {
       setLoading(false); // Hide loading spinner
@@ -71,10 +68,11 @@ const Signin = () => {
   };
 
   return (
-    // Apply theme background color to the main container
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={statusBarStyle} backgroundColor={colors.surface} />
-      <Text style={[styles.title, { color: colors.textPrimary }]}>Sign In</Text>
+      <Text style={[styles.title, { color: colors.textPrimary }]}>
+        {t("signin.title")} {/* Translated title */}
+      </Text>
 
       <View style={styles.inputContainer}>
         <Controller
@@ -83,27 +81,26 @@ const Signin = () => {
             <TextInput
               style={[
                 styles.input,
-                // Apply theme colors to input border, background, and text
                 {
-                  borderColor: errors.phone ? colors.error : colors.border, // Error color for border if there's an error
+                  borderColor: errors.phone ? colors.error : colors.border,
                   backgroundColor: colors.surface,
-                  color: colors.textPrimary, // Text color from theme
+                  color: colors.textPrimary,
                 },
               ]}
-              placeholder="Enter phone number"
-              placeholderTextColor={colors.textSecondary} // Themed placeholder color
+              placeholder={t("signin.phone_placeholder")} // Translated placeholder
+              placeholderTextColor={colors.textSecondary}
               value={value}
               onChangeText={onChange}
               keyboardType="phone-pad"
-              maxLength={10} // Added maxLength for phone number
+              maxLength={10}
             />
           )}
           name="phone"
           rules={{
-            required: "Phone number is required",
+            required: t("signin.phone_required"), // Translated validation message
             pattern: {
               value: /^[0-9]{10}$/,
-              message: "Please enter a valid 10-digit phone number",
+              message: t("signin.phone_invalid"), // Translated validation message
             },
           }}
         />
@@ -112,7 +109,7 @@ const Signin = () => {
             styles.errorText,
             {
               color: colors.error,
-              opacity: errors.phone ? 1 : 0, // Control visibility with opacity
+              opacity: errors.phone ? 1 : 0,
             },
           ]}
         >
@@ -123,28 +120,25 @@ const Signin = () => {
       <TouchableOpacity
         style={[
           styles.button,
-          // Apply theme primary color to button background, or border color when disabled
           { backgroundColor: loading ? colors.border : colors.primary },
         ]}
         onPress={handleSubmit(handleLogin)}
-        disabled={loading} // Disable if loading
+        disabled={loading}
       >
         {loading ? (
-          // Apply theme surface color to the activity indicator
           <ActivityIndicator size="small" color={colors.surface} />
         ) : (
-          // Apply theme surface color to button text (assuming white/light text on primary/border)
           <Text style={[styles.buttonText, { color: colors.surface }]}>
-            Login
+            {t("signin.login_button")} {/* Translated button text */}
           </Text>
         )}
       </TouchableOpacity>
 
       <TouchableOpacity onPress={() => router.push("/auth/signup")}>
         <Text style={[styles.signInText, { color: colors.textPrimary }]}>
-          Don't have an account?
+          {t("signin.no_account_prompt")} {/* Translated prompt */}
           <Text style={[styles.signInLink, { color: colors.primary }]}>
-            Sign Up
+            {t("signin.signup_link")} {/* Translated link */}
           </Text>
         </Text>
       </TouchableOpacity>
@@ -158,13 +152,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
-    // backgroundColor handled by theme inline
   },
   title: {
     fontSize: 32,
     fontWeight: "bold",
     marginBottom: 40,
-    // color handled by theme inline
   },
   inputContainer: {
     width: "100%",
@@ -172,7 +164,6 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    // color handled by theme inline (if used)
     marginBottom: 5,
   },
   input: {
@@ -181,10 +172,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 15,
     fontSize: 16,
-    // borderColor, backgroundColor, color, and placeholderTextColor handled by theme inline
   },
   button: {
-    // backgroundColor handled by theme inline (based on state)
     paddingVertical: 15,
     borderRadius: 8,
     width: "100%",
@@ -194,21 +183,16 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 18,
     fontWeight: "500",
-    // color handled by theme inline
   },
   errorText: {
-    // color handled by theme inline
     fontSize: 12,
     marginTop: 5,
-    // visibility is handled by opacity now
   },
   signInText: {
     fontSize: 14,
-    // color handled by theme inline
     marginTop: 20,
   },
   signInLink: {
-    // color handled by theme inline
     fontWeight: "bold",
   },
 });

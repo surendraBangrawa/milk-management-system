@@ -6,7 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  StatusBar, // Import ActivityIndicator if you add loading state to buttons
+  StatusBar,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
@@ -16,17 +16,19 @@ import { useSession } from "@/context/AuthProvider";
 import { loginApi, sendOtpApi } from "@/redux/slice/auth/authApi";
 
 import useTheme from "@/context/theme/useTheme";
+import { useTranslation } from "react-i18next"; // Import useTranslation
 
 const OTP = () => {
   const { signIn } = useSession();
   const { colors, themeMode } = useTheme();
+  const { t } = useTranslation(); // Initialize useTranslation
   const statusBarStyle =
     themeMode === "dark" ? "light-content" : "dark-content";
 
   const [timer, setTimer] = useState(180);
   const [canResend, setCanResend] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false); // State for verify button loading
-  const [isResending, setIsResending] = useState(false); // State for resend button loading
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isResending, setIsResending] = useState(false);
 
   const router = useRouter();
   const {
@@ -53,16 +55,19 @@ const OTP = () => {
     }
   }, [canResend]); // Depend on canResend to restart timer
 
-  const handleVerifyOTP = async (data) => {
-    if (isVerifying) return; // Prevent double submission
+  const handleVerifyOTP = async (data: { otp: string }) => {
+    // Added type for data
+    if (isVerifying) return;
 
     setIsVerifying(true);
     const { otp } = data;
     try {
-      const user = await SecureStore.getItemAsync("user");
-      const { phone } = user ? JSON.parse(user) : {};
+      const userString = await SecureStore.getItemAsync("user");
+      const user = userString ? JSON.parse(userString) : null;
+      const phone = user?.phone;
+
       if (!phone) {
-        Toast.show({ type: "error", text1: "Phone number not found." });
+        Toast.show({ type: "error", text1: t("otp.phone_not_found") }); // Translated
         setIsVerifying(false);
         return;
       }
@@ -71,25 +76,25 @@ const OTP = () => {
         const accessToken = response?.data?.access_token;
         if (accessToken) {
           signIn(accessToken);
-          router.push("/(app)/(tabs)/(home)"); // Navigate on success
+          router.push("/(app)/(tabs)/(home)");
         } else {
           Toast.show({
             type: "error",
-            text1: "Login failed: No access token.",
+            text1: t("otp.login_failed_no_token"), // Translated
           });
         }
       } else {
-        // Handle API errors with specific messages if available
-        const errorData = await response.json(); // Assuming JSON error response
-        const errorMessage = errorData?.message || "Invalid OTP";
+        const errorData = await response.json();
+        const errorMessage =
+          errorData?.message || t("otp.invalid_otp_fallback"); // Translated fallback
         Toast.show({ type: "error", text1: errorMessage });
       }
     } catch (error: any) {
-      console.error("Verify OTP Error:", error); // Log the actual error
+      console.error("Verify OTP Error:", error);
       Toast.show({
         type: "error",
-        text1: "Error verifying OTP",
-        text2: error.message || "Please try again.",
+        text1: t("common.error_verifying_otp"), // Translated generic error
+        text2: error.message || t("common.try_again"), // Translated generic error detail
       });
     } finally {
       setIsVerifying(false);
@@ -97,33 +102,36 @@ const OTP = () => {
   };
 
   const handleResendOTP = async () => {
-    if (!canResend || isResending) return; // Prevent resending if not allowed or already resending
+    if (!canResend || isResending) return;
 
     setIsResending(true);
     try {
-      const user = await SecureStore.getItemAsync("user");
-      const { phone } = user ? JSON.parse(user) : {};
+      const userString = await SecureStore.getItemAsync("user");
+      const user = userString ? JSON.parse(userString) : null;
+      const phone = user?.phone;
+
       if (!phone) {
-        Toast.show({ type: "error", text1: "Phone number not found." });
+        Toast.show({ type: "error", text1: t("otp.phone_not_found") }); // Translated
         setIsResending(false);
         return;
       }
-      const resendOtp = await sendOtpApi({ mobile: phone });
-      if (resendOtp.status === 200) {
-        Toast.show({ type: "success", text1: "OTP sent successfully!" });
+      const resendOtpResponse = await sendOtpApi({ mobile: phone });
+      if (resendOtpResponse.status === 200) {
+        Toast.show({ type: "success", text1: t("otp.otp_sent_success") }); // Translated success
         setTimer(180); // Reset timer
         setCanResend(false); // Disable resend until timer runs out
       } else {
-        const errorData = await resendOtp.json(); // Assuming JSON error response
-        const errorMessage = errorData?.message || "Failed to send OTP";
+        const errorData = await resendOtpResponse.json();
+        const errorMessage =
+          errorData?.message || t("otp.failed_to_send_otp_fallback"); // Translated fallback
         Toast.show({ type: "error", text1: errorMessage });
       }
     } catch (error: any) {
-      console.error("Resend OTP Error:", error); // Log the actual error
+      console.error("Resend OTP Error:", error);
       Toast.show({
         type: "error",
-        text1: "Error sending OTP",
-        text2: error.message || "Please try again.",
+        text1: t("common.error_sending_otp"), // Translated generic error
+        text2: error.message || t("common.try_again"), // Translated generic error detail
       });
     } finally {
       setIsResending(false);
@@ -131,11 +139,10 @@ const OTP = () => {
   };
 
   return (
-    // Apply theme background color to the main container
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={statusBarStyle} backgroundColor={colors.surface} />
       <Text style={[styles.title, { color: colors.textPrimary }]}>
-        Enter OTP
+        {t("otp.enter_otp_title")} {/* Translated title */}
       </Text>
 
       <View style={styles.inputContainer}>
@@ -145,15 +152,14 @@ const OTP = () => {
             <TextInput
               style={[
                 styles.input,
-                // Apply theme colors to input border, background, and text
                 {
-                  borderColor: errors.otp ? colors.error : colors.border, // Error color for border if there's an error
+                  borderColor: errors.otp ? colors.error : colors.border,
                   backgroundColor: colors.surface,
-                  color: colors.textPrimary, // Text color from theme
+                  color: colors.textPrimary,
                 },
               ]}
-              placeholder="Enter 6-digit OTP"
-              placeholderTextColor={colors.textSecondary} // Themed placeholder color
+              placeholder={t("otp.otp_placeholder")} // Translated placeholder
+              placeholderTextColor={colors.textSecondary}
               value={value}
               onChangeText={onChange}
               keyboardType="number-pad"
@@ -162,9 +168,9 @@ const OTP = () => {
           )}
           name="otp"
           rules={{
-            required: "OTP is required",
-            minLength: { value: 6, message: "OTP must be 6 digits" },
-            maxLength: { value: 6, message: "OTP must be 6 digits" }, // Added max length rule for clarity
+            required: t("otp.otp_required"), // Translated validation message
+            minLength: { value: 6, message: t("otp.otp_length_invalid") }, // Translated validation message
+            maxLength: { value: 6, message: t("otp.otp_length_invalid") }, // Translated validation message
           }}
         />
         <Text
@@ -172,7 +178,7 @@ const OTP = () => {
             styles.errorText,
             {
               color: colors.error,
-              opacity: errors.otp ? 1 : 0, // Use opacity to show/hide
+              opacity: errors.otp ? 1 : 0,
             },
           ]}
         >
@@ -183,19 +189,16 @@ const OTP = () => {
       <TouchableOpacity
         style={[
           styles.button,
-          // Apply theme primary color to button background, or border color when disabled
           { backgroundColor: isVerifying ? colors.border : colors.primary },
         ]}
         onPress={handleSubmit(handleVerifyOTP)}
-        disabled={isVerifying} // Disable button while verifying
+        disabled={isVerifying}
       >
         {isVerifying ? (
-          // Apply theme surface color to the activity indicator
           <ActivityIndicator color={colors.surface} />
         ) : (
-          // Apply theme surface color to button text (assuming white/light text on primary/border)
           <Text style={[styles.buttonText, { color: colors.surface }]}>
-            Verify OTP
+            {t("otp.verify_button")} {/* Translated button text */}
           </Text>
         )}
       </TouchableOpacity>
@@ -203,24 +206,24 @@ const OTP = () => {
       <TouchableOpacity
         style={styles.resendButton}
         onPress={handleResendOTP}
-        disabled={!canResend || isResending} // Disable based on canResend and isResending state
+        disabled={!canResend || isResending}
       >
         {isResending ? (
-          // Apply theme primary color to resend indicator
           <ActivityIndicator color={colors.primary} />
         ) : (
-          // Apply theme primary color to resend button text
           <Text
             style={[
               styles.resendButtonText,
-              { color: canResend ? colors.primary : colors.textSecondary }, // Dim text when not allowed to resend
+              { color: canResend ? colors.primary : colors.textSecondary },
             ]}
           >
             {canResend
-              ? "Resend OTP"
-              : `Resend OTP in ${Math.floor(timer / 60)}:${String(
-                  timer % 60
-                ).padStart(2, "0")}`}
+              ? t("otp.resend_button") // Translated resend text
+              : t("otp.resend_timer", {
+                  // Translated timer text with interpolation
+                  minutes: Math.floor(timer / 60),
+                  seconds: String(timer % 60).padStart(2, "0"),
+                })}
           </Text>
         )}
       </TouchableOpacity>
@@ -234,13 +237,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
-    // backgroundColor handled by theme inline
   },
   title: {
     fontSize: 32,
     fontWeight: "bold",
     marginBottom: 40,
-    // color handled by theme inline
   },
   inputContainer: {
     width: "100%",
@@ -252,10 +253,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 15,
     fontSize: 16,
-    // borderColor, backgroundColor, color, and placeholderTextColor handled by theme inline
   },
   button: {
-    // backgroundColor handled by theme inline (based on state)
     paddingVertical: 15,
     borderRadius: 8,
     width: "100%",
@@ -265,20 +264,16 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 18,
     fontWeight: "500",
-    // color handled by theme inline
   },
   resendButton: {
     marginTop: 20,
   },
   resendButtonText: {
     fontSize: 16,
-    // color handled by theme inline (based on state)
   },
   errorText: {
-    // color handled by theme inline
     fontSize: 12,
     marginTop: 5,
-    // visibility is handled by conditional rendering now
   },
 });
 
