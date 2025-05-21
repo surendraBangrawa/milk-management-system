@@ -62,6 +62,8 @@ export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
         },
       ],
       "expo-secure-store",
+      "expo-localization",
+      "expo-font",
     ],
     experiments: {
       ...originalConfig.experiments,

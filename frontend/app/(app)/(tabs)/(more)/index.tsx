@@ -1,16 +1,16 @@
-import React from "react"; // useEffect might not be needed here, but keeping it if used elsewhere
+import React from "react";
 import { useSession } from "@/context/AuthProvider";
 import { useRouter } from "expo-router";
-import { StyleSheet, View, Text, Pressable } from "react-native";
+import { StyleSheet, View, Text, Pressable, ScrollView } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 import useTheme from "@/context/theme/useTheme";
-import { Ionicons } from "@expo/vector-icons"; // Import Ionicons
 
 // Define the structure for an option
 interface Option {
   label: string;
   path?: string; // Path for navigation
-  type?: "logout"; // Special type for actions like logout
+  type?: "logout" | "language"; // Special type for actions like logout or language selector
   icon: keyof typeof Ionicons.glyphMap; // Type for Ionicons names
   iconColor?: string; // Optional: specific color for the icon
   hideChevron?: boolean; // Optional: hide navigation arrow
@@ -22,12 +22,43 @@ interface Section {
   data: Option[];
 }
 
+// Placeholder for LanguageSelector component - assuming it exists elsewhere
+const LanguageSelector = () => {
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.optionButton, { backgroundColor: colors.surface }]}>
+      <View style={styles.optionContent}>
+        <Ionicons
+          name="language-outline"
+          size={24}
+          color={colors.textPrimary}
+          style={styles.optionIcon}
+        />
+        <Text style={[styles.optionText, { color: colors.textPrimary }]}>
+          English
+        </Text>
+        <Ionicons
+          name="chevron-forward-outline"
+          size={20}
+          color={colors.textSecondary}
+          style={styles.chevronIcon}
+        />
+      </View>
+    </View>
+  );
+};
+
 // Define the structured list of options in sections
 const sections: Section[] = [
   {
     title: "Account",
     data: [
       { label: "Profile", path: "/(app)/profile", icon: "person-outline" },
+      {
+        label: "Summary",
+        path: "/(app)/summary",
+        icon: "document-text-outline",
+      },
       {
         label: "Manage Subscription",
         path: "/(app)/subscription",
@@ -36,7 +67,6 @@ const sections: Section[] = [
     ],
   },
   {
-    // No title for this section if you prefer
     data: [
       { label: "Rate List", path: "/(app)/ratelist", icon: "star-outline" },
     ],
@@ -44,20 +74,30 @@ const sections: Section[] = [
   {
     title: "Support",
     data: [
-      // Using placeholder console logs for now if paths aren't defined
       { label: "Help", icon: "help-circle-outline" },
       { label: "About", icon: "information-circle-outline" },
     ],
   },
   {
-    // Section specifically for actions like logout
+    title: "Language", // Changed title to "Language" for consistency
+    data: [
+      // This section will now render the LanguageSelector component directly
+      {
+        label: "Language Selector",
+        type: "language",
+        icon: "language-outline",
+        hideChevron: false,
+      },
+    ],
+  },
+  {
     data: [
       {
         label: "Logout",
         type: "logout",
         icon: "log-out-outline",
         hideChevron: true,
-      }, // Hide arrow for logout
+      },
     ],
   },
 ];
@@ -83,12 +123,12 @@ export default function TabTwoScreen() {
   };
 
   return (
-    // Use background color from theme
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
       {sections.map((section, sectionIndex) => (
         <View key={`section-${sectionIndex}`} style={styles.sectionContainer}>
           {section.title && (
-            // Apply theme color to section title
             <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
               {section.title}
             </Text>
@@ -96,112 +136,104 @@ export default function TabTwoScreen() {
           <View
             style={[styles.optionsList, { backgroundColor: colors.surface }]}
           >
-            {section.data.map((option, optionIndex) => (
-              <Pressable
-                key={option.label} // Use label as key
-                style={({ pressed }) => [
-                  styles.optionButton,
-                  {
-                    // Subtle background change on press (optional, surface is fine)
-                    // backgroundColor: pressed ? colors.border : colors.surface,
-                    backgroundColor: colors.surface, // Keep surface for consistent background
-                  },
-                ]}
-                onPress={() => handleOptionPress(option)}
-                accessibilityRole="button"
-                accessibilityLabel={`${option.label} option`}
-              >
-                <View style={styles.optionContent}>
-                  <Ionicons
-                    name={option.icon}
-                    size={24}
-                    // Use iconColor if specified, otherwise use textPrimary from theme
-                    color={option.iconColor || colors.textPrimary}
-                    style={styles.optionIcon}
-                  />
-                  <Text
-                    style={[
-                      styles.optionText,
-                      {
-                        // Use error color for logout text, otherwise textPrimary from theme
-                        color:
-                          option.type === "logout"
-                            ? colors.error
-                            : colors.textPrimary,
-                      },
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-
-                  {option.path && !option.hideChevron && (
+            {section.data.map((option, optionIndex) => {
+              // Conditionally render LanguageSelector if type is 'language'
+              if (option.type === "language") {
+                return <LanguageSelector key={option.label} />;
+              }
+              return (
+                <Pressable
+                  key={option.label}
+                  style={({ pressed }) => [
+                    styles.optionButton,
+                    {
+                      backgroundColor: colors.surface,
+                    },
+                  ]}
+                  onPress={() => handleOptionPress(option)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${option.label} option`}
+                >
+                  <View style={styles.optionContent}>
                     <Ionicons
-                      name="chevron-forward-outline"
-                      size={20}
-                      // Use textSecondary from theme for chevron color
-                      color={colors.textSecondary}
-                      style={styles.chevronIcon}
+                      name={option.icon}
+                      size={24}
+                      color={option.iconColor || colors.textPrimary}
+                      style={styles.optionIcon}
                     />
-                  )}
-                </View>
-              </Pressable>
-            ))}
+                    <Text
+                      style={[
+                        styles.optionText,
+                        {
+                          color:
+                            option.type === "logout"
+                              ? colors.error
+                              : colors.textPrimary,
+                        },
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+
+                    {option.path && !option.hideChevron && (
+                      <Ionicons
+                        name="chevron-forward-outline"
+                        size={20}
+                        color={colors.textSecondary}
+                        style={styles.chevronIcon}
+                      />
+                    )}
+                  </View>
+                </Pressable>
+              );
+            })}
           </View>
         </View>
       ))}
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16, // Padding around the whole screen content
-    // backgroundColor applied inline from theme
+    padding: 16,
   },
   sectionContainer: {
-    marginBottom: 24, // Space between sections
+    marginBottom: 24,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "600",
-    marginBottom: 8, // Space between title and options list
-    paddingHorizontal: 8, // Align title roughly with list padding
-    // color applied inline from theme
+    marginBottom: 8,
+    paddingHorizontal: 8,
   },
   optionsList: {
-    borderRadius: 12, // Rounded corners for the option group container
-    overflow: "hidden", // Ensures children respect border radius
-    elevation: 2, // Android shadow
-    // shadowColor applied inline from theme if needed for Android
+    borderRadius: 12,
+    overflow: "hidden",
+    elevation: 2,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1, // iOS shadow opacity (can be adjusted)
-    shadowRadius: 4, // iOS shadow blur radius
-    // backgroundColor applied inline from theme
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   optionButton: {
-    // Background color applied inline based on press state/type
-    paddingVertical: 16, // Increased vertical padding
-    paddingHorizontal: 16, // Horizontal padding for content
-    // No border here, use a separator view if needed between items
+    paddingVertical: 16,
+    paddingHorizontal: 16,
   },
   optionContent: {
-    flexDirection: "row", // Arrange icon, text, and chevron horizontally
-    alignItems: "center", // Vertically align items
-    justifyContent: "space-between", // Distribute space: icon left, text center/fill, chevron right
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   optionIcon: {
-    marginRight: 16, // Space between icon and text
-    // color applied inline from theme or option.iconColor
+    marginRight: 16,
   },
   optionText: {
-    flex: 1, // Allows the text to take up available space
+    flex: 1,
     fontSize: 16,
     fontWeight: "500",
-    // color applied inline based on type (logout/other)
   },
   chevronIcon: {
-    marginLeft: 16, // Space between text and chevron
-    // color applied inline from theme
+    marginLeft: 16,
   },
 });
