@@ -32,3 +32,14 @@ class GetTransactionsRequest(BaseModel):
     seller_mobile: str = Field(
         ..., pattern="^[0-9]{10}$", description="10-digit seller mobile number"
     )
+
+class GetTotalDateBasisRecordRequest(BaseModel):
+    start_date: date = None
+    end_date: date = None
+
+class GetCustomersDateBasisRecordRequest(BaseModel):
+    start_date: date = None
+    end_date: date = None
+    seller_mobile: str = Field(
+        ..., pattern="^[0-9]{10}$", description="10-digit seller mobile number"
+    )
