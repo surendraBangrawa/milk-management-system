@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
-from typing import Optional
-from datetime import date
+from typing import Optional, List, Union
+from datetime import date, datetime
 
 
 class AddMilkRecordRequest(BaseModel):
@@ -26,20 +26,64 @@ class GetTransactionsSellerRequest(BaseModel):
     buyer_mobile: str = Field(
         ..., pattern="^[0-9]{10}$", description="10-digit buyer mobile number"
     )
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
 
 
 class GetTransactionsRequest(BaseModel):
     seller_mobile: str = Field(
         ..., pattern="^[0-9]{10}$", description="10-digit seller mobile number"
     )
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
 
 class GetTotalDateBasisRecordRequest(BaseModel):
-    start_date: date = None
-    end_date: date = None
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+
+class MilkRecordResponse(BaseModel):
+    id: int
+    added_at: datetime
+    custom_date: datetime
+    buyer_mobile: str
+    seller_mobile: str
+    quantity: float
+    fat: Optional[float]
+    snf: Optional[float]
+    rate: Optional[float]
+    amount:float
+    shift: str
+    milk_detail: Optional[str]
+    is_deleted: bool
+
+    class Config:
+        from_attributes = True # Use from_attributes instead of orm_mode
+
+class ExpenseRecordResponse(BaseModel):
+    expense_id: int
+    added_at: datetime
+    custom_date: datetime
+    buyer_mobile: str
+    seller_mobile: str
+    amount: float
+    expense_detail: Optional[str]
+    is_deleted: bool
+
+    class Config:
+        from_attributes = True # Use from_attributes instead of orm_mode
+
+
+class TotalRecordsSimplifiedResponse(BaseModel):
+    records: List[Union[MilkRecordResponse, ExpenseRecordResponse]]
+    total_milk_quantity: float
+    total_milk_amount: float
+    total_expense_amount: float
+    total_entries_count: int
+
 
 class GetCustomersDateBasisRecordRequest(BaseModel):
-    start_date: date = None
-    end_date: date = None
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
     seller_mobile: str = Field(
         ..., pattern="^[0-9]{10}$", description="10-digit seller mobile number"
     )

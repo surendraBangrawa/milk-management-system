@@ -7,7 +7,7 @@ from app.core.config import local_timezone
 from app.db.models import Subscription, SubscriptionPlan, User
 from datetime import datetime, timedelta
 import logging
-import datetime
+
 
 logger = logging.getLogger(__name__)
 
@@ -188,9 +188,17 @@ def check_subscription(
 
         # If no active subscription found
         raise HTTPException(status_code=404, detail="Subscription is not live")
+    # except Exception as e:
+    #     logger.error(f"Error: {e}")
+    #     raise HTTPException(status_code=404, detail="Something went wrong")
+    except HTTPException as http_exc:
+        # Catch and re-raise explicit HTTPExceptions to preserve their specific details
+        raise http_exc
     except Exception as e:
-        logger.error(f"Error: {e}")
-        raise HTTPException(status_code=404, detail="Something went wrong")
+        # This catches any other unexpected errors and provides a more specific 500 error.
+        logger.error(f"Error in check_subscription: {e}")
+        raise HTTPException(status_code=500, detail="An internal server error occurred while checking subscription.")
+
 
 
 @router.get("/fetch_plans")

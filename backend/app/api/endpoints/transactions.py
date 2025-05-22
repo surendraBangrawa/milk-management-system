@@ -7,6 +7,9 @@ from app.schemas.transactions import (
     GetTransactionsSellerRequest,
     GetTotalDateBasisRecordRequest,
     GetCustomersDateBasisRecordRequest,
+    MilkRecordResponse,
+    ExpenseRecordResponse,
+    TotalRecordsSimplifiedResponse
 )
 from app.db.session import get_db
 from app.db.models import Customer, MilkRecord, ExpenseRecord, User
@@ -405,7 +408,8 @@ def get_transactions_customer(
 ):
     try:
         seller_mobile = request.seller_mobile
-        return update_balances(db, buyer_mobile, seller_mobile, negate_total=True)
+        return update_balances(db, buyer_mobile, seller_mobile, negate_total=True, 
+                               start_date=request.start_date, end_date=request.end_date)
     except Exception as e:
         logger.error(f"Error: {e}")
         raise HTTPException(status_code=404, detail="Something went wrong")
@@ -421,37 +425,46 @@ def get_transactions_supplier(
         buyer_mobile = request.buyer_mobile
         logger.info(f"buyer_mobile : {buyer_mobile}")
         logger.info(f"seller_mobile : {seller_mobile}")
-        return update_balances(db, buyer_mobile, seller_mobile)
+        return update_balances(db, buyer_mobile, seller_mobile, 
+                               start_date=request.start_date, end_date=request.end_date)
     except Exception as e:
         logger.error(f"Error: {e}")
         raise HTTPException(status_code=404, detail="Something went wrong")
 
 
 def update_balances(
-    db: Session, buyer_mobile: str, seller_mobile: str, negate_total: bool = False
+    db: Session, 
+    buyer_mobile: str, 
+    seller_mobile: str, 
+    negate_total: bool = False, 
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None
 ):
     transactions = []
-    running_balance = 0.00
+    running_balance = 0.0
 
-    milk_records = (
-        db.query(MilkRecord)
-        .filter(
-            MilkRecord.buyer_mobile == buyer_mobile,
-            MilkRecord.seller_mobile == seller_mobile,
-            MilkRecord.is_deleted == 0,
-        )
-        .all()
+    # Query for records within the specified date range (or all if no dates)
+    milk_query = db.query(MilkRecord).filter(
+        MilkRecord.buyer_mobile == buyer_mobile,
+        MilkRecord.seller_mobile == seller_mobile,
+        MilkRecord.is_deleted == 0,
     )
+    if start_date:
+        milk_query = milk_query.filter(MilkRecord.added_at >= datetime.combine(start_date, time.min))
+    if end_date:
+        milk_query = milk_query.filter(MilkRecord.added_at <= datetime.combine(end_date, time.max))
+    milk_records = milk_query.all()
 
-    expense_records = (
-        db.query(ExpenseRecord)
-        .filter(
-            ExpenseRecord.buyer_mobile == buyer_mobile,
-            ExpenseRecord.seller_mobile == seller_mobile,
-            ExpenseRecord.is_deleted == 0,
-        )
-        .all()
+    expense_query = db.query(ExpenseRecord).filter(
+        ExpenseRecord.buyer_mobile == buyer_mobile,
+        ExpenseRecord.seller_mobile == seller_mobile,
+        ExpenseRecord.is_deleted == 0,
     )
+    if start_date:
+        expense_query = expense_query.filter(ExpenseRecord.added_at >= datetime.combine(start_date, time.min))
+    if end_date:
+        expense_query = expense_query.filter(ExpenseRecord.added_at <= datetime.combine(end_date, time.max))
+    expense_records = expense_query.all()
 
     all_records = [
         {"type": "milk", "record": record, "amount": record.quantity * record.rate}
@@ -464,10 +477,7 @@ def update_balances(
     all_records.sort(key=lambda x: (x["record"].added_at))
 
     for entry in all_records:
-        if entry["type"] == "milk":
-            running_balance += entry["amount"]
-        else:
-            running_balance += entry["amount"]
+        running_balance += entry["amount"]
 
         entry["record"].total_till_record = round(running_balance, 2)
 
@@ -495,7 +505,7 @@ def update_balances(
         }
 
         if entry["type"] == "milk":
-            for field in ["quantity", "fat", "snf", "rate", "milk_detail"]:
+            for field in ["quantity", "fat", "snf", "rate", "milk_detail", "shift"]:
                 if hasattr(entry["record"], field):
                     transaction_data[field] = getattr(entry["record"], field)
         elif entry["type"] == "expense":
@@ -670,11 +680,6 @@ def get_total_records(
     request: GetTotalDateBasisRecordRequest = Depends(),
     shift: Optional[str] = Query(None, description="Optional filter for shift ('M' for Morning, 'E' for Evening)"),
 ):
-    if not request.start_date or not request.end_date:
-        raise HTTPException(
-            status_code=400, # Bad Request
-            detail="Both start_date and end_date are required."
-        )
 
     if request.start_date > request.end_date:
         raise HTTPException(
@@ -684,139 +689,191 @@ def get_total_records(
 
     try:
         # Optimized: Calculate total milk quantity and amount in a single query
-        milk_summary_query = db.query(
-            func.sum(MilkRecord.quantity).label("total_quantity"),
-            func.sum(MilkRecord.quantity * MilkRecord.rate).label("total_amount")
-        ).filter(
-            MilkRecord.buyer_mobile == buyer_mobile,
-            MilkRecord.is_deleted == False, # Use False for boolean
-            MilkRecord.custom_date >= request.start_date,
-            MilkRecord.custom_date <= request.end_date
-        )
+        adjusted_start_date = datetime.combine(request.start_date, time.min)
+        adjusted_end_date = datetime.combine(request.end_date, time.max)
 
-        # Add optional filter for shift
+        # Query for records within the specified date range (or all if no dates)
+        milk_query = db.query(MilkRecord).filter(
+            MilkRecord.buyer_mobile == buyer_mobile,
+            MilkRecord.is_deleted == 0,
+        )
+        if adjusted_start_date:
+            milk_query = milk_query.filter(MilkRecord.added_at >= adjusted_start_date)
+        if adjusted_end_date:
+            milk_query = milk_query.filter(MilkRecord.added_at <= adjusted_end_date)
         if shift:
             if shift.upper() not in ['M', 'E']:
                 raise HTTPException(
                     status_code=400,
                     detail="Invalid shift value. Must be 'M' or 'E'."
                 )
-            milk_summary_query = milk_summary_query.filter(MilkRecord.shift == shift.upper())
+            milk_query = milk_query.filter(MilkRecord.shift == shift.upper())
+        milk_records = milk_query.all()
 
+        expense_query = db.query(ExpenseRecord).filter(
+            ExpenseRecord.buyer_mobile == buyer_mobile,
+            ExpenseRecord.is_deleted == 0,
+        )
+        if adjusted_start_date:
+            expense_query = expense_query.filter(ExpenseRecord.added_at >= adjusted_start_date)
+        if adjusted_end_date:
+            expense_query = expense_query.filter(ExpenseRecord.added_at <= adjusted_end_date)
+        expense_records = expense_query.all()
 
-        milk_summary_result = milk_summary_query.first() # Returns a Row or None
+        # Combine and sort all records by added_at (descending for display)
+        all_records_for_response = []
+        total_milk_quantity_period = 0.0
+        total_milk_amount_period = 0.0
+        total_expense_amount_period = 0.0
 
-        if milk_summary_result:
-            # If sum results in None (e.g., no records or all values are NULL), default to 0.0
-            total_milk_quantity = milk_summary_result.total_quantity or 0.0
-            total_milk_amount = (-1 * (milk_summary_result.total_amount)) or 0.0
-        else:
-            # If no rows match, .first() is None, so both are 0.
-            total_milk_quantity = 0.0
-            total_milk_amount = 0.0
+        for record in milk_records:
+            milk_amount = record.quantity * record.rate if record.rate is not None else 0.0
+            total_milk_quantity_period += record.quantity
+            total_milk_amount_period += milk_amount
+            all_records_for_response.append({
+                "type": "milk",
+                "record_obj": record,
+                "amount": milk_amount # Storing calculated amount for consistency if needed later
+            })
+        for record in expense_records:
+            total_expense_amount_period += record.amount # Expense amounts are already signed (negative for deductions)
+            all_records_for_response.append({
+                "type": "expense",
+                "record_obj": record,
+                "amount": record.amount
+            })
 
+        # Sort the combined records by 'added_at' in descending order
+        all_records_for_response.sort(key=lambda x: x["record_obj"].added_at, reverse=True)
 
-        # Calculate total expense amount (still a separate query as it's a different table)
-        # Assuming ExpenseRecord has an 'amount' field for its value
-        total_expense_amount = (
-            db.query(func.sum(ExpenseRecord.amount).label("total_expense"))
-            .filter(
-                ExpenseRecord.buyer_mobile == buyer_mobile,
-                ExpenseRecord.is_deleted == False,
-                ExpenseRecord.custom_date >= request.start_date,
-                ExpenseRecord.custom_date <= request.end_date
-            )
-            .scalar() # Gets the first column of the first row, or None
+        # Prepare the final list of records for the response
+        processed_records_list = []
+        for entry in all_records_for_response:
+            if entry["type"] == "milk":
+                processed_records_list.append(MilkRecordResponse(
+                    id=entry["record_obj"].id,
+                    added_at=entry["record_obj"].added_at,
+                    custom_date=entry["record_obj"].custom_date,
+                    buyer_mobile=entry["record_obj"].buyer_mobile,
+                    seller_mobile=entry["record_obj"].seller_mobile,
+                    quantity=entry["record_obj"].quantity,
+                    fat=entry["record_obj"].fat,
+                    snf=entry["record_obj"].snf,
+                    rate=entry["record_obj"].rate,
+                    amount = round(entry["amount"],2),
+                    shift=entry["record_obj"].shift.value, # Assuming shift is an Enum with .value
+                    milk_detail=entry["record_obj"].milk_detail,
+                    is_deleted=entry["record_obj"].is_deleted
+                ))
+            else: # type == "expense"
+                processed_records_list.append(ExpenseRecordResponse(
+                    expense_id=entry["record_obj"].expense_id,
+                    added_at=entry["record_obj"].added_at,
+                    custom_date=entry["record_obj"].custom_date,
+                    buyer_mobile=entry["record_obj"].buyer_mobile,
+                    seller_mobile=entry["record_obj"].seller_mobile,
+                    amount=entry["record_obj"].amount,
+                    expense_detail=entry["record_obj"].expense_detail,
+                    is_deleted=entry["record_obj"].is_deleted
+                ))
+        
+        total_entries_count = len(processed_records_list)
+
+        return TotalRecordsSimplifiedResponse(
+            records=processed_records_list,
+            total_milk_quantity=round(total_milk_quantity_period, 2),
+            total_milk_amount=round(total_milk_amount_period, 2),
+            total_expense_amount=round(total_expense_amount_period, 2),
+            total_entries_count=total_entries_count
         )
 
-        data = {
-            "total_milk_quantity": total_milk_quantity, # Already defaulted to 0.0 if None
-            "total_milk_amount": total_milk_amount,     # Already defaulted to 0.0 if None
-            "total_expense_amount": (-1*(total_expense_amount)) or 0.0 # Handle None if no records
-        }
-        return data
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
-        logger.error(f"Error: {e}")
-        raise HTTPException(status_code=404, detail="Something went wrong")
+        logger.error(f"Error fetching total records: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve records: {e}")
 
 
-@router.get('/customer_record_date_range')
-def customer_record_date_range(
-    db: Session = Depends(get_db),
-    buyer_mobile: str = Depends(get_current_user),
-    request: GetCustomersDateBasisRecordRequest = Depends(),
-    shift: Optional[str] = Query(None, description="Optional filter for shift ('M' for Morning, 'E' for Evening)"),
-):
-    if not request.start_date or not request.end_date:
-        raise HTTPException(
-            status_code=400, # Bad Request
-            detail="Both start_date and end_date are required."
-        )
 
-    if request.start_date > request.end_date:
-        raise HTTPException(
-            status_code=400, # Bad Request
-            detail="start_date cannot be after end_date."
-        )
+# @router.get('/customer_record_date_range')
+# def customer_record_date_range(
+#     db: Session = Depends(get_db),
+#     buyer_mobile: str = Depends(get_current_user),
+#     request: GetCustomersDateBasisRecordRequest = Depends(),
+#     shift: Optional[str] = Query(None, description="Optional filter for shift ('M' for Morning, 'E' for Evening)"),
+# ):
+#     if not request.start_date or not request.end_date:
+#         raise HTTPException(
+#             status_code=400, # Bad Request
+#             detail="Both start_date and end_date are required."
+#         )
 
-    try:
-        # Optimized: Calculate total milk quantity and amount in a single query
-        milk_summary_query = db.query(
-            func.sum(MilkRecord.quantity).label("total_quantity"),
-            func.sum(MilkRecord.quantity * MilkRecord.rate).label("total_amount")
-        ).filter(
-            MilkRecord.buyer_mobile == buyer_mobile,
-            MilkRecord.is_deleted == False, # Use False for boolean
-            MilkRecord.custom_date >= request.start_date,
-            MilkRecord.custom_date <= request.end_date,
-            MilkRecord.seller_mobile == request.seller_mobile
-        )
+#     if request.start_date > request.end_date:
+#         raise HTTPException(
+#             status_code=400, # Bad Request
+#             detail="start_date cannot be after end_date."
+#         )
 
-        # Add optional filter for shift
-        if shift:
-            if shift.upper() not in ['M', 'E']:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Invalid shift value. Must be 'M' or 'E'."
-                )
-            milk_summary_query = milk_summary_query.filter(MilkRecord.shift == shift.upper())
+#     try:
+#         # Optimized: Calculate total milk quantity and amount in a single query
+#         adjusted_end_date = datetime.combine(request.end_date, time.max)
 
+#         milk_summary_query = db.query(
+#             func.sum(MilkRecord.quantity).label("total_quantity"),
+#             func.sum(MilkRecord.quantity * MilkRecord.rate).label("total_amount")
+#         ).filter(
+#             MilkRecord.buyer_mobile == buyer_mobile,
+#             MilkRecord.is_deleted == False, # Use False for boolean
+#             MilkRecord.custom_date >= request.start_date,
+#             MilkRecord.custom_date <= adjusted_end_date,
+#             MilkRecord.seller_mobile == request.seller_mobile
+#         )
 
-        milk_summary_result = milk_summary_query.first() # Returns a Row or None
-
-        if milk_summary_result:
-            # If sum results in None (e.g., no records or all values are NULL), default to 0.0
-            total_milk_quantity = milk_summary_result.total_quantity or 0.0
-            total_milk_amount = (-1*(milk_summary_result.total_amount)) or 0.0
-        else:
-            # If no rows match, .first() is None, so both are 0.
-            total_milk_quantity = 0.0
-            total_milk_amount = 0.0
+#         # Add optional filter for shift
+#         if shift:
+#             if shift.upper() not in ['M', 'E']:
+#                 raise HTTPException(
+#                     status_code=400,
+#                     detail="Invalid shift value. Must be 'M' or 'E'."
+#                 )
+#             milk_summary_query = milk_summary_query.filter(MilkRecord.shift == shift.upper())
 
 
-        # Calculate total expense amount (still a separate query as it's a different table)
-        # Assuming ExpenseRecord has an 'amount' field for its value
-        total_expense_amount = (
-            db.query(func.sum(ExpenseRecord.amount).label("total_expense"))
-            .filter(
-                ExpenseRecord.buyer_mobile == buyer_mobile,
-                ExpenseRecord.is_deleted == False,
-                ExpenseRecord.custom_date >= request.start_date,
-                ExpenseRecord.custom_date <= request.end_date,
-                ExpenseRecord.seller_mobile == request.seller_mobile
-            )
-            .scalar() # Gets the first column of the first row, or None
-        )
+#         milk_summary_result = milk_summary_query.first() # Returns a Row or None
 
-        data = {
-            "total_milk_quantity": total_milk_quantity, # Already defaulted to 0.0 if None
-            "total_milk_amount": total_milk_amount,     # Already defaulted to 0.0 if None
-            "total_expense_amount": (-1*(total_expense_amount)) or 0.0 # Handle None if no records
-        }
-        return data
-    except Exception as e:
-        logger.error(f"Error: {e}")
-        raise HTTPException(status_code=404, detail="Something went wrong")
+#         if milk_summary_result:
+#             # If sum results in None (e.g., no records or all values are NULL), default to 0.0
+#             total_milk_quantity = milk_summary_result.total_quantity or 0.0
+#             total_milk_amount = (milk_summary_result.total_amount or 0.0)*(-1)
+#         else:
+#             # If no rows match, .first() is None, so both are 0.
+#             total_milk_quantity = 0.0
+#             total_milk_amount = 0.0
+
+
+#         # Calculate total expense amount (still a separate query as it's a different table)
+#         # Assuming ExpenseRecord has an 'amount' field for its value
+#         total_expense_amount = (
+#             db.query(func.sum(ExpenseRecord.amount).label("total_expense"))
+#             .filter(
+#                 ExpenseRecord.buyer_mobile == buyer_mobile,
+#                 ExpenseRecord.is_deleted == False,
+#                 ExpenseRecord.custom_date >= request.start_date,
+#                 ExpenseRecord.custom_date <= adjusted_end_date,
+#                 ExpenseRecord.seller_mobile == request.seller_mobile
+#             )
+#             .scalar() # Gets the first column of the first row, or None
+#         )
+
+#         data = {
+#             "total_milk_quantity": total_milk_quantity, # Already defaulted to 0.0 if None
+#             "total_milk_amount": total_milk_amount,     # Already defaulted to 0.0 if None
+#             "total_expense_amount": (total_expense_amount or 0.0)*(-1) # Handle None if no records
+#         }
+#         return data
+#     except Exception as e:
+#         logger.error(f"Error: {e}")
+#         raise HTTPException(status_code=404, detail="Something went wrong")
     
 
 from reportlab.lib.pagesizes import letter
@@ -836,6 +893,8 @@ def generate_milk_report(
     request: GetCustomersDateBasisRecordRequest = Depends(),
 ):
     try:
+        logger.info(f"Generating milk report for seller: {request.seller_mobile} under buyer: {buyer_mobile}")
+
         seller_data = db.query(Customer).filter(
             Customer.mobile == request.seller_mobile,
             Customer.added_under == buyer_mobile,
@@ -846,44 +905,79 @@ def generate_milk_report(
             User.is_deleted == 0).first()
 
         if not buyer_data:
-            buyer_name = "Customer"
             raise HTTPException(status_code=404, detail="Buyer not found")
         else:
             buyer_name = buyer_data.name.title()
 
         if not seller_data:
             raise HTTPException(status_code=404, detail="Seller not found")
-
-        adjusted_end_date = datetime.combine(request.end_date, time.max)
-
-        milk_records = db.query(MilkRecord).filter(
+        # milk records
+        query_milk = db.query(MilkRecord).filter(
             MilkRecord.seller_mobile == request.seller_mobile,
-            MilkRecord.is_deleted == False,
-            MilkRecord.custom_date >= request.start_date,
-            MilkRecord.custom_date <= adjusted_end_date
-        ).order_by(MilkRecord.custom_date.desc()).all()
+            MilkRecord.is_deleted == False
+        )
+        if request.start_date:
+            adjusted_start_date_time = datetime.combine(request.start_date, time.min)
+            query_milk = query_milk.filter(MilkRecord.added_at >= adjusted_start_date_time)
+        if request.end_date:
+            adjusted_end_date_time = datetime.combine(request.end_date, time.max)
+            query_milk = query_milk.filter(MilkRecord.added_at <= adjusted_end_date_time)
+        milk_records = query_milk.order_by(MilkRecord.added_at.asc()).all()
 
-        expense_records = db.query(ExpenseRecord).filter(
+        # expense records
+        query_expense = db.query(ExpenseRecord).filter(
             ExpenseRecord.seller_mobile == request.seller_mobile,
-            ExpenseRecord.is_deleted == False,
-            ExpenseRecord.custom_date >= request.start_date,
-            ExpenseRecord.custom_date <= adjusted_end_date
-        ).order_by(ExpenseRecord.custom_date.desc()).all()
+            ExpenseRecord.is_deleted == False
+        )
+        if request.start_date:
+            adjusted_start_date_time = datetime.combine(request.start_date, time.min)
+            query_expense = query_expense.filter(ExpenseRecord.added_at >= adjusted_start_date_time)
+        if request.end_date:
+            adjusted_end_date_time = datetime.combine(request.end_date, time.max)
+            query_expense = query_expense.filter(ExpenseRecord.added_at <= adjusted_end_date_time)
+        expense_records = query_expense.order_by(ExpenseRecord.added_at.asc()).all()
 
+        # Combine all records and sort them by added_at ascending
+        all_records_in_period = sorted(milk_records + expense_records, key=lambda x: x.added_at)
+
+        opening_balance = 0
+        if all_records_in_period:
+            first_record = all_records_in_period[0]
+            
+            # Calculate transaction amount for the first record
+            if isinstance(first_record, MilkRecord):
+                first_transaction_amount = (first_record.quantity * first_record.rate) if first_record.rate is not None else 0
+            elif isinstance(first_record, ExpenseRecord):
+                first_transaction_amount = first_record.amount
+            else:
+                first_transaction_amount = 0 # Should not happen if only MilkRecord and ExpenseRecord are combined
+
+            # Calculate the running total after the first record
+            opening_balance = first_record.total_till_record - first_transaction_amount
+        else:
+            raise HTTPException(status_code=404, detail="No records found for given date range")
+
+
+        # Calculate totals for the current report period (for summary)
         total_milk_quantity = sum(record.quantity for record in milk_records)
         total_milk_amount = sum((record.quantity * record.rate) if record.rate is not None else 0 for record in milk_records)
-        total_expense_amount = sum(record.amount for record in expense_records)
-        total_net_amount = total_milk_amount - total_expense_amount
+        total_expense_amount = sum(record.amount for record in expense_records) # sum of potentially negative amounts
+        total_net_amount = total_milk_amount + total_expense_amount
+
 
         buffer = BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=letter, title="Milk Record", topMargin=40, bottomMargin=20)
         styles = getSampleStyleSheet()
 
-        centered_style = ParagraphStyle(name='Centered', parent=styles['h1'], alignment=1, fontName='NotoSans-Bold' if 'NotoSans-Bold' in pdfmetrics.getRegisteredFontNames() else 'Helvetica-Bold')
-        left_aligned_style = ParagraphStyle(name='LeftAligned', parent=styles['Normal'], alignment=0, fontName='NotoSans-Bold' if 'NotoSans-Bold' in pdfmetrics.getRegisteredFontNames() else 'Helvetica-Bold')
-        centered_left_aligned_style = ParagraphStyle(name='CenteredLeftAligned', parent=left_aligned_style, alignment=1, fontName='NotoSans-Bold' if 'NotoSans-Bold' in pdfmetrics.getRegisteredFontNames() else 'Helvetica-Bold')
-        normal_text_style = ParagraphStyle(name='NormalText', parent=styles['Normal'], fontName='NotoSans' if 'NotoSans' in pdfmetrics.getRegisteredFontNames() else 'Helvetica')
-        bold_normal_text_style = ParagraphStyle(name='BoldNormalText', parent=styles['Normal'], fontName='NotoSans-Bold' if 'NotoSans-Bold' in pdfmetrics.getRegisteredFontNames() else 'Helvetica-Bold')
+        # Define font names with fallbacks
+        header_font = 'NotoSans-Bold' if 'NotoSans-Bold' in pdfmetrics.getRegisteredFontNames() else 'Helvetica-Bold'
+        normal_font = 'NotoSans' if 'NotoSans' in pdfmetrics.getRegisteredFontNames() else 'Helvetica'
+
+        centered_style = ParagraphStyle(name='Centered', parent=styles['h1'], alignment=1, fontName=header_font)
+        left_aligned_style = ParagraphStyle(name='LeftAligned', parent=styles['Normal'], alignment=0, fontName=header_font)
+        centered_left_aligned_style = ParagraphStyle(name='CenteredLeftAligned', parent=left_aligned_style, alignment=1, fontName=header_font)
+        normal_text_style = ParagraphStyle(name='NormalText', parent=styles['Normal'], fontName=normal_font)
+        bold_normal_text_style = ParagraphStyle(name='BoldNormalText', parent=styles['Normal'], fontName=header_font)
 
         story = []
 
@@ -893,117 +987,155 @@ def generate_milk_report(
 
         payment_message = ""
         if total_net_amount < 0:
-            payment_message = f"{total_net_amount:.2f} ({seller_data.name.title()} pays to {buyer_name})"
+            payment_message = f"{-total_net_amount:.2f} ({seller_data.name.title()} pays to {buyer_name})" # Display positive value for who pays whom
         elif total_net_amount > 0:
             payment_message = f"{total_net_amount:.2f} ({buyer_name} pays to {seller_data.name.title()})"
         else:
-            payment_message = "No net payment due."
+            payment_message = "No net payment due for this period."
+
+        # Format opening_balance for display
+        opening_balance_message = ""
+        if opening_balance < 0:
+            opening_balance_message = f"{-opening_balance:.2f} ({seller_data.name.title()} owes {buyer_name})"
+        elif opening_balance > 0:
+            opening_balance_message = f"{opening_balance:.2f} ({buyer_name} owes {seller_data.name.title()})"
+        else:
+            opening_balance_message = "0.00 (Balance is zero)"
+
 
         info_table_data = [
             ["Name:", seller_data.name.title()],
             ["Mobile No.:", seller_data.mobile],
             ["Download Date:", date.today().strftime("%d-%m-%Y")],
-            ["Total Milk Quantity(L/Kg):", f"{total_milk_quantity:.2f}"],
-            ["Total Milk Amount:", f"{total_milk_amount:.2f}"],
-            ["Total Expense Amount:", f"{total_expense_amount:.2f}"],
-            ["Net Amount (Milk - Expense):", Paragraph(payment_message, bold_normal_text_style)]
+            # ["Opening Balance (Before Period):", Paragraph(opening_balance_message, bold_normal_text_style)],
+            ["Total Milk Quantity(L/Kg) in Period:", f"{total_milk_quantity:.2f}"],
+            ["Total Milk Amount in Period:", f"{total_milk_amount:.2f}"],
+            ["Total Expense Amount in Period:", f"{total_expense_amount:.2f}"],
+            ["Net Amount (Milk + Expense) for Period:", Paragraph(payment_message, bold_normal_text_style)]   
         ]
         info_table = Table(info_table_data, colWidths=[2*doc.width / 4.0, 2 * doc.width / 4.0])
         info_table.setStyle(TableStyle([
             ('ALIGN', (0, 0), (0, -1), 'LEFT'),
             ('ALIGN', (1, 0), (1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (0, -1), 'NotoSans-Bold' if 'NotoSans-Bold' in pdfmetrics.getRegisteredFontNames() else 'Helvetica-Bold'),
+            ('FONTNAME', (0, 0), (0, -1), header_font),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-            ('FONTNAME', (0, 3), (0, -2), 'NotoSans-Bold' if 'NotoSans-Bold' in pdfmetrics.getRegisteredFontNames() else 'Helvetica-Bold'),
-            # ('BACKGROUND', (0, 3), (-1, -1), colors.HexColor('#F0F8FF')),
         ]))
         story.append(info_table)
         story.append(Spacer(1, 18))
+        
+        # Adjust date range display based on whether dates are provided
+        date_range_text = "All Records"
+        if request.start_date and request.end_date:
+            start_date_str = request.start_date.strftime("%d-%m-%Y")
+            end_date_str = request.end_date.strftime("%d-%m-%Y")
+            date_range_text = f"Detailed Records for: {start_date_str} to {end_date_str}"
+        elif request.start_date:
+            start_date_str = request.start_date.strftime("%d-%m-%Y")
+            date_range_text = f"Detailed Records from: {start_date_str}"
+        elif request.end_date:
+            end_date_str = request.end_date.strftime("%d-%m-%Y")
+            date_range_text = f"Detailed Records till: {end_date_str}"
 
-        start_date_str = request.start_date.strftime("%d-%m-%Y")
-        end_date_str = request.end_date.strftime("%d-%m-%Y")
-        date_range_paragraph_milk = Paragraph(f"Milk Records for: {start_date_str} to {end_date_str}", centered_left_aligned_style)
-        story.append(date_range_paragraph_milk)
+        date_range_paragraph = Paragraph(date_range_text, centered_left_aligned_style)
+        story.append(date_range_paragraph)
         story.append(Spacer(1, 12))
 
-        milk_table_header = [["Date", "Shift", "Quantity", "Rate", "Amount"]]
-        milk_table_style = TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+
+        # --- NEW: Function to prepare combined records for display with running total ---
+        def prepare_combined_records_for_display(records, initial_balance):
+            current_running_balance = initial_balance
+            table_rows = []
+
+            for record in records:
+                if isinstance(record, MilkRecord):
+                    transaction_amount = (record.quantity * record.rate) if record.rate is not None else 0
+                    current_running_balance = record.total_till_record
+                    shift = record.shift.value
+                    quantity = record.quantity
+                    rate = f"{record.rate:.2f}"
+                    table_rows.append([
+                        record.custom_date.strftime("%d-%m-%Y"), # Changed to HH:MM
+                        "Milk",
+                        shift,
+                        quantity,
+                        rate,
+                        f"{transaction_amount:.2f}",
+                        f"{current_running_balance:.2f}"
+                    ])
+                elif isinstance(record, ExpenseRecord):
+                    transaction_amount = record.amount # Amount is already signed (negative for expenses)
+                    current_running_balance = record.total_till_record # Add directly as amount is signed
+                    shift = "-"
+                    quantity = "-"
+                    rate = "-"
+                    table_rows.append([
+                        record.custom_date.strftime("%d-%m-%Y"), # Changed to HH:MM
+                        "Expense",
+                        shift,
+                        quantity,
+                        rate,
+                        f"{transaction_amount:.2f}", # Display amount as is (will show negative sign if present)
+                        f"{current_running_balance:.2f}"
+                    ])
+            return table_rows, current_running_balance
+
+        # Prepare combined table data and get the final running balance
+        combined_table_header = [["Date", "Type", "Shift", "Quantity", "Rate", "Amount", "Running Total"]]
+        combined_records_data, final_running_balance = prepare_combined_records_for_display(
+            all_records_in_period, opening_balance
+        )
+
+        combined_table_style = TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey), # Green header
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'NotoSans-Bold' if 'NotoSans-Bold' in pdfmetrics.getRegisteredFontNames() else 'Helvetica-Bold'),
+            ('FONTNAME', (0, 0), (-1, 0), header_font),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F8F8F8')), # Light background for rows
             ('GRID', (0, 0), (-1, -1), 1, colors.black),
             ('LEFTPADDING', (0, 0), (-1, -1), 5),
             ('RIGHTPADDING', (0, 0), (-1, -1), 5),
-            ('FONTNAME', (0, 1), (-1, -1), 'NotoSans' if 'NotoSans' in pdfmetrics.getRegisteredFontNames() else 'Helvetica'),
+            ('FONTNAME', (0, 1), (-1, -1), normal_font),
         ])
 
-        expense_table_header = [["Date", "Amount"]]
-        expense_table_style = TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#3F4A59')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'NotoSans-Bold' if 'NotoSans-Bold' in pdfmetrics.getRegisteredFontNames() else 'Helvetica-Bold'),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F0FFF0')),
-            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#D3D3D3')),
-            ('LEFTPADDING', (0, 0), (-1, -1), 5),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
-            ('FONTNAME', (0, 1), (-1, -1), 'NotoSans' if 'NotoSans' in pdfmetrics.getRegisteredFontNames() else 'Helvetica'),
-        ])
-
-        def build_table_data(records, is_expense_table_flag):
-            records_to_display = []
-            for record in records:
-                if is_expense_table_flag:
-                    records_to_display.append([
-                        record.custom_date.strftime("%d-%m-%Y"),
-                        f"{record.amount:.2f}"
-                    ])
-                else:
-                    amount = record.quantity * record.rate if record.rate is not None else 0
-                    records_to_display.append([
-                        record.custom_date.strftime("%d-%m-%Y"),
-                        record.shift.value,
-                        str(record.quantity),
-                        str(record.rate),
-                        f"{amount:.2f}"
-                    ])
-            return records_to_display
-
-        # Build the Milk Records table
-        milk_records_data = build_table_data(milk_records, False)
-        if milk_records_data:
-            milk_table = Table(milk_table_header + milk_records_data, colWidths=[doc.width / 5.0] * 5)
-            milk_table.setStyle(milk_table_style)
-            story.extend([milk_table])
+        if combined_records_data:
+            combined_table = Table(combined_table_header + combined_records_data, colWidths=[2*doc.width / 9.0, doc.width / 9.0, doc.width / 9.0 , doc.width / 9.0, doc.width / 9.0, doc.width / 9.0, 2* doc.width / 9.0 ])
+            combined_table.setStyle(combined_table_style)
+            story.append(combined_table)
         else:
-            story.append(Paragraph("No milk records found for this period.", normal_text_style))
+            story.append(Paragraph("No milk or expense records found for this period.", normal_text_style))
 
-        # --- Expense Table Section (Unified, no explicit KeepTogether on entire section) ---
-        if expense_records:
-            story.append(Spacer(1, 24)) # Space before expense section
-            
-            # Add the expense section title and spacer directly to the story
-            date_range_paragraph_expense = Paragraph(f"Expense Records for: {start_date_str} to {end_date_str}", centered_left_aligned_style)
-            story.append(date_range_paragraph_expense)
-            story.append(Spacer(1, 12))
+        story.append(Spacer(1, 24))
 
-            formatted_expense_records = build_table_data(expense_records, True)
-
-            # Create a single table for all expense records
-            full_expense_table_data = expense_table_header + formatted_expense_records
-            full_expense_table = Table(full_expense_table_data, colWidths=[doc.width / 2.0, doc.width / 2.0])
-            full_expense_table.setStyle(expense_table_style)
-
-            # Append the full expense table directly. ReportLab will handle page breaks automatically.
-            story.append(full_expense_table)
+        # --- Display Final Remaining Balance ---
+        final_balance_message = ""
+        if final_running_balance < 0:
+            final_balance_message = f"{-final_running_balance:.2f} ({seller_data.name.title()} owes {buyer_name})"
+        elif final_running_balance > 0:
+            final_balance_message = f"{final_running_balance:.2f} ({buyer_name} owes {seller_data.name.title()})"
         else:
-            story.append(Spacer(1, 24))
-            story.append(Paragraph("No expense records found for this period.", normal_text_style))
-        # --- End Expense Table Section ---
+            final_balance_message = "0.00 (Final balance is zero)"
+
+        # --- END Final Remaining Balance ---
+
+        story.append(Spacer(1, 18))
+
+        end_table_data = [
+            ["Opening Balance (Before Period):", Paragraph(opening_balance_message, bold_normal_text_style)],
+            ["Total Milk Amount in Period:", f"{total_milk_amount:.2f}"],
+            ["Total Expense Amount in Period:", f"{total_expense_amount:.2f}"],
+            ["Net Amount (Milk + Expense) for Period:", Paragraph(payment_message, bold_normal_text_style)],
+            ["Final Remaining Balance: (After Period):", Paragraph(final_balance_message, bold_normal_text_style)]   
+        ]
+        end_table = Table(end_table_data, colWidths=[2*doc.width / 4.0, 2 * doc.width / 4.0])
+        end_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (0, -1), header_font),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+        ]))
+        story.append(end_table)
+        
 
         doc.build(story)
         pdf_content = buffer.getvalue()
