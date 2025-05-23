@@ -522,14 +522,25 @@ def update_balances(
 
 @router.get("/get_customer_summary")
 def get_customer_summary(
-    db: Session = Depends(get_db), buyer_mobile: str = Depends(get_current_user)
+    db: Session = Depends(get_db), 
+    buyer_mobile: str = Depends(get_current_user),
+    offset: int = Query(0, ge=0, description="Number of items to skip (for pagination)"),
+    limit: int = Query(20, ge=1, description="Maximum number of items to return (for pagination)"),
 ):
     try:
         seller_details = []
 
+        total_sellers_count = (
+            db.query(Customer)
+            .filter(Customer.added_under == buyer_mobile, Customer.is_deleted == 0)
+            .count()
+        )
+
         sellers = (
             db.query(Customer)
             .filter(Customer.added_under == buyer_mobile, Customer.is_deleted == 0)
+            .offset(offset)
+            .limit(limit)
             .all()
         )
 
@@ -587,6 +598,7 @@ def get_customer_summary(
         return {
             "message": "Seller details fetched successfully",
             "seller_details": seller_details,
+            "total_count": total_sellers_count
         }
     except Exception as e:
         logger.error(f"Error: {e}")
@@ -595,14 +607,25 @@ def get_customer_summary(
 
 @router.get("/get_supplier_summary")
 def get_supplier_summary(
-    db: Session = Depends(get_db), seller_mobile: str = Depends(get_current_user)
+    db: Session = Depends(get_db), 
+    seller_mobile: str = Depends(get_current_user),
+    offset: int = Query(0, ge=0, description="Number of items to skip (for pagination)"),
+    limit: int = Query(20, ge=1, description="Maximum number of items to return (for pagination)"),
 ):
     try:
         buyer_details = []
 
+        total_buyers_count = (
+            db.query(Customer)
+            .filter(Customer.mobile == seller_mobile, Customer.is_deleted == 0)
+            .count()
+        )
+
         buyers = (
             db.query(Customer)
             .filter(Customer.mobile == seller_mobile, Customer.is_deleted == 0)
+            .offset(offset)
+            .limit(limit)
             .all()
         )
 
@@ -616,6 +639,8 @@ def get_supplier_summary(
             )
             if buyer_info:
                 buyer_name = buyer_info.name
+            else:
+                raise HTTPException(status_code=403, detail="User is not registered")
 
             last_record_milk = (
                 db.query(MilkRecord)
@@ -668,7 +693,10 @@ def get_supplier_summary(
         return {
             "message": "Buyer details fetched successfully",
             "buyer_details": buyer_details,
+            "total_count":total_buyers_count
         }
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
         logger.error(f"Error: {e}")
         raise HTTPException(status_code=404, detail="Something went wrong")
