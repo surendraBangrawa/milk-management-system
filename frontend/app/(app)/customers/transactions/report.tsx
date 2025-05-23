@@ -1,0 +1,503 @@
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+  FlatList,
+  Platform,
+} from "react-native";
+import { Stack, useLocalSearchParams } from "expo-router";
+import { format } from "date-fns";
+import Toast from "react-native-toast-message";
+import { FontAwesome } from "@expo/vector-icons";
+import * as FileSystem from "expo-file-system";
+import * as Sharing from "expo-sharing";
+import moment from "moment";
+
+import useTheme from "@/context/theme/useTheme";
+import DatePickerModal from "@/components/DatePickerModal";
+import ReportCustomerTransaction from "@/components/Transaction/ReportCustomerTransaction";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchSellerTransactionsById } from "@/redux/slice/transactions/transactionsSlice";
+import { AppDispatch, RootState } from "@/redux/store";
+import { getMilkReportTransactionApi } from "@/redux/slice/transactions/transactionApi";
+
+const ReportScreen = () => {
+  const dispatch = useDispatch<AppDispatch>();
+  const transactions = useSelector(
+    (state: RootState) => state.transactions.sellerTransactions
+  );
+  const loading = useSelector(
+    (state: RootState) => state.transactions.sellerTransactionsLoading
+  );
+  const error = useSelector(
+    (state: RootState) => state.transactions.sellerTransactionsError
+  );
+  const { colors } = useTheme();
+  const params = useLocalSearchParams();
+  const sellerId = Array.isArray(params.seller_mobile)
+    ? params.seller_mobile[0]
+    : params.seller_mobile;
+  const customerName = Array.isArray(params.name)
+    ? params.name[0]
+    : params.name;
+
+  const [startDate, setStartDate] = useState(new Date());
+  const [endDate, setEndDate] = useState(new Date());
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
+  useEffect(() => {
+    if (sellerId) {
+      dispatch(fetchSellerTransactionsById(sellerId));
+    }
+  }, [dispatch, sellerId]);
+
+  const filteredTransactions = transactions.filter((transaction) => {
+    const transactionDate = new Date(
+      transaction.custom_date || transaction.added_at
+    );
+    const startOfDayStartDate = new Date(
+      startDate.getFullYear(),
+      startDate.getMonth(),
+      startDate.getDate()
+    );
+    const endOfDayEndDate = new Date(
+      endDate.getFullYear(),
+      endDate.getMonth(),
+      endDate.getDate(),
+      23,
+      59,
+      59,
+      999
+    );
+
+    return (
+      transactionDate >= startOfDayStartDate &&
+      transactionDate <= endOfDayEndDate
+    );
+  });
+
+  const renderTransactionItem = ({ item }) => (
+    <ReportCustomerTransaction item={item} />
+  );
+
+  const formatDateForDisplay = (date) => {
+    return date ? moment(date).format("DD/MM/YYYY") : "Select Date";
+  };
+
+  const blobToBase64 = (blob) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === "string") {
+          const base64String = reader.result.split(",")[1];
+          resolve(base64String);
+        } else {
+          reject(new Error("FileReader did not return a string result."));
+        }
+      };
+      reader.onerror = (error) => {
+        console.error("FileReader error:", error);
+        reject(error);
+      };
+      reader.readAsDataURL(blob);
+    });
+  };
+
+  const generatePdfApiCall = async () => {
+    try {
+      const formattedStartDate = format(startDate, "yyyy-MM-dd");
+      const formattedEndDate = format(endDate, "yyyy-MM-dd");
+
+      const pdfBlob = await getMilkReportTransactionApi({
+        sellerId,
+        startDate: formattedStartDate,
+        endDate: formattedEndDate,
+      });
+
+      if (!pdfBlob || !(pdfBlob instanceof Blob)) {
+        throw new Error("PDF data not received or is not a Blob from API.");
+      }
+
+      const pdfBase64 = await blobToBase64(pdfBlob);
+      return pdfBase64;
+    } catch (error) {
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: `Failed to generate PDF: ${error.message || "Unknown error"}`,
+      });
+      return null;
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (isGeneratingPdf) return;
+
+    setIsGeneratingPdf(true);
+    try {
+      const pdfBase64 = await generatePdfApiCall();
+      if (!pdfBase64) {
+        return;
+      }
+
+      const filename = `Report_${customerName}_${format(
+        startDate,
+        "yyyyMMdd"
+      )}_${format(endDate, "yyyyMMdd")}.pdf`;
+      const fileUri = `${FileSystem.cacheDirectory}${filename}`;
+      await FileSystem.writeAsStringAsync(fileUri, pdfBase64, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      if (Platform.OS === "android") {
+        let isSavedToPublicFolder = false;
+        try {
+          const permissions =
+            await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+
+          if (permissions.granted) {
+            try {
+              const newUri =
+                await FileSystem.StorageAccessFramework.createFileAsync(
+                  permissions.directoryUri,
+                  filename,
+                  "application/pdf"
+                );
+              await FileSystem.copyAsync({ from: fileUri, to: newUri });
+              isSavedToPublicFolder = true; // Mark as successful public save
+              Toast.show({
+                type: "success",
+                text1: "Downloaded",
+                text2: `Report saved to your Downloads folder.`,
+              });
+              await FileSystem.deleteAsync(fileUri, { idempotent: true });
+            } catch (androidSaveError) {
+              console.warn(
+                "Android: Failed to save to user-selected public folder:",
+                androidSaveError
+              );
+              Toast.show({
+                type: "error", // Change to error if public save is the main goal
+                text1: "Download Failed",
+                text2: `Could not save to Downloads. Please try again.`,
+              });
+            }
+          } else {
+            Toast.show({
+              type: "info",
+              text1: "Permission Denied",
+              text2: "Cannot save to public folders without permission.",
+            });
+          }
+        } catch (permissionRequestError) {
+          console.error(
+            "Android: Error requesting storage permission:",
+            permissionRequestError
+          );
+          Toast.show({
+            type: "error",
+            text1: "Permission Error",
+            text2: `Failed to request storage access: ${
+              permissionRequestError.message || "Unknown error"
+            }`,
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error downloading PDF:", error);
+      Toast.show({
+        type: "error",
+        text1: "Download Failed",
+        text2: `Could not download PDF: ${error.message || "Unknown error"}`,
+      });
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
+  const handleSharePdf = async () => {
+    if (isGeneratingPdf) return;
+
+    setIsGeneratingPdf(true);
+    try {
+      const pdfBase64 = await generatePdfApiCall();
+      if (!pdfBase64) {
+        return;
+      }
+
+      const filename = `Report_${customerName}_${format(
+        startDate,
+        "yyyyMMdd"
+      )}_${format(endDate, "yyyyMMdd")}.pdf`;
+      const fileUri = `${FileSystem.cacheDirectory}${filename}`;
+
+      await FileSystem.writeAsStringAsync(fileUri, pdfBase64, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      if (!(await Sharing.isAvailableAsync())) {
+        Toast.show({
+          type: "error",
+          text1: "Error",
+          text2: "Sharing is not available on this device.",
+        });
+        return;
+      }
+
+      await Sharing.shareAsync(fileUri, {
+        mimeType: "application/pdf",
+        UTI: "com.adobe.pdf",
+        dialogTitle: "Share Report",
+      });
+    } catch (error) {
+      Toast.show({
+        type: "error",
+        text1: "Share Failed",
+        text2: `Could not share PDF`,
+      });
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Stack.Screen
+        options={{
+          headerStyle: {
+            backgroundColor: colors.surface,
+          },
+          headerTintColor: colors.textPrimary,
+          title: "",
+          headerRight: () => (
+            <View style={styles.headerRight}>
+              <Text
+                style={[styles.headerName, { color: colors.textPrimary }]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                Report
+              </Text>
+            </View>
+          ),
+        }}
+      />
+
+      <View
+        style={[styles.dateRangeContainer, { backgroundColor: colors.surface }]}
+      >
+        <TouchableOpacity
+          style={[styles.datePickerButton, { borderColor: colors.border }]}
+          onPress={() => setShowStartDatePicker(true)}
+        >
+          <Text style={[styles.datePickerText, { color: colors.textPrimary }]}>
+            Start Date: {formatDateForDisplay(startDate)}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.datePickerButton, { borderColor: colors.border }]}
+          onPress={() => setShowEndDatePicker(true)}
+        >
+          <Text style={[styles.datePickerText, { color: colors.textPrimary }]}>
+            End Date: {formatDateForDisplay(endDate)}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <DatePickerModal
+        visible={showStartDatePicker}
+        onClose={() => setShowStartDatePicker(false)}
+        onConfirm={(date) => {
+          if (date > endDate) {
+            Toast.show({
+              type: "error",
+              text1: "Invalid Date",
+              text2: "Start date cannot be after end date.",
+            });
+            return;
+          }
+          setStartDate(date);
+        }}
+        initialDate={startDate}
+      />
+      <DatePickerModal
+        visible={showEndDatePicker}
+        onClose={() => setShowEndDatePicker(false)}
+        onConfirm={(date) => {
+          if (date < startDate) {
+            Toast.show({
+              type: "error",
+              text1: "Invalid Date",
+              text2: "End date cannot be before start date.",
+            });
+            return;
+          }
+          setEndDate(date);
+        }}
+        initialDate={endDate}
+      />
+
+      {loading ? (
+        <ActivityIndicator
+          size="large"
+          color={colors.primary}
+          style={styles.loadingIndicator}
+        />
+      ) : error ? (
+        <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
+      ) : filteredTransactions.length === 0 ? (
+        <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
+          No transactions found for this date range.
+        </Text>
+      ) : (
+        <FlatList
+          data={filteredTransactions}
+          renderItem={renderTransactionItem}
+          keyExtractor={(_, index) => index.toString()}
+          contentContainerStyle={styles.transactionList}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
+
+      <View
+        style={[
+          styles.pdfActionButtonsContainer,
+          { backgroundColor: colors.surface, borderTopColor: colors.border },
+        ]}
+      >
+        <TouchableOpacity
+          style={[styles.pdfActionButton, { backgroundColor: colors.primary }]}
+          onPress={handleDownloadPdf}
+          disabled={isGeneratingPdf}
+        >
+          {isGeneratingPdf ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <>
+              <FontAwesome name="download" size={20} color="#fff" />
+              <Text style={styles.pdfActionButtonText}>Download PDF</Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.pdfActionButton, { backgroundColor: colors.success }]}
+          onPress={handleSharePdf}
+          disabled={isGeneratingPdf}
+        >
+          {isGeneratingPdf ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <>
+              <FontAwesome name="share-alt" size={20} color="#fff" />
+              <Text style={styles.pdfActionButtonText}>Share PDF</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 10,
+  },
+  headerName: {
+    fontSize: 17,
+    fontWeight: "600",
+    marginRight: 8,
+    maxWidth: 150,
+  },
+  dateRangeContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    paddingVertical: 10,
+    marginBottom: 15,
+    borderRadius: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
+    elevation: 2,
+  },
+  datePickerButton: {
+    padding: 10,
+    borderRadius: 5,
+    borderWidth: 1,
+    flex: 1,
+    marginHorizontal: 5,
+    alignItems: "center",
+  },
+  datePickerText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  transactionList: {
+    paddingBottom: 100,
+  },
+  loadingIndicator: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    marginTop: 20,
+    textAlign: "center",
+  },
+  noDataText: {
+    fontSize: 16,
+    textAlign: "center",
+    marginTop: 20,
+  },
+  pdfActionButtonsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 5,
+  },
+  pdfActionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    borderRadius: 25,
+    flex: 1,
+    marginHorizontal: 5,
+  },
+  pdfActionButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+    marginLeft: 8,
+  },
+});
+
+export default ReportScreen;

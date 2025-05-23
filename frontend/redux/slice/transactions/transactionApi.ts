@@ -1,4 +1,8 @@
 import axiosInstance from "@/lib/axiosIntance";
+const { API_BASE_URL } = Constants.expoConfig?.extra || {};
+import * as SecureStore from "expo-secure-store";
+import Constants from "expo-constants";
+
 export interface AddSellerTransaction {
   seller_mobile: string;
   amount: number;
@@ -7,7 +11,7 @@ export interface AddSellerTransaction {
   custom_date: string;
 }
 export interface DeleteSellerTransaction {
-  record_id: string;
+  record_id: string | number;
   record_type: string;
   seller_mobile: string;
 }
@@ -94,6 +98,48 @@ export const addCustomerMilkTransactionApi = async (
 ) => {
   try {
     return await axiosInstance.post(`/transactions/add_milk_record`, data);
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getMilkReportTransactionApi = async ({
+  sellerId,
+  startDate,
+  endDate,
+}) => {
+  try {
+    const token = await SecureStore.getItemAsync("accessToken");
+    if (!token) {
+      throw new Error("Authentication token not found.");
+    }
+    const url = new URL(`${API_BASE_URL}/transactions/generate_milk_report`);
+    url.searchParams.append("seller_mobile", sellerId);
+    url.searchParams.append("start_date", startDate);
+    url.searchParams.append("end_date", endDate);
+
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      let errorDetail = "Unknown error";
+      try {
+        const errorBody = await response.text();
+        try {
+          const jsonError = JSON.parse(errorBody);
+          errorDetail = jsonError.detail || JSON.stringify(jsonError);
+        } catch (e) {
+          errorDetail = errorBody;
+        }
+      } catch (e) {}
+      throw new Error(`API Error ${response.status}: ${errorDetail}`);
+    }
+
+    return await response.blob();
   } catch (error) {
     throw error;
   }

@@ -1,0 +1,391 @@
+import useTheme from "@/context/theme/useTheme";
+import {
+  deleteTransaction,
+  Transaction,
+} from "@/redux/slice/transactions/transactionsSlice";
+import { AppDispatch, RootState } from "@/redux/store";
+import { FontAwesome } from "@expo/vector-icons";
+import { formatDistanceToNow } from "date-fns";
+import { useRouter } from "expo-router";
+import { Pressable, Text, View, StyleSheet, Alert } from "react-native";
+import Toast from "react-native-toast-message";
+import { useDispatch, useSelector } from "react-redux";
+
+const CustomerTransaction = ({
+  item,
+  customer,
+  sellerId,
+}: {
+  item: Transaction;
+  customer: string;
+  sellerId: string | number;
+}) => {
+  const router = useRouter();
+  const { colors } = useTheme();
+  const dispatch = useDispatch<AppDispatch>();
+  const isDeletingTransaction = useSelector(
+    (state: RootState) => state.transactions.isDeletingTransaction
+  );
+  const handleReadMore = (detail: string | undefined | null) => {
+    if (detail) {
+      Alert.alert("Transaction Detail", detail);
+    }
+  };
+  const handleDelete = (item: Transaction) => {
+    Alert.alert(
+      "Delete Transaction",
+      "Are you sure you want to delete this transaction?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          onPress: async () => {
+            dispatch(
+              deleteTransaction({
+                record_id: item.id,
+                record_type: item.type,
+                seller_mobile: item.seller_mobile,
+              })
+            )
+              .unwrap()
+              .then(() => {
+                Toast.show({
+                  type: "success",
+                  text1: "Success",
+                  text2: "Transaction deleted successfully.",
+                });
+              })
+              .catch((error) => {
+                console.error("Deletion failed:", error);
+              });
+          },
+        },
+      ]
+    );
+  };
+
+  const handleEdit = (item: Transaction) => {
+    if (
+      !sellerId ||
+      !customer ||
+      item.id === undefined ||
+      item.type === undefined ||
+      item.seller_mobile === undefined
+    ) {
+      console.error("Missing required details for edit navigation:", item);
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Cannot edit transaction: Missing details.",
+      });
+      return;
+    }
+
+    let navigateUrl = "";
+    const baseEditUrl = `/(app)/customers/transactions`;
+
+    if (item.type === "expense") {
+      if (
+        item.amount === undefined ||
+        typeof item.custom_date !== "string" ||
+        typeof item.expense_detail !== "string"
+      ) {
+        console.error("Missing expense details for edit navigation:", item);
+        Toast.show({
+          type: "error",
+          text1: "Error",
+          text2: "Cannot edit expense: Missing details.",
+        });
+        return;
+      }
+      navigateUrl = `${baseEditUrl}/add-transaction?id=${
+        item.id
+      }&seller_mobile=${item.seller_mobile}&type=${
+        item.amount < 0 ? "GAVE" : "GOT"
+      }&desc=${encodeURIComponent(
+        item.expense_detail
+      )}&date=${encodeURIComponent(item.custom_date)}&amount=${Math.abs(
+        item.amount
+      )}&name=${encodeURIComponent(customer)}`;
+    } else if (item.type === "milk") {
+      if (
+        item.quantity === undefined ||
+        item.fat === undefined ||
+        item.snf === undefined ||
+        item.rate === undefined ||
+        typeof item.custom_date !== "string" ||
+        typeof item.milk_detail !== "string"
+      ) {
+        console.error("Missing milk details for edit navigation:", item);
+        Toast.show({
+          type: "error",
+          text1: "Error",
+          text2: "Cannot edit milk transaction: Missing details.",
+        });
+        return;
+      }
+      navigateUrl = `${baseEditUrl}/add-milk?id=${item.id}&seller_mobile=${
+        item.seller_mobile
+      }&desc=${encodeURIComponent(item.milk_detail)}&date=${encodeURIComponent(
+        item.custom_date
+      )}&rate=${item.rate}&name=${encodeURIComponent(customerName)}&quantity=${
+        item.quantity
+      }&snf=${item.snf}&fat=${item.fat}&type=${item.type}`;
+    } else {
+      console.warn("Unknown transaction type for edit:", item.type);
+      Toast.show({
+        type: "warning",
+        text1: "Warning",
+        text2: `Cannot edit unknown transaction type: ${item.type}`,
+      });
+      return;
+    }
+
+    if (navigateUrl) {
+      router.push(navigateUrl);
+    }
+  };
+
+  const detail =
+    item.type === "expense" ? item.expense_detail : item.milk_detail;
+  const truncatedDetail =
+    detail && detail.length > 50 ? detail.slice(0, 50) + "..." : detail;
+  const formatDate = (dateString: string | undefined | null): string => {
+    if (!dateString) return "No date";
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return "Invalid date";
+      }
+      return formatDistanceToNow(date, { addSuffix: true });
+    } catch (e) {
+      console.error("Error formatting date:", dateString, e);
+      return "Invalid date format";
+    }
+  };
+
+  return (
+    <View
+      style={[
+        styles.transactionCard,
+        {
+          backgroundColor: colors.surface,
+          borderLeftColor: item.amount < 0 ? colors.error : colors.success,
+        },
+      ]}
+    >
+      <View style={styles.leftSection}>
+        {typeof item.added_at === "string" ? (
+          <Text
+            style={[styles.transactionDate, { color: colors.textSecondary }]}
+          >
+            {formatDate(item.added_at)}
+          </Text>
+        ) : (
+          <Text
+            style={[styles.transactionDate, { color: colors.textSecondary }]}
+          >
+            No date
+          </Text>
+        )}
+
+        {typeof item.amount === "number" ? (
+          <Text
+            style={[
+              styles.transactionAmount,
+              { color: item.amount < 0 ? colors.error : colors.success },
+            ]}
+          >
+            {item.amount < 0
+              ? `-₹${Math.abs(item.amount).toFixed(2)}`
+              : `₹${item.amount.toFixed(2)}`}
+          </Text>
+        ) : (
+          <Text
+            style={[styles.transactionAmount, { color: colors.textSecondary }]}
+          >
+            Amount: N/A
+          </Text>
+        )}
+
+        <Text style={[styles.transactionType, { color: colors.textPrimary }]}>
+          {item.type === "expense" ? "Expense" : "Milk"}
+        </Text>
+        {detail && (
+          <View style={{ marginTop: 5 }}>
+            <Text
+              style={[
+                styles.transactionDetailText,
+                { color: colors.textSecondary },
+              ]}
+            >
+              Detail: {truncatedDetail}
+            </Text>
+            {detail.length > 50 && (
+              <Pressable onPress={() => handleReadMore(detail)}>
+                <Text style={[styles.readMoreText, { color: colors.primary }]}>
+                  Read More
+                </Text>
+              </Pressable>
+            )}
+          </View>
+        )}
+        {item.type === "milk" && (
+          <View
+            style={[
+              styles.milkDetailsContainer,
+              { borderTopColor: colors.border },
+            ]}
+          >
+            {typeof item.quantity === "number" && (
+              <Text
+                style={[styles.milkDetailText, { color: colors.textSecondary }]}
+              >
+                Qty: {item.quantity} kg
+              </Text>
+            )}
+            {typeof item.fat === "number" && (
+              <Text
+                style={[styles.milkDetailText, { color: colors.textSecondary }]}
+              >
+                Fat: {item.fat}%
+              </Text>
+            )}
+            {typeof item.snf === "number" && (
+              <Text
+                style={[styles.milkDetailText, { color: colors.textSecondary }]}
+              >
+                SNF: {item.snf}%
+              </Text>
+            )}
+            {typeof item.rate === "number" && (
+              <Text
+                style={[styles.milkDetailText, { color: colors.textSecondary }]}
+              >
+                Rate: ₹{item.rate.toFixed(2)}
+              </Text>
+            )}
+          </View>
+        )}
+      </View>
+
+      <View style={styles.rightSection}>
+        {typeof item.total_till_record === "number" ? (
+          <Text
+            style={[styles.totalTillRecord, { color: colors.textSecondary }]}
+          >
+            Total: ₹{item.total_till_record.toFixed(2)}
+          </Text>
+        ) : (
+          <Text
+            style={[styles.totalTillRecord, { color: colors.textSecondary }]}
+          >
+            Total: N/A
+          </Text>
+        )}
+
+        <View style={styles.actionButtons}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.actionButton,
+              {
+                backgroundColor: pressed ? colors.border : "transparent",
+              },
+            ]}
+            onPress={() => handleEdit(item)}
+          >
+            <FontAwesome name="edit" size={20} color={colors.textSecondary} />
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [
+              styles.actionButton,
+              {
+                backgroundColor: pressed ? colors.border : "transparent",
+                opacity: isDeletingTransaction ? 0.5 : 1,
+              },
+            ]}
+            onPress={() => handleDelete(item)}
+            disabled={isDeletingTransaction}
+          >
+            <FontAwesome name="trash" size={20} color={colors.error} />
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  );
+};
+const styles = StyleSheet.create({
+  transactionCard: {
+    padding: 12,
+    marginVertical: 6,
+    borderRadius: 8,
+    flexDirection: "row",
+    borderLeftWidth: 4,
+  },
+  leftSection: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  transactionDate: {
+    fontSize: 13,
+    marginBottom: 4,
+  },
+  transactionAmount: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginVertical: 2,
+  },
+  transactionType: {
+    fontSize: 14,
+    fontWeight: "500",
+    marginTop: 2,
+    marginBottom: 4,
+  },
+  transactionDetailText: {
+    fontSize: 13,
+    marginTop: 4,
+  },
+  readMoreText: {
+    fontSize: 13,
+    marginTop: 4,
+    textDecorationLine: "underline",
+  },
+  milkDetailsContainer: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+  },
+  milkDetailText: {
+    fontSize: 12,
+    marginBottom: 2,
+  },
+  rightSection: {
+    flex: 0.8,
+    alignItems: "flex-end",
+    paddingLeft: 8,
+  },
+  runningBalance: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginTop: 0,
+    marginBottom: 2,
+  },
+  totalTillRecord: {
+    fontSize: 12,
+    marginBottom: 8,
+  },
+  actionButtons: {
+    marginTop: "auto",
+    flexDirection: "row",
+    justifyContent: "flex-end",
+  },
+  actionButton: {
+    padding: 8,
+    marginHorizontal: 4,
+    borderRadius: 20,
+  },
+});
+export default CustomerTransaction;
