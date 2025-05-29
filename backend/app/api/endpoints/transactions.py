@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Body, Query, Response
 from sqlalchemy.orm import Session
+from sqlalchemy import func, case, and_, or_, distinct, literal_column
+from sqlalchemy.sql import select, text, alias
 from app.schemas.transactions import (
     AddExpenseRecordRequest,
     AddMilkRecordRequest,
@@ -9,7 +11,11 @@ from app.schemas.transactions import (
     GetCustomersDateBasisRecordRequest,
     MilkRecordResponse,
     ExpenseRecordResponse,
-    TotalRecordsSimplifiedResponse
+    TotalRecordsSimplifiedResponse,
+    CustomerSummaryResponse,
+    SellerSummaryDetail,
+    SupplierSummaryResponse,
+    BuyerSummaryDetail
 )
 from app.db.session import get_db
 from app.db.models import Customer, MilkRecord, ExpenseRecord, User
@@ -520,33 +526,107 @@ def update_balances(
     return transactions
 
 
-@router.get("/get_customer_summary")
+@router.get("/get_customer_summary", response_model=CustomerSummaryResponse)
 def get_customer_summary(
-    db: Session = Depends(get_db), 
+    db: Session = Depends(get_db),
     buyer_mobile: str = Depends(get_current_user),
     offset: int = Query(0, ge=0, description="Number of items to skip (for pagination)"),
     limit: int = Query(20, ge=1, description="Maximum number of items to return (for pagination)"),
 ):
     try:
-        seller_details = []
-
+        # --- 1. Get the total count of *active* sellers ---
         total_sellers_count = (
             db.query(Customer)
-            .filter(Customer.added_under == buyer_mobile, Customer.is_deleted == 0)
+            .filter(
+                Customer.added_under == buyer_mobile, 
+                Customer.is_deleted == 0
+            )
             .count()
         )
 
-        sellers = (
+        # --- 2. Calculate global totals (total_you_will_give, total_you_will_get) ---
+        # This is the most complex but most optimized part.
+        # We need to find the latest 'total_till_record' for each seller across both milk and expense tables.
+
+        # Subquery to get the latest record's total_till_record and added_at for each seller
+        # from both MilkRecord and ExpenseRecord
+        milk_sub = select(
+            MilkRecord.seller_mobile,
+            MilkRecord.total_till_record,
+            MilkRecord.added_at
+        ).where(
+            and_(
+                MilkRecord.buyer_mobile == buyer_mobile,
+                MilkRecord.is_deleted == 0
+            )
+        ).cte('milk_sub')
+
+        expense_sub = select(
+            ExpenseRecord.seller_mobile,
+            ExpenseRecord.total_till_record,
+            ExpenseRecord.added_at
+        ).where(
+            and_(
+                ExpenseRecord.buyer_mobile == buyer_mobile,
+                ExpenseRecord.is_deleted == 0
+            )
+        ).cte('expense_sub')
+
+        # Union of milk and expense records for all relevant sellers
+        # This includes only relevant columns for performance
+        union_all_records = milk_sub.select().union_all(expense_sub.select()).alias('union_all_records')
+
+        # Use a window function (ROW_NUMBER) to find the latest record per seller
+        # This subquery finds the most recent balance for each seller
+        latest_balance_per_seller = db.query(
+            union_all_records.c.seller_mobile,
+            union_all_records.c.total_till_record,
+            union_all_records.c.added_at
+        ).add_columns(
+            func.row_number().over(
+                partition_by=union_all_records.c.seller_mobile, # Correctly referencing alias columns
+                order_by=union_all_records.c.added_at.desc()   # Correctly referencing alias columns
+            ).label('rn')
+        ).cte('latest_balance_per_seller')
+
+        # Now, join with Customers to ensure we only sum for active customers added by buyer_mobile
+        # and aggregate the global totals
+        global_totals_query = db.query(
+            func.sum(case((latest_balance_per_seller.c.total_till_record > 0, latest_balance_per_seller.c.total_till_record), else_=0)).label('total_give'),
+            func.sum(case((latest_balance_per_seller.c.total_till_record < 0, func.abs(latest_balance_per_seller.c.total_till_record)), else_=0)).label('total_get')
+        ).join(
+            Customer,
+            and_(
+                latest_balance_per_seller.c.seller_mobile == Customer.mobile,
+                Customer.added_under == buyer_mobile,
+                Customer.is_deleted == 0
+            )
+        ).filter(latest_balance_per_seller.c.rn == 1)
+
+        global_sums = global_totals_query.first()
+        total_you_will_give_global = global_sums.total_give if global_sums.total_give is not None else 0.0
+        total_you_will_get_global = global_sums.total_get if global_sums.total_get is not None else 0.0
+
+
+        # --- 3. Fetch paginated sellers details for the response list ---
+        seller_details = []
+
+        # Subquery to find the latest record's total_till_record and added_at for each seller
+        # relevant for the CURRENT PAGINATED LIST
+        # We re-use the 'latest_balance_per_seller' CTE for efficiency
+        paginated_customers_only = (
             db.query(Customer)
             .filter(Customer.added_under == buyer_mobile, Customer.is_deleted == 0)
+            .order_by(Customer.added_at.desc())
             .offset(offset)
             .limit(limit)
             .all()
         )
 
-        for seller in sellers:
+        for seller in paginated_customers_only:
             seller_mobile = seller.mobile
             seller_name = seller.name
+
             last_record_milk = (
                 db.query(MilkRecord)
                 .filter(
@@ -569,79 +649,167 @@ def get_customer_summary(
                 .first()
             )
 
+            seller_current_balance = 0.0
+            updated_date: Optional[datetime] = None
+
             if last_record_milk is None and last_record_expense is None:
-                seller_balance = 0
-                updated_date = None
+                pass # balance and date remain 0/None
             else:
+                last_record_for_display = None
                 if last_record_milk and last_record_expense:
-                    last_record = (
+                    last_record_for_display = (
                         last_record_milk
                         if last_record_milk.added_at > last_record_expense.added_at
                         else last_record_expense
                     )
                 elif last_record_milk:
-                    last_record = last_record_milk
-                else:
-                    last_record = last_record_expense
+                    last_record_for_display = last_record_milk
+                elif last_record_expense:
+                    last_record_for_display = last_record_expense
 
-                seller_balance = last_record.total_till_record
-                updated_date = last_record.added_at
+                if last_record_for_display:
+                    seller_current_balance = last_record_for_display.total_till_record
+                    updated_date = last_record_for_display.added_at
 
             seller_details.append(
-                {
-                    "name": seller_name,
-                    "mobile": seller_mobile,
-                    "balance": -seller_balance,
-                    "date": updated_date,
-                }
+                SellerSummaryDetail(
+                    name=seller_name,
+                    mobile=seller_mobile,
+                    balance=round(-seller_current_balance, 2), # Negate balance for display
+                    date=updated_date,
+                )
             )
-        return {
-            "message": "Seller details fetched successfully",
-            "seller_details": seller_details,
-            "total_count": total_sellers_count
-        }
+
+        return CustomerSummaryResponse(
+            message="Seller details fetched successfully",
+            seller_details=seller_details,
+            total_sellers_count=total_sellers_count,
+            total_you_will_give=round(total_you_will_give_global, 2),
+            total_you_will_get=round(total_you_will_get_global, 2)
+        )
+
     except Exception as e:
-        logger.error(f"Error: {e}")
-        raise HTTPException(status_code=404, detail="Something went wrong")
+        logger.error(f"Error fetching customer summary: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Something went wrong: {e}")
 
 
-@router.get("/get_supplier_summary")
+@router.get("/get_supplier_summary", response_model=SupplierSummaryResponse)
 def get_supplier_summary(
-    db: Session = Depends(get_db), 
-    seller_mobile: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    seller_mobile: str = Depends(get_current_user), # Current user is the seller
     offset: int = Query(0, ge=0, description="Number of items to skip (for pagination)"),
     limit: int = Query(20, ge=1, description="Maximum number of items to return (for pagination)"),
 ):
     try:
-        buyer_details = []
-
+        # --- 1. Get the total count of *active* buyers for this seller ---
+        # A buyer is a User whose mobile is in Customer.added_under for this seller_mobile
         total_buyers_count = (
-            db.query(Customer)
-            .filter(Customer.mobile == seller_mobile, Customer.is_deleted == 0)
+            db.query(User)
+            .join(Customer, User.mobile == Customer.added_under)
+            .filter(
+                Customer.mobile == seller_mobile,
+                Customer.is_deleted == 0,
+                User.is_deleted == 0
+            )
             .count()
         )
 
-        buyers = (
-            db.query(Customer)
-            .filter(Customer.mobile == seller_mobile, Customer.is_deleted == 0)
+        # --- 2. Calculate global totals (total_you_will_give, total_you_will_get) for the supplier ---
+        # This involves finding the latest 'total_till_record' for each buyer from the seller's perspective.
+
+        # Subquery to get relevant milk records for this seller
+        milk_sub = select(
+            MilkRecord.buyer_mobile, # We need buyer_mobile here
+            MilkRecord.total_till_record,
+            MilkRecord.added_at
+        ).where(
+            and_(
+                MilkRecord.seller_mobile == seller_mobile,
+                MilkRecord.is_deleted == 0
+            )
+        ).cte('milk_sub')
+
+        # Subquery to get relevant expense records for this seller
+        expense_sub = select(
+            ExpenseRecord.buyer_mobile, # We need buyer_mobile here
+            ExpenseRecord.total_till_record,
+            ExpenseRecord.added_at
+        ).where(
+            and_(
+                ExpenseRecord.seller_mobile == seller_mobile,
+                ExpenseRecord.is_deleted == 0
+            )
+        ).cte('expense_sub')
+
+        # Union of milk and expense records for all relevant buyers of this seller
+        union_all_records = milk_sub.select().union_all(expense_sub.select()).alias('union_all_records')
+
+        # Use a window function (ROW_NUMBER) to find the latest record per buyer
+        latest_balance_per_buyer = db.query(
+            union_all_records.c.buyer_mobile,
+            union_all_records.c.total_till_record,
+            union_all_records.c.added_at
+        ).add_columns(
+            func.row_number().over(
+                partition_by=union_all_records.c.buyer_mobile,
+                order_by=union_all_records.c.added_at.desc()
+            ).label('rn')
+        ).cte('latest_balance_per_buyer')
+
+        # Now, join with User and Customer to ensure we only sum for active buyers
+        # associated with this seller, and aggregate the global totals.
+        # The balance is from the *buyer's* perspective in total_till_record.
+        # From the seller's perspective:
+        #   - If buyer's total_till_record > 0, it means buyer owes seller. (Seller will GET)
+        #   - If buyer's total_till_record < 0, it means seller owes buyer. (Seller will GIVE)
+        global_totals_query = db.query(
+            # total_you_will_give (supplier gives to buyer): when buyer's balance is negative (supplier owes buyer)
+            func.sum(case((latest_balance_per_buyer.c.total_till_record < 0, func.abs(latest_balance_per_buyer.c.total_till_record)), else_=0)).label('total_give'),
+            # total_you_will_get (supplier gets from buyer): when buyer's balance is positive (buyer owes supplier)
+            func.sum(case((latest_balance_per_buyer.c.total_till_record > 0, latest_balance_per_buyer.c.total_till_record), else_=0)).label('total_get')
+        ).join(
+            User,
+            and_(
+                latest_balance_per_buyer.c.buyer_mobile == User.mobile,
+                User.is_deleted == 0
+            )
+        ).join(
+            Customer,
+            and_(
+                latest_balance_per_buyer.c.buyer_mobile == Customer.added_under,
+                Customer.mobile == seller_mobile, # Ensure this customer is added by this seller
+                Customer.is_deleted == 0
+            )
+        ).filter(latest_balance_per_buyer.c.rn == 1)
+
+        global_sums = global_totals_query.first()
+        total_you_will_give_global = global_sums.total_give if global_sums.total_give is not None else 0.0
+        total_you_will_get_global = global_sums.total_get if global_sums.total_get is not None else 0.0
+
+
+        # --- 3. Fetch paginated buyer details for the response list ---
+        buyer_details = []
+
+        # Fetch paginated User (buyer) objects who have added this seller
+        paginated_buyers_only = (
+            db.query(User)
+            .join(Customer, User.mobile == Customer.added_under)
+            .filter(
+                Customer.mobile == seller_mobile,
+                Customer.is_deleted == 0,
+                User.is_deleted == 0
+            )
+            .order_by(Customer.added_at.desc())
             .offset(offset)
             .limit(limit)
             .all()
         )
 
-        for buyer in buyers:
-            buyer_mobile = buyer.added_under
-            buyer_name = None
-            buyer_info = (
-                db.query(User)
-                .filter(User.mobile == buyer_mobile, User.is_deleted == 0)
-                .first()
-            )
-            if buyer_info:
-                buyer_name = buyer_info.name
-            else:
-                raise HTTPException(status_code=403, detail="User is not registered")
+        for buyer_user in paginated_buyers_only:
+            buyer_mobile = buyer_user.mobile
+            buyer_name = buyer_user.name
 
+            # Fetch the last milk record for this specific buyer and seller
             last_record_milk = (
                 db.query(MilkRecord)
                 .filter(
@@ -653,6 +821,7 @@ def get_supplier_summary(
                 .first()
             )
 
+            # Fetch the last expense record for this specific buyer and seller
             last_record_expense = (
                 db.query(ExpenseRecord)
                 .filter(
@@ -664,42 +833,51 @@ def get_supplier_summary(
                 .first()
             )
 
+            buyer_current_balance = 0.0
+            updated_date: Optional[datetime] = None
+
             if last_record_milk is None and last_record_expense is None:
-                buyer_balance = 0
-                updated_date = None
+                pass # balance and date remain 0/None
             else:
+                last_record_for_display = None
                 if last_record_milk and last_record_expense:
-                    last_record = (
+                    last_record_for_display = (
                         last_record_milk
                         if last_record_milk.added_at > last_record_expense.added_at
                         else last_record_expense
                     )
                 elif last_record_milk:
-                    last_record = last_record_milk
-                else:
-                    last_record = last_record_expense
+                    last_record_for_display = last_record_milk
+                elif last_record_expense:
+                    last_record_for_display = last_record_expense
 
-                buyer_balance = last_record.total_till_record
-                updated_date = last_record.added_at
+                if last_record_for_display:
+                    buyer_current_balance = last_record_for_display.total_till_record
+                    updated_date = last_record_for_display.added_at
 
             buyer_details.append(
-                {
-                    "name": buyer_name,
-                    "mobile": buyer_mobile,
-                    "balance": buyer_balance,
-                    "date": updated_date,
-                }
+                BuyerSummaryDetail(
+                    name=buyer_name,
+                    mobile=buyer_mobile,
+                    balance=round(buyer_current_balance, 2), # Balance as is from buyer's record (seller's perspective)
+                    date=updated_date,
+                )
             )
-        return {
-            "message": "Buyer details fetched successfully",
-            "buyer_details": buyer_details,
-            "total_count":total_buyers_count
-        }
+
+        return SupplierSummaryResponse(
+            message="Buyer details fetched successfully",
+            buyer_details=buyer_details,
+            total_buyers_count=total_buyers_count,
+            total_you_will_give=round(total_you_will_give_global, 2),
+            total_you_will_get=round(total_you_will_get_global, 2)
+        )
+
     except HTTPException as http_exc:
         raise http_exc
     except Exception as e:
-        logger.error(f"Error: {e}")
-        raise HTTPException(status_code=404, detail="Something went wrong")
+        logger.error(f"Error fetching supplier summary: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Something went wrong: {e}")
+
     
 @router.get('/total_record_date_range')
 def get_total_records(

@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List, Union
+from typing import Optional, List, Dict, Any, Union
 from datetime import date, datetime
+from sqlalchemy.orm import Session
 
 
 class AddMilkRecordRequest(BaseModel):
@@ -87,3 +88,29 @@ class GetCustomersDateBasisRecordRequest(BaseModel):
     seller_mobile: str = Field(
         ..., pattern="^[0-9]{10}$", description="10-digit seller mobile number"
     )
+
+class SellerSummaryDetail(BaseModel):
+    name: str
+    mobile: str
+    balance: float
+    date: Optional[datetime]
+
+class CustomerSummaryResponse(BaseModel):
+    message: str
+    seller_details: List[SellerSummaryDetail]
+    total_sellers_count: int
+    total_you_will_give: float
+    total_you_will_get: float
+
+class BuyerSummaryDetail(BaseModel):
+    name: str
+    mobile: str
+    balance: float
+    date: Optional[datetime]
+
+class SupplierSummaryResponse(BaseModel):
+    message: str
+    buyer_details: List[BuyerSummaryDetail]
+    total_buyers_count: int
+    total_you_will_give: float # Supplier (seller) gives to buyer (balance > 0 from seller's perspective)
+    total_you_will_get: float  # Supplier (seller) gets from buyer (balance < 0 from seller's perspective)
