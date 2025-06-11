@@ -15,7 +15,10 @@ class RateData(BaseModel):
 
 class RateListRequest(BaseModel):
     """Schema for the request body when storing a rate list."""
-
+    min_fat : float
+    max_fat : float
+    min_snf : float
+    max_snf : float
     rates: List[RateData]  # A list of RateData objects
 
 

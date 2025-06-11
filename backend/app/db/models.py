@@ -107,6 +107,10 @@ class RateList(Base):
     __tablename__ = "RateList"
 
     buyer_mobile = Column(String(10), primary_key=True, nullable=False)
+    min_fat = Column(Float, nullable=False)
+    max_fat = Column(Float, nullable=False)
+    min_snf = Column(Float, nullable=False)
+    max_snf = Column(Float, nullable=False)
     rates = Column(JSON, nullable=False)  # Store the JSON data in this column
     is_deleted = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=local_now)  # Use local_now

@@ -76,6 +76,10 @@ def store_rate_list(
 
             # Update the existing rate list with new rates
             existing_rate_list.rates = rates_for_db  # Assign the list of dicts
+            existing_rate_list.min_fat = record.min_fat
+            existing_rate_list.max_fat = record.max_fat
+            existing_rate_list.min_snf = record.min_snf
+            existing_rate_list.max_snf = record.max_snf
 
             db.commit()
             db.refresh(existing_rate_list)
@@ -87,6 +91,10 @@ def store_rate_list(
         new_rate_list = RateList(
             buyer_mobile=buyer_mobile,
             rates=rates_for_db,  # Assign the list of dicts
+            min_fat=record.min_fat,
+            max_fat=record.max_fat,
+            min_snf=record.min_snf,
+            max_snf=record.max_snf
         )
 
         # Add new rate list to the database
@@ -379,7 +387,11 @@ def fetch_rate(
     buyer_mobile: str = Depends(get_current_user),
 ):
     try:
-        logger.info(f"In fetch_rate")
+        logger.info(f"In gate_rate")
+
+        if len(str(fat).split(".")[1]) > 1 or len(str(snf).split(".")[1]) > 1:
+            raise HTTPException(status_code=400, detail="Fat and SNF must have only 1 decimal place.")
+
         rate_list = (
             db.query(RateList)
             .filter(RateList.buyer_mobile == buyer_mobile, RateList.is_deleted == 0)
@@ -387,25 +399,100 @@ def fetch_rate(
         )
 
         if not rate_list:
-            raise HTTPException(status_code=404, detail="Rate List not found")
+            raise HTTPException(status_code=404, detail=f"Rate List not found for buyer_mobile: {buyer_mobile}")
+        
+        # Cap snf and fat at their maximum values
+        snf = min(snf, rate_list.max_snf)  # Cap SNF to max_snf
+        fat = min(fat, rate_list.max_fat)  # Cap Fat to max_fat
 
+        logger.info(f"Looking for rate with Fat: {fat}, SNF: {snf}")
+
+        # First, check for an exact match in the rate list
         matching_rate = None
-        for rate in rate_list.rates:
-            if rate["fat"] == fat and rate["snf"] == snf:
-                matching_rate = rate
-                break
+        snf_diff = None
 
+        if fat >= rate_list.min_fat and snf >= rate_list.min_snf:
+            for rate in rate_list.rates:
+                if rate["fat"] == fat and rate["snf"] == snf:
+                    matching_rate = rate["rate"]  # Exact match found, apply fat
+                    break
+        
+         # Step 2: If no exact match is found, apply the adjustment logic
+        if not matching_rate:
+            # Case 1: fat < min_fat and snf < min_snf
+            if fat < rate_list.min_fat and snf < rate_list.min_snf:
+                for rate in rate_list.rates:
+                    if rate["fat"] == rate_list.min_fat and rate["snf"] == rate_list.min_snf:
+                        matching_rate = (rate["rate"]/rate_list.min_fat)*fat  # Rate at (min_fat, min_snf)/min_fat * fat
+                        # Calculate snf_diff if needed
+                        if snf_diff is None:
+                            snf_diff = calculate_snf_diff(rate_list, rate_list.min_fat)
+                        rate_diff = (rate_list.min_snf - snf)* 10 * snf_diff
+                        matching_rate -= rate_diff  # Subtract (min_snf - snf)*10 * snf_diff
+                        matching_rate = round(matching_rate,2)
+                        break
+
+            # Case 2: fat < min_fat and snf > min_snf
+            elif fat < rate_list.min_fat and snf >= rate_list.min_snf:
+                for rate in rate_list.rates:
+                    if rate["fat"] == rate_list.min_fat and rate["snf"] == snf:
+                        matching_rate = (rate["rate"]/rate_list.min_fat)*fat
+                        matching_rate = round(matching_rate,2)
+                        break
+
+            # Case 3: fat > min_fat and snf < min_snf
+            elif fat >= rate_list.min_fat and snf < rate_list.min_snf:
+                for rate in rate_list.rates:
+                    if rate["fat"] == fat and rate["snf"] == rate_list.min_snf:
+                        matching_rate = rate["rate"]  # Rate at (fat, min_snf) * fat
+                        # Calculate snf_diff if needed
+                        print(f"matching rate1 : {matching_rate}")
+                        if snf_diff is None:
+                            snf_diff = calculate_snf_diff(rate_list, fat)
+                        rate_diff = (rate_list.min_snf - snf)* 10 * snf_diff
+                        print(rate_diff)
+                        matching_rate -= rate_diff  # Subtract (min_snf - snf)*10 * snf_diff
+                        matching_rate = round(matching_rate,2)
+                        break
+        
+        # If no matching rate is found, raise 404 error with detailed message
         if not matching_rate:
             raise HTTPException(
-                status_code=404, detail="Rate for given Fat and SNF is not found"
+                status_code=404,
+                detail=f"Rate for given Fat ({fat}) and SNF ({snf}) is not found",
             )
 
         return {
             "buyer_mobile": rate_list.buyer_mobile,
             "fat": fat,
             "snf": snf,
-            "rate": matching_rate["rate"],
+            "rate": matching_rate,
         }
+    except HTTPException as e:
+        # Handle raised HTTPException and include exception details in the response
+        logger.error(f"HTTPException: {e.detail}")
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+
     except Exception as e:
+        # Log the error and raise a generic error
         logger.error(f"Error: {e}")
-        raise HTTPException(status_code=404, detail="Something went wrong")
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+
+def calculate_snf_diff(rate_list, fat_value):
+    rate_diffs = []  # List to store rate differences
+
+    # Iterate over the rates list
+    for i, rate in enumerate(rate_list.rates):
+        if rate["fat"] == fat_value:
+            # Ensure there's a previous element to compare
+            if i > 0 and rate_list.rates[i - 1]["fat"] == fat_value:   
+                # Calculate the difference between consecutive rate values
+                rate_diff = abs(rate_list.rates[i]["rate"] - rate_list.rates[i - 1]["rate"])
+
+                # Add the difference to the rate_diffs list
+                rate_diffs.append(rate_diff)
+
+    # Calculate the average of rate_diff if any differences exist
+    average_rate_diff = sum(rate_diffs) / len(rate_diffs) if rate_diffs else 0
+
+    return average_rate_diff
