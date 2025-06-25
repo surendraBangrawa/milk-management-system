@@ -1,0 +1,88 @@
+# docker-compose.dev.yml
+version: "3.8"
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: milk_db_dev
+    env_file: 
+      - ./.env.dev
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db_data_dev:/var/lib/mysql # Separate volume for development
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev # Assuming a single Dockerfile for backend
+    container_name: milk_backend_dev
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./.env.dev
+    environment:
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: db # Service name in docker-compose for internal communication
+      DB_NAME: ${DB_NAME}
+      DB_PORT: 3306
+      SECRET_KEY: ${FASTAPI_SECRET_KEY}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      TZ: ${TZ}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app # Mount for live code changes during development
+    restart: always
+
+  admin:
+    build:
+      context: ./admin
+      dockerfile: Dockerfile.dev # Using Dockerfile.dev for development
+    container_name: milk_admin_dev
+    ports:
+      - "1002:1002"
+    env_file:
+      - ./.env.dev
+    environment:
+      DJANGO_SETTINGS_MODULE: Admin_M.settings
+      DATABASE_URL: mysql://${DB_USER}:${DB_PASSWORD}@db:3306/${DB_NAME}
+      FASTAPI_API: http://backend:8000
+      SECRET_KEY: ${DJANGO_SECRET_KEY}
+      DEBUG: ${DEBUG} # Controlled by .env.development
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS}
+      CORS_ORIGIN_WHITELIST: ${CORS_ORIGIN_WHITELIST}
+    depends_on:
+      db:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    volumes:
+      - ./admin:/app # Mount for live code changes during development
+      - static_volume_dev:/app/static_collected # Separate volume for dev static files
+      - media_volume_dev:/app/media_collected # Separate volume for dev media files
+    restart: always
+    command: >
+      sh -c "python manage.py collectstatic --noinput &&
+             python manage.py migrate &&
+             gunicorn Admin_M.wsgi:application --bind 0.0.0.0:1002"
+
+volumes:
+  db_data_dev: # Unique volume for development database data
+  static_volume_dev: # Unique volume for development static files
+  media_volume_dev: # Unique volume for development media files

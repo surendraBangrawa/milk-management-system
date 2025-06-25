@@ -1,0 +1,59 @@
+# admin/Dockerfile.prod - Django Admin Production
+
+# Stage 1: Build Stage
+# Use a lighter base image for the final stage
+FROM python:3.9-slim-buster as builder
+
+# Set environment variables
+ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE 1
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Install system dependencies required for Django and database connector
+# 'libmysqlclient-dev' is crucial for the mysqlclient Python package
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        gcc \
+        libmysqlclient-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements file first to leverage Docker caching
+COPY ./requirements.txt /app/requirements.txt
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r /app/requirements.txt
+
+# Copy the Django project code
+COPY . /app
+
+# Collect static files during the build process
+# This is crucial for production, as Gunicorn won't serve static files directly.
+RUN python manage.py collectstatic --noinput
+
+# Stage 2: Production Stage
+FROM python:3.9-slim-buster
+
+# Set environment variables
+ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE 1
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Create a non-root user and switch to it for security (optional but recommended)
+# RUN adduser --system --group appuser && chown -R appuser:appuser /app
+# USER appuser
+
+# Copy only the necessary files (installed packages, application code, collected static files) from the builder stage
+COPY --from=builder /usr/local/lib/python3.9/site-packages /usr/local/lib/python3.9/site-packages
+COPY --from=builder /app /app
+
+# Expose the port Gunicorn will listen on
+EXPOSE 1002
+
+# Command to run the Gunicorn server
+# This command is aligned with the 'command' in your docker-compose.prod.yml
+CMD ["gunicorn", "Admin_M.wsgi:application", "--bind", "0.0.0.0:1002"]
