@@ -11,10 +11,13 @@ from app.api.endpoints import (
     subscriptions,
 )
 from app.core.logging_config import configure_logging
+from app.db.session import Base, engine
+from app.db.models import *
 
 configure_logging()
 load_dotenv()
 
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Milk Management System API",

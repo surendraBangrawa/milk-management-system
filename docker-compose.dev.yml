@@ -29,11 +29,6 @@ services:
       - "8000:8000"
     env_file:
       - ./.env.dev
-    environment:
-      SECRET_KEY: ${FASTAPI_SECRET_KEY}
-      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
-      GEMINI_API_KEY: ${GEMINI_API_KEY}
-      TZ: ${TZ}
     depends_on:
       db:
         condition: service_healthy

@@ -25,7 +25,7 @@ class JWTMiddleware(BaseHTTPMiddleware):
             "/openapi.json",
             "/auth/token",
             "/auth/login",
-            "/auth/register",
+            "/auth/signup",
             "/auth/send_login_otp",
         ]
         if request.url.path in excluded_paths or request.url.path.startswith("/static"):
