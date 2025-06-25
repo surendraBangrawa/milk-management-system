@@ -1,0 +1,409 @@
+{% extends 'base2.html' %} {% block content %}
+<div id="loading-spinner" class="spinner"></div>
+<div id="overlay"></div>
+<div id="page-container">
+  <!-- --------------------------------Body Content-------------------------------- -->
+  <div id="content-wrap">
+    <!-- -----------------------------------header----------------------------------- -->
+    {% include 'header.html' %}
+    <!-- ---------------------------------------Main--------------------------------------- -->
+    <div class="info sticky-top">
+      <div class="container-fluid">
+        <div class="info_list">
+          <div class="row">
+            <div class="col-lg-12 col-md-12 col-sm-12">
+              <div class="pt-3 pb-2">
+                <h6 class="wh">Deposit</h6>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <section id="main">
+      <div class="container-fluid">
+        <div class="whitebx">
+          <div class="table-responsive">
+            <table id="dashboard2" class="table">
+              <thead>
+                <tr>
+                  <th class="xs dot">ID</th>
+                  <th class="sm dot">Mobile Number</th>
+                  <th class="lg dot">Date of Creation</th>
+                  <th class="sm dot">Amount</th>
+                  <th class="md dot">UTR</th>
+                  <th class="md dot">Deposit Status</th>
+                  <th class="md dot"></th>
+                  <th class="lg dot">Action Date</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+<!-- -----------------------------------footer----------------------------------- -->
+<div
+  class="modal fade"
+  id="approveModal"
+  tabindex="-1"
+  aria-labelledby="saveLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-body bl c">
+        <!-- <p> <img src="/assets/images/done.gif" class="img-fluid" width="100px" /> </p> -->
+        <h6>Click on confirm to approve Deposit</h6>
+        <div class="dig_btn modbtn mt-2">
+          <button type="button" class="btn bkbtn c" data-dismiss="modal">
+            <i class="fa fa-times" aria-hidden="true"></i> Cancel
+          </button>
+          <button
+            type="button"
+            class="btn svbtn c"
+            data-dismiss="modal"
+            id="approveDeposit"
+          >
+            <i class="fa fa-check" aria-hidden="true"></i> Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div
+  class="modal fade"
+  id="approveModal2"
+  tabindex="-1"
+  aria-labelledby="saveLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-body bl c">
+        <!-- <p> <img src="/assets/images/done.gif" class="img-fluid" width="100px" /> </p> -->
+        <h6>Click on confirm to deny Deposit</h6>
+        <div class="dig_btn modbtn mt-2">
+          <button type="button" class="btn bkbtn c" data-dismiss="modal">
+            <i class="fa fa-times" aria-hidden="true"></i> Cancel
+          </button>
+          <button
+            type="button"
+            class="btn svbtn c"
+            data-dismiss="modal"
+            id="approveDepositDeny"
+          >
+            <i class="fa fa-check" aria-hidden="true"></i> Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div
+  class="modal fade"
+  id="user-popup"
+  tabindex="-1"
+  aria-labelledby="token-popupLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-body bl c">
+        <button
+          type="button"
+          class="close"
+          data-dismiss="modal"
+          aria-label="Close"
+        >
+          <span aria-hidden="true">&times;</span>
+        </button>
+        <!-- <p><img src="/assets/images/done.gif" class="img-fluid" width="80px"></p> -->
+        <h6>Deposit requset has been confirmed for</h6>
+        <h6>ID : <span class="bk"></span></h6>
+        <div class="dig_btn c mt-3">
+          <button
+            type="button"
+            class="btn grbtn addbtn done-button"
+            data-toggle="modal"
+            data-dismiss="modal"
+            data-target="#user-popup"
+          >
+            <i class="fa fa-check" aria-hidden="true"></i> Done
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div
+  class="modal fade"
+  id="errorModal"
+  tabindex="-1"
+  role="dialog"
+  aria-labelledby="errorModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-body bl c">
+        <div id="errorModalBody"></div>
+        <!-- Error messages will be displayed here -->
+        <div class="dig_btn modbtn">
+          <button type="button" class="btn svbtn c" data-dismiss="modal">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.3/jquery.validate.min.js"></script>
+<!-- <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script> -->
+<script
+  src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"
+  integrity="sha384-Fy6S3B9q64WdZWQUiU+q4/2Lc9npb8tCaSX9FK7E8HnRr0Jz8D6OP9dO5Vg3Q9ct"
+  crossorigin="anonymous"
+></script>
+<!-- Data Table-->
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/select/1.6.2/js/dataTables.select.min.js"></script>
+
+<script nonce="{{ nonceValue }}">
+  const loadingSpinner = document.getElementById("loading-spinner");
+  const overlay = document.getElementById("overlay");
+  window.addEventListener("unload", function (event) {
+    hideOverlay();
+  });
+</script>
+<script nonce="{{ nonceValue }}">
+  $(document).ready(function () {
+    var csrfToken = document
+      .querySelector('meta[name="csrf-token"]')
+      .getAttribute("content");
+    $.ajaxSetup({
+      beforeSend: function (xhr, settings) {
+        if (
+          !/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) &&
+          !this.crossDomain
+        ) {
+          xhr.setRequestHeader("X-CSRFToken", csrfToken);
+        }
+      },
+    });
+    const dataTable = $("#dashboard2").DataTable({
+      scrollY: "58vh",
+      scrollCollapse: true,
+      bFilter: true,
+      scrollX: true,
+      bInfo: true,
+      paging: true,
+      bPaginate: true,
+      pageLength: 25,
+      lengthMenu: [[25], [25]],
+      order: [],
+      columnDefs: [{ orderable: false, targets: "_all" }],
+      serverSide: true,
+      processing: true,
+      stateSave: true,
+      ajax: {
+        url: "/api/deposit",
+        type: "GET",
+        data: function (data) {
+          delete data.columns;
+          // delete data.search;
+          delete data.draw;
+        },
+        error: function (xhr, error, thrown) {
+          console.log(error);
+          $("#dashboard2 tbody").html(
+            '<tr><td colspan="7" class="error-message">No data in table</td></tr>'
+          );
+          $(".dataTables_processing").hide();
+        },
+        dataSrc: function (response) {
+          return response.data;
+        },
+      },
+      columns: [
+        {
+          data: "ID",
+          className: "xs dot",
+        },
+
+        {
+          data: "MOBILE_NUMBER",
+          className: "sm dot",
+          render: function (data, type, row) {
+            return data ? data : "-";
+          },
+        },
+        {
+          data: "CREATE_DATE",
+          className: "lg dot",
+          render: function (data, type, row) {
+            return data ? data : "-";
+          },
+        },
+        {
+          data: "AMOUNT",
+          className: "sm dot",
+        },
+        {
+          data: "UTR",
+          className: "md dot",
+          render: function (data, type, row) {
+            return data ? data : "-";
+          },
+        },
+        {
+          data: "APPROVE_DEPOSIT",
+          className: "md dot",
+          render: function (data, type, row) {
+            return data
+              ? "Approved"
+              : row.DENY_DEPOSIT
+              ? "Denied"
+              : "Yet to be approve";
+          },
+        },
+        {
+          data: "APPROVE_DEPOSIT",
+          className: "md dot",
+          render: function (data, type, row) {
+            if (!data && !row.DENY_DEPOSIT) {
+              return `<button class="btn btn-success btn-sm clickable deposit" data-id="${row.ID}" data-bs-toggle="tooltip" data-bs-placement="right" title="Appprove Deposit">Approve</button>
+                            <button class="btn btn-danger btn-sm clickable deposit_deny" data-id="${row.ID}" data-bs-toggle="tooltip" data-bs-placement="right" title="Deny Deposit">Deny</button>`;
+            } else if (!data && row) {
+              return `<button class="btn btn-success btn-sm clickable deposit" data-id="${row.ID}" data-bs-toggle="tooltip" data-bs-placement="right" title="Appprove Deposit">Approve</button>`;
+            } else {
+              return `-`;
+            }
+          },
+        },
+        {
+          data: "UPDATE_DATE",
+          className: "lg dot",
+          render: function (data, type, row) {
+            return data ? data : "-";
+          },
+        },
+      ],
+      createdRow: function (row, data, dataIndex) {
+        if (!data.APPROVE_DEPOSIT) {
+          $(row).find("td:eq(5)").addClass("c fx_sb mt-1");
+        }
+      },
+    });
+  });
+</script>
+
+<style nonce="{{ nonceValue }}">
+  .error-message {
+    text-align: center;
+  }
+</style>
+<script nonce="{{ nonceValue }}">
+  if (window.history.replaceState) {
+    window.history.replaceState(null, null, window.location.href);
+  }
+</script>
+
+<script nonce="{{ nonceValue }}">
+  $(document).on("click", ".deposit", function (event) {
+    var ctId1 = $(this).data("id");
+    $("#approveModal").data("user-id", ctId1);
+    $("#approveModal").modal("show");
+  });
+  $("#approveDeposit").click(function () {
+    var userId = $("#approveModal").data("user-id");
+    showOverlay();
+    $.ajax({
+      url: "/api/deposit/",
+      type: "PATCH",
+      data: { ID: userId, APPROVE_DEPOSIT: 1 },
+      success: function (response) {
+        $("#dashboard2")
+          .DataTable()
+          .ajax.reload(function (json) {
+            if (!json || !json.records || json.records.length === 0) {
+              var table = $("#dashboard2").DataTable();
+              var pageInfo = table.page.info();
+              if (pageInfo.page > 0) {
+                table.page("previous").draw("page");
+              }
+            }
+          }, false); // Stay on the current page after reload
+        if (response) {
+          $("#user-popup .bk").text(userId);
+        }
+        $("#user-popup").modal("show");
+      },
+      error: function (xhr) {
+        var errorMessage =
+          xhr.responseJSON && xhr.responseJSON.message
+            ? xhr.responseJSON.message
+            : "An error occurred";
+        $("#errorModalBody").text(errorMessage);
+        $("#errorModal").modal("show");
+      },
+    }).always(function () {
+      hideOverlay();
+    });
+  });
+
+  $(document).on("click", ".deposit_deny", function (event) {
+    var ctId1 = $(this).data("id");
+    $("#approveModal2").data("user-id", ctId1);
+    $("#approveModal2").modal("show");
+  });
+  $("#approveDepositDeny").click(function () {
+    var userId = $("#approveModal2").data("user-id");
+    showOverlay();
+    $.ajax({
+      url: "/api/deposit/",
+      type: "PATCH",
+      data: { ID: userId, DENY_DEPOSIT: 1 },
+      success: function (response) {
+        $("#dashboard2")
+          .DataTable()
+          .ajax.reload(function (json) {
+            if (!json || !json.records || json.records.length === 0) {
+              var table = $("#dashboard2").DataTable();
+              var pageInfo = table.page.info();
+              if (pageInfo.page > 0) {
+                table.page("previous").draw("page");
+              }
+            }
+          }, false); // Stay on the current page after reload
+        if (response) {
+          $("#user-popup .bk").text(userId);
+        }
+        $("#user-popup").modal("show");
+      },
+      error: function (xhr) {
+        var errorMessage =
+          xhr.responseJSON && xhr.responseJSON.message
+            ? xhr.responseJSON.message
+            : "An error occurred";
+        $("#errorModalBody").text(errorMessage);
+        $("#errorModal").modal("show");
+      },
+    }).always(function () {
+      hideOverlay();
+    });
+  });
+</script>
+
+{% endblock %}

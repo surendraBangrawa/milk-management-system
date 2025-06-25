@@ -1,0 +1,548 @@
+{% extends 'base2.html' %} {% block content %}
+<div id="loading-spinner" class="spinner"></div>
+<div id="overlay"></div>
+<div id="page-container">
+  <!-- --------------------------------Body Content-------------------------------- -->
+  <div id="content-wrap">
+    <!-- -----------------------------------header----------------------------------- -->
+    {% include 'header.html' %}
+    <!-- ---------------------------------------Main--------------------------------------- -->
+    <div class="info sticky-top">
+      <div class="container-fluid">
+        <div class="info_list">
+          <div class="row">
+            <div class="col-lg-12 col-md-12 col-sm-12">
+              <div class="pt-3 pb-2">
+                <h6 class="wh">Bets</h6>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <section id="main">
+      <div class="container">
+        <div class="row justify-content-center align-items-center">
+          <div class="col-md-4">
+            <div class="form-group mb-0">
+              <label for="usernumber">Enter Number:</label>
+              <input type="text" id="usernumber" class="form-control" />
+            </div>
+          </div>
+
+          <div class="col-md-4">
+            <div class="form-group mb-0">
+              <label for="gameid">Enter Game Id:</label>
+              <input type="text" id="gameid" class="form-control" />
+            </div>
+          </div>
+
+          <div class="col-md-4">
+            <div class="form-group viewBtn">
+              <button class="btn btn-primary" id="view-btn">View</button>
+            </div>
+          </div>
+        </div>
+        <div class="row justify-content-center align-items-center">
+          <div class="col-md-6">
+            <div class="form-group mb-0">
+              <label for="usernumber">Total L1:</label>
+              <input type="text" id="totalL1" class="form-control" readonly />
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="form-group mb-0">
+              <label for="gameid">Total L2:</label>
+              <input type="text" id="totalL2" class="form-control" readonly />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="result">
+      <!-- <section id="main"> -->
+      <div class="container-fluid">
+        <div class="whitebx">
+          <div class="table-responsive">
+            <table id="dashboard2" class="table">
+              <thead>
+                <tr>
+                  <th class="md dot">Mobile Number</th>
+                  <th class="lg dot">Game ID</th>
+                  <th class="sm dot">Bet On</th>
+                  <th class="md dot">Bet Amount</th>
+                  <th class="md dot">Amount Won</th>
+                  <th class="md dot">Date</th>
+                </tr>
+              </thead>
+              <tfoot>
+                <tr>
+                  <td class="md dot"></td>
+                  <td class="lg dot"></td>
+                  <td class="sm dot"></td>
+                  <td class="md dot" id="totalAmountBet">Total: 0</td>
+                  <td class="md dot" id="totalAmountWon">Total: 0</td>
+                  <td class="md dot"></td>
+                  <!-- <td colspan="2"></td> -->
+                  <!-- Empty columns for alignment -->
+
+                  <!-- Column for sum -->
+                </tr>
+              </tfoot>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <!-- </section> -->
+    </section>
+
+    <section id="tabs">
+      <div class="container-fluid mt-2">
+        <div class="row">
+          <div class="col-md-12">
+            <ul class="nav nav-tabs" id="transaction-tabs" role="tablist">
+              <li class="nav-item ml-2" role="presentation">
+                <a
+                  class="nav-link active"
+                  id="withdraw-tab"
+                  data-toggle="tab"
+                  href="#withdraw"
+                  role="tab"
+                  aria-controls="withdraw"
+                  aria-selected="true"
+                  >Withdraw</a
+                >
+              </li>
+              <li class="nav-item" role="presentation">
+                <a
+                  class="nav-link"
+                  id="deposit-tab"
+                  data-toggle="tab"
+                  href="#deposit"
+                  role="tab"
+                  aria-controls="deposit"
+                  aria-selected="false"
+                  >Deposit</a
+                >
+              </li>
+            </ul>
+            <div class="tab-content" id="transaction-tabs-content">
+              <!-- Withdraw Tab (New table below the original one) -->
+              <div
+                class="tab-pane fade show active whitebx"
+                id="withdraw"
+                role="tabpanel"
+                aria-labelledby="withdraw-tab"
+              >
+                <div class="table-responsive mt-1">
+                  <table id="dashboard" class="table">
+                    <thead>
+                      <tr>
+                        <th class="sm dot">Withdraw Amount</th>
+                        <th class="md dot">Withdraw Approval</th>
+                        <th class="md dot">Withdraw Rejected</th>
+                        <th class="md dot">Date</th>
+                      </tr>
+                    </thead>
+
+                    <tfoot>
+                      <tr>
+                        <th class="sm dot">Total: 0</th>
+                        <th class="md dot"></th>
+                        <th class="md dot"></th>
+                        <th class="md dot"></th>
+                      </tr>
+                    </tfoot>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Deposit Tab (New table below the original one) -->
+              <div
+                class="tab-pane fade whitebx"
+                id="deposit"
+                role="tabpanel"
+                aria-labelledby="deposit-tab"
+              >
+                <div class="table-responsive mt-1">
+                  <table id="dashboard3" class="table">
+                    <thead>
+                      <tr>
+                        <th class="sm dot">Deposit Amount</th>
+                        <th class="md dot">Deposit Approval</th>
+                        <th class="md dot">Deposit Rejected</th>
+                        <th class="md dot">Date</th>
+                      </tr>
+                    </thead>
+                    <tfoot>
+                      <tr>
+                        <th class="sm dot">Total: 0</th>
+                        <th class="md dot"></th>
+                        <th class="md dot"></th>
+                        <th class="md dot"></th>
+                      </tr>
+                    </tfoot>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div
+  class="modal fade"
+  id="errorModal"
+  tabindex="-1"
+  role="dialog"
+  aria-labelledby="errorModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-body bl c">
+        <div id="errorModalBody"></div>
+        <!-- Error messages will be displayed here -->
+        <div class="dig_btn modbtn">
+          <button
+            type="button"
+            class="btn svbtn c"
+            id="closeModalButton"
+            data-dismiss="modal"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap JS and Popper.js (needed for Bootstrap functionality) -->
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+<!-- <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.min.js"></script> -->
+
+<script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.3/jquery.validate.min.js"></script>
+<!-- <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script> -->
+<script
+  src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"
+  integrity="sha384-Fy6S3B9q64WdZWQUiU+q4/2Lc9npb8tCaSX9FK7E8HnRr0Jz8D6OP9dO5Vg3Q9ct"
+  crossorigin="anonymous"
+></script>
+
+<!-- Data Table-->
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/select/1.6.2/js/dataTables.select.min.js"></script>
+
+<script nonce="{{ nonceValue }}">
+  const loadingSpinner = document.getElementById("loading-spinner");
+  const overlay = document.getElementById("overlay");
+  window.addEventListener("unload", function (event) {
+    hideOverlay();
+  });
+</script>
+
+<script nonce="{{ nonceValue }}">
+  $(document).ready(function () {
+    const table = $("#dashboard2").DataTable({
+      paging: false, // Disable pagination
+      searching: false, // Disable searching
+      info: false, // Disable the information text
+      scrollY: "35vh", // Set the height of the DataTable
+      scrollCollapse: true, // Allow the table to reduce height if less data
+      scrollX: true,
+      stateSave: true,
+      columns: [
+        { data: "MOBILE_NUMBER" },
+        { data: "GAME_ID" },
+        { data: "BET_ON" },
+        { data: "BET_AMOUNT" },
+        { data: "AMOUNT_WON" },
+        { data: "CREATE_DATE" },
+      ],
+      data: [], // Initialize with empty data, will be filled later
+      footerCallback: function (row, data, start, end, display) {
+        // Calculate the sum of AMOUNT_WON column
+        var api = this.api();
+        // Initialize sums for each color
+        var totalRedBet = 0;
+        var totalGreenBet = 0;
+        var totalVioletBet = 0;
+
+        var totalAmountWon = 0;
+        var totalAmountBet = 0;
+        // for (var i = 0; i < data.length; i++) {
+        //   // If AMOUNT_WON is missing or not a valid number, treat it as 0
+        //   var amountWon = parseFloat(data[i].AMOUNT_WON) || 0;
+        //   totalAmountWon += amountWon;
+        // }
+        // var formattedTotal = totalAmountWon.toFixed(3);
+
+        // for (var i = 0; i < data.length; i++) {
+        //   // If AMOUNT_WON is missing or not a valid number, treat it as 0
+        //   var amountBet = parseFloat(data[i].BET_AMOUNT) || 0;
+        //   totalAmountBet += amountBet;
+        // }
+        // var formattedTotalBet = totalAmountBet.toFixed(3);
+
+        for (var i = 0; i < data.length; i++) {
+          var amountWon = parseFloat(data[i].AMOUNT_WON) || 0;
+          totalAmountWon += amountWon;
+
+          var amountBet = parseFloat(data[i].BET_AMOUNT) || 0;
+          totalAmountBet += amountBet;
+
+          // Add bet amount to specific color categories (Red, Green, Violet)
+          var betOn = data[i].BET_ON ? data[i].BET_ON : ""; // Convert to lowercase to handle case insensitivity
+
+          // Check if the bet is for a known color
+          if (betOn === "red") {
+            totalRedBet += amountBet;
+          } else if (betOn === "green") {
+            totalGreenBet += amountBet;
+          } else if (betOn === "violet") {
+            totalVioletBet += amountBet;
+          }
+          // If BET_ON is neither "red", "green", nor "violet", treat the bet as 0 (skip adding to color sums)
+          // No action needed because totalRedBet, totalGreenBet, and totalVioletBet are initialized to 0
+        }
+
+        // Format the totals to 3 decimal places
+        var formattedTotal = totalAmountWon.toFixed(2);
+        var formattedTotalBet = totalAmountBet.toFixed(2);
+
+        var formattedRedBet = totalRedBet.toFixed(2);
+        var formattedGreenBet = totalGreenBet.toFixed(2);
+        var formattedVioletBet = totalVioletBet.toFixed(2);
+
+        // Update the footer with the sum
+        $(api.column(0).footer()).html("red: " + formattedRedBet);
+        $(api.column(1).footer()).html("green: " + formattedGreenBet);
+        $(api.column(2).footer()).html("violet: " + formattedVioletBet);
+        $(api.column(3).footer()).html("Total: " + formattedTotalBet);
+        $(api.column(4).footer()).html("Total: " + formattedTotal);
+      },
+    });
+
+    $("#view-btn").click(function () {
+      var number = $("#usernumber").val();
+      var gameid = $("#gameid").val();
+
+      var data = {};
+      if (number) {
+        data.number = number; // Add number if provided
+      }
+      if (gameid) {
+        data.gameid = gameid; // Add gameId if provided
+      }
+
+      // Check if at least one parameter is provided
+      if (Object.keys(data).length === 0) {
+        $("#errorModalBody").text(
+          "Please provide either a number or a game ID"
+        );
+        $("#errorModal").modal("show");
+        return;
+      }
+
+      showOverlay();
+      $.ajax({
+        url: "/api/userbets",
+        type: "GET",
+        data: data,
+        success: function (response) {
+          console.log(response);
+          table.clear().draw();
+          // Add new data from the API response
+          table.rows.add(response.data).draw();
+          $("#totalL1").val(response.totalL1);
+          $("#totalL2").val(response.totalL2);
+        },
+        error: function (error) {
+          $("#errorModalBody").text("Failed to fetch data!");
+          $("#errorModal").modal("show");
+        },
+      }).always(function () {
+        hideOverlay();
+      });
+    });
+  });
+</script>
+
+<script nonce="{{ nonceValue }}">
+  $(document).ready(function () {
+    let table2;
+    function initializeWithdrawTable() {
+      table2 = $("#dashboard").DataTable({
+        paging: false,
+        searching: false,
+        info: false,
+        scrollY: "35vh",
+        scrollCollapse: true,
+        scrollX: true,
+        columns: [
+          { data: "AMOUNT" },
+          { data: "APPROVE_WITHDRAW" },
+          { data: "DENY_WITHDRAW" },
+          { data: "UPDATE_DATE" },
+        ],
+        data: [], // Empty initially
+        footerCallback: function (row, data, start, end, display) {
+          // Calculate the sum of AMOUNT_WON column
+          var api = this.api();
+          var totalAmount = 0;
+          for (var i = 0; i < data.length; i++) {
+            var approveWithdraw = data[i].APPROVE_WITHDRAW;
+            var amount = parseFloat(data[i].AMOUNT) || 0; // Safely parse BET_AMOUNT as a number
+
+            // Only add to totalAmount if APPROVE_WITHDRAW is true
+            if (approveWithdraw === true) {
+              totalAmount += amount;
+            }
+          }
+          var formattedTotalBet = totalAmount.toFixed(3);
+
+          // Update the footer with the sum
+          $(api.column(0).footer()).html("Total: " + formattedTotalBet);
+        },
+      });
+    }
+
+    // Initialize DataTable for Deposit tab
+    let table3;
+    function initializeDepositTable() {
+      table3 = $("#dashboard3").DataTable({
+        paging: false,
+        searching: false,
+        info: false,
+        scrollY: "35vh",
+        scrollCollapse: true,
+        scrollX: true,
+        columns: [
+          { data: "AMOUNT" },
+          { data: "APPROVE_DEPOSIT" },
+          { data: "DENY_DEPOSIT" },
+          { data: "UPDATE_DATE" },
+        ],
+        data: [], // Empty initially
+        footerCallback: function (row, data, start, end, display) {
+          // Calculate the sum of AMOUNT_WON column
+          var api = this.api();
+          var totalAmount = 0;
+          for (var i = 0; i < data.length; i++) {
+            var approveDep = data[i].APPROVE_DEPOSIT;
+            var amount = parseFloat(data[i].AMOUNT) || 0; // Safely parse BET_AMOUNT as a number
+
+            // Only add to totalAmount if APPROVE_WITHDRAW is true
+            if (approveDep === true) {
+              totalAmount += amount;
+            }
+          }
+          var formattedTotalBet = totalAmount.toFixed(3);
+
+          // Update the footer with the sum
+          $(api.column(0).footer()).html("Total: " + formattedTotalBet);
+        },
+      });
+    }
+
+    // Fetch Withdraw data
+    function fetchWithdrawData() {
+      let number = $("#usernumber").val();
+      $.ajax({
+        url: "/api/withdrawByUser", // Adjust API URL based on your backend
+        type: "GET",
+        data: { number: number }, // Send the number as a parameter to the API
+        success: function (response) {
+          console.log(response);
+          table2.clear().draw();
+          table2.rows.add(response.data).draw();
+        },
+        error: function (error) {
+          $("#errorModalBody").text("Failed to fetch Withdraw data!");
+          $("#errorModal").modal("show");
+        },
+      });
+    }
+
+    // Fetch Deposit data
+    function fetchDepositData() {
+      let number = $("#usernumber").val();
+      $.ajax({
+        url: "/api/depositByUser", // Adjust API URL based on your backend
+        type: "GET",
+        data: { number: number }, // Send the number as a parameter to the API
+        success: function (response) {
+          console.log(response);
+          table3.clear().draw();
+          table3.rows.add(response.data).draw();
+        },
+        error: function (error) {
+          $("#errorModalBody").text("Failed to fetch Deposit data!");
+          $("#errorModal").modal("show");
+        },
+      });
+    }
+
+    // Trigger API call when switching tabs
+    $("#withdraw-tab").on("click", function () {
+      if (!$.fn.DataTable.isDataTable("#dashboard")) {
+        initializeWithdrawTable(); // Initialize DataTable for Withdraw tab
+      }
+      fetchWithdrawData(); // Fetch Withdraw data
+    });
+
+    $("#deposit-tab").on("click", function () {
+      if (!$.fn.DataTable.isDataTable("#dashboard3")) {
+        initializeDepositTable(); // Initialize DataTable for Deposit tab
+      }
+      fetchDepositData(); // Fetch Deposit data
+    });
+
+    // Trigger the initial API call for Withdraw data on page load
+    fetchWithdrawData(); // Fetch Withdraw data immediately on page load
+
+    // Trigger the initial API call for Deposit data on page load (if you want Deposit data on load)
+    // fetchDepositData(number); // Fetch Deposit data immediately on page load
+
+    // Initialize tables when page loads if necessary
+    if (!$.fn.DataTable.isDataTable("#dashboard")) {
+      initializeWithdrawTable(); // Initialize Withdraw DataTable if not initialized
+    }
+
+    if (!$.fn.DataTable.isDataTable("#dashboard3")) {
+      initializeDepositTable(); // Initialize Deposit DataTable if not initialized
+    }
+
+    // Optional: Adjust columns if DataTable is initialized
+    $("#withdraw-tab").on("shown.bs.tab", function () {
+      if ($.fn.DataTable.isDataTable("#dashboard")) {
+        table2.columns.adjust(); // Adjust column widths
+      }
+    });
+
+    $("#deposit-tab").on("shown.bs.tab", function () {
+      if ($.fn.DataTable.isDataTable("#dashboard3")) {
+        table3.columns.adjust(); // Adjust column widths
+      }
+    });
+  });
+
+  //   var errorModal = new bootstrap.Modal(document.getElementById("errorModal"));
+  //   $("#closeModalButton").click(function () {
+  //     errorModal.hide(); // Hide the modal
+  //   });
+</script>
+
+{% endblock %}

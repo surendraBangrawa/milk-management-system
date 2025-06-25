@@ -1,0 +1,304 @@
+{% extends 'base2.html' %} {% block content %}
+<div id="loading-spinner" class="spinner">
+
+</div>
+<div id="overlay"></div>
+<div id="page-container">
+    <!-- --------------------------------Body Content-------------------------------- -->
+    <div id="content-wrap"> <!-- -----------------------------------header----------------------------------- -->
+        {% include 'header.html' %}
+        <!-- ---------------------------------------Main--------------------------------------- -->
+        <div class="info sticky-top">
+            <div class="container-fluid">
+                <div class="info_list">
+                    <div class="row">
+                        <div class="col-lg-12 col-md-12 col-sm-12">
+                            <div class="pt-3 pb-2">
+                                <h6 class="wh"> UPI </h6>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <section id="main">
+            <div class="container-fluid">
+                <div class="whitebx">
+                    <div class="mb-2 text-right">
+                        <button id="addNewEntry" class="btn btn-primary">Add New Entry</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table id="dashboard2" class="table">
+                            <thead>
+                                <tr>
+                                    <th class="xs dot">ID</th>
+                                    <th class="md dot">Admin Name</th>
+                                    <th class="md dot">Upi ID</th>
+                                    <th class="lg dot">Date of Creation</th>
+                                    <th class="lg dot">Action Date</th>
+                                    <th class="sm dot"></th>
+                                </tr>
+                            </thead>
+                            <tbody> </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</div> <!-- -----------------------------------footer----------------------------------- -->
+<div class="modal fade" id="approveModal" tabindex="-1" aria-labelledby="saveLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body bl c">
+                <!-- <p> <img src="/assets/images/done.gif" class="img-fluid" width="100px" /> </p> -->
+                <h6>Click on confirm to delete Upi ID </h6>
+                <div class="dig_btn modbtn mt-2"> <button type="button" class="btn bkbtn c" data-dismiss="modal"> <i
+                            class="fa fa-times" aria-hidden="true"></i> Cancel </button> <button type="button"
+                        class="btn svbtn c" data-dismiss="modal" id="approveDelete"> <i class="fa fa-check"
+                            aria-hidden="true"></i> Confirm </button> </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade" id="user-popup" tabindex="-1" aria-labelledby="token-popupLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-body bl c"> <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span> </button>
+                <!-- <p><img src="/assets/images/done.gif" class="img-fluid" width="80px"></p> -->
+                <h6>Delete requset has been approved with</h6>
+                <h6>ID : <span class="bk"></span> </h6>
+                <div class="dig_btn c mt-3"> <button type="button" class="btn grbtn addbtn done-button"
+                        data-toggle="modal" data-dismiss="modal" data-target="#user-popup"> <i class="fa fa-check"
+                            aria-hidden="true"></i> Done </button> </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="errorModal" tabindex="-1" role="dialog" aria-labelledby="errorModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-body bl c">
+                <div id="errorModalBody"></div> <!-- Error messages will be displayed here -->
+                <div class="dig_btn modbtn"> <button type="button" class="btn svbtn c"
+                        data-dismiss="modal">Close</button> </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal for Adding New Entry -->
+<div class="modal fade" id="addNewEntryModal" tabindex="-1" role="dialog" aria-labelledby="addNewEntryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addNewEntryModalLabel">Add New Entry</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="newEntryForm">
+                    <div class="form-group">
+                        <label for="newName">Name:</label>
+                        <input type="text" class="form-control" id="newName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="upiID">Upi ID:</label>
+                        <input type="text" class="form-control" id="upiID" required>
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.3/jquery.validate.min.js"></script>
+<!-- <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script> -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-Fy6S3B9q64WdZWQUiU+q4/2Lc9npb8tCaSX9FK7E8HnRr0Jz8D6OP9dO5Vg3Q9ct"
+    crossorigin="anonymous"></script> <!-- Data Table-->
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/select/1.6.2/js/dataTables.select.min.js"></script>
+
+<script nonce="{{ nonceValue }}">
+    const loadingSpinner = document.getElementById('loading-spinner');
+    const overlay = document.getElementById('overlay');
+    window.addEventListener('unload', function (event) { hideOverlay(); }); 
+</script>
+<script nonce="{{ nonceValue }}"> $(document).ready(function () {
+        var csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        $.ajaxSetup({
+            beforeSend: function (xhr, settings) {
+                if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                    xhr.setRequestHeader("X-CSRFToken", csrfToken);
+                }
+            }
+        });
+        const dataTable = $('#dashboard2').DataTable({
+            scrollY: '58vh',
+            scrollCollapse: true,
+            "bFilter": false,
+            "scrollX": true,
+            "bInfo": true,
+            "paging": true,
+            "bPaginate": true,
+            "pageLength": 25,
+            lengthMenu: [[25], [25]],
+            "order": [],
+            "columnDefs": [{ "orderable": false, "targets": "_all" },],
+            "serverSide": true,
+            "processing": true,
+            // "stateSave": true, 
+            "ajax": {
+                "url": "/api/upi",
+                "type": "GET",
+                "data": function (data) {
+                    delete data.columns;
+                    delete data.search;
+                    delete data.draw;
+                },
+                "error": function (xhr, error, thrown) {
+                    console.log(error)
+                    $('#dashboard2 tbody').html('<tr><td colspan="7" class="error-message">Something went wrong. Please try again later</td></tr>');
+                    $('.dataTables_processing').hide();
+                },
+                "dataSrc": function (response) {
+                    return response.data;
+                },
+            },
+            "columns": [
+                {
+                    "data": "ID",
+                    "className": "xs dot",
+                },
+
+                {
+                    "data": "USER_NAME",
+                    "className": "md dot",
+                    "render": function (data, type, row) { return data ? data : '-'; }
+                },
+                {
+                    "data": "UPI_ID",
+                    "className": "md dot",
+                },
+                {
+                    "data": "CREATE_DATE",
+                    "className": "lg dot",
+                    "render": function (data, type, row) { return data ? data : '-'; }
+                },
+                {
+                    "data": "UPDATE_DATE",
+                    "className": "lg dot",
+                    "render": function (data, type, row) { return data ? data : '-'; }
+                },
+                {
+                    "data": "",
+                    "className": "sm dot",
+                    "render": function (data, type, row) {
+                            return `<button class="btn btn-success btn-sm clickable upi_delete" data-id="${row.ID}" data-bs-toggle="tooltip" data-bs-placement="right" title="Delete ID">Delete ID</button>`;
+                        
+                    }
+                },
+            ],
+        });
+    }); 
+</script>
+
+<style nonce="{{ nonceValue }}">
+    .error-message {
+        text-align: center;
+    }
+</style>
+<script nonce="{{ nonceValue }}">
+    if (window.history.replaceState) {
+        window.history.replaceState(null, null, window.location.href);
+    } 
+</script>
+
+<script nonce="{{ nonceValue }}">
+    $(document).on('click', '.upi_delete', function (event) {
+        var ctId1 = $(this).data('id');
+        $('#approveModal').data('id', ctId1);
+        $('#approveModal').modal('show');
+    });
+    $('#approveDelete').click(function () {
+        var Id = $('#approveModal').data('id');
+        showOverlay()
+        $.ajax({
+            url: '/api/upi/',
+            type: 'DELETE',
+            data: { ID: Id },
+            success: function (response) {
+                $('#dashboard2').DataTable().ajax.reload(function (json) {
+                    if (!json || !json.records || json.records.length === 0) {
+                        var table = $('#dashboard2').DataTable();
+                        var pageInfo = table.page.info();
+                        if (pageInfo.page > 0) {
+                            table.page('previous').draw('page');
+                        }
+                    }
+                }, false); // Stay on the current page after reload 
+                if (response) {
+                    $('#user-popup .bk').text(Id);
+                } $('#user-popup').modal('show');
+            },
+            error: function (xhr) {
+                var errorMessage = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : "An error occurred";
+                $('#errorModalBody').text(errorMessage);
+                $('#errorModal').modal('show');
+            }
+        }).always(function () {
+            hideOverlay();
+        });
+    }); 
+</script>
+
+
+<script nonce="{{ nonceValue }}">
+    $('#addNewEntry').click(function () {
+        $('#addNewEntryModal').modal('show');
+    });
+
+    // Handle new entry form submission
+    $('#newEntryForm').submit(function (event) {
+        event.preventDefault();
+        const newName = $('#newName').val();
+        const upiID = $('#upiID').val();
+        $('#upiID').val('');
+        $('#newName').val('')
+        $('#addNewEntryModal').modal('hide');
+        showOverlay()
+        $.ajax({
+            url: '/api/upi/', 
+            type: 'POST',
+            data: { USER_NAME: newName, UPI_ID: upiID },
+            success: function (response) {
+                $('#dashboard2').DataTable().ajax.reload();
+            },
+            error: function (xhr) {
+                var errorMessage = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : "An error occurred";
+                $('#errorModalBody').text(errorMessage);
+                $('#errorModal').modal('show');
+            }
+        }).always(function () {
+            hideOverlay();
+        });
+    });
+</script>
+
+
+{% endblock %}

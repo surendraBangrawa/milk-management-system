@@ -1,0 +1,166 @@
+{% extends 'base2.html' %} {% block content %}
+<div id="loading-spinner" class="spinner"></div>
+<div id="overlay"></div>
+<div id="page-container">
+    <!-- --------------------------------Body Content-------------------------------- -->
+    <div id="content-wrap"> <!-- -----------------------------------header----------------------------------- -->
+        {% include 'header.html' %}
+        <!-- ---------------------------------------Main--------------------------------------- -->
+        <div class="info sticky-top">
+            <div class="container-fluid">
+                <div class="info_list">
+                    <div class="row">
+                        <div class="col-lg-12 col-md-12 col-sm-12">
+                            <div class="pt-3 pb-2">
+                                <h6 class="wh"> Transactions </h6>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <section id="main">
+            <div class="container">
+                <div class="row justify-content-center align-items-center">
+                    <div class="col-md-4">
+                        <div class="form-group mb-0">
+                            <label for="startDate">Select Start Date:</label>
+                            <input type="date" id="startDate" class="form-control">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group mb-0">
+                            <label for="date">Select End Date:</label>
+                            <input type="date" id="date" class="form-control">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group viewBtn">
+                            <button class="btn btn-primary" id="view-btn">View</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="result">
+            <div class="container">
+                <div class="row">
+                    <div class="col-12">
+                        <h5 class="bl">Records found:</h5>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="field1">Total Deposit</label>
+                            <input type="text" id="field1" class="form-control" readonly>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="field2">Total Withdraw</label>
+                            <input type="text" id="field2" class="form-control" readonly>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="field3">Profit</label>
+                            <input type="text" id="field3" class="form-control" readonly>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+
+
+
+<div class="modal fade" id="errorModal" tabindex="-1" role="dialog" aria-labelledby="errorModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-body bl c">
+                <div id="errorModalBody"></div> <!-- Error messages will be displayed here -->
+                <div class="dig_btn modbtn"> <button type="button" class="btn svbtn c"
+                        data-dismiss="modal">Close</button> </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.3/jquery.validate.min.js"></script>
+<!-- <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script> -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-Fy6S3B9q64WdZWQUiU+q4/2Lc9npb8tCaSX9FK7E8HnRr0Jz8D6OP9dO5Vg3Q9ct"
+    crossorigin="anonymous"></script>
+
+    <script nonce="{{ nonceValue }}">
+        const loadingSpinner = document.getElementById("loading-spinner");
+        const overlay = document.getElementById("overlay");
+        window.addEventListener("unload", function (event) {
+          hideOverlay();
+        });
+      </script>
+
+    <script nonce="{{ nonceValue }}">
+        $(document).ready(function () {
+            var fastapi = "{{ fastapi }}";
+            var now = new Date();
+            var today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+            $('#date').attr('max', today);
+            $('#startDate').attr('max', today);
+    
+            $('#view-btn').click(function () {
+                var date = $('#date').val();
+                var startDate = $('#startDate').val();
+
+                if (!startDate) {
+                    $('#errorModalBody').text('Please select a start date!');
+                    $('#errorModal').modal('show');
+                    return;
+                }
+                
+                if (!date) {
+                    $('#errorModalBody').text('Please select a end date!');
+                    $('#errorModal').modal('show');
+                    return;
+                }
+                var now = new Date();
+                var selectedDate = new Date(date);
+
+                if (selectedDate.toISOString().split('T')[0] === today) {
+                    var hours = String(now.getHours()).padStart(2, '0');
+                    var minutes = String(now.getMinutes()).padStart(2, '0');
+                    var seconds = String(now.getSeconds()).padStart(2, '0');
+                    date += `T${hours}:${minutes}:${seconds}`;
+                } else {
+                    date += 'T23:59:59';
+                }
+                startDate += 'T00:00:00';
+
+                showOverlay();
+                $.ajax({
+                    url: fastapi+'/wallet/transactions',  // Adjust the URL to your FastAPI endpoint
+                    type: 'GET',
+                    data: { start_date: startDate, end_date: date },
+                    success: function (response) {
+                        // Display fetched data
+                        $('#field1').val(response.deposit_amount);
+                        $('#field2').val(response.withdraw_amount);
+                        $('#field3').val(response.profit);
+                    },
+                    error: function (error) {
+                        $('#errorModalBody').text('Failed to fetch data!');
+                        $('#errorModal').modal('show');
+                    }
+                }).always(function () {
+                    hideOverlay();
+                });
+            });
+        });
+    </script>
+{% endblock %}

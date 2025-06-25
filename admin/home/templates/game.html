@@ -1,0 +1,149 @@
+{% extends 'base2.html' %} {% block content %}
+<div id="loading-spinner" class="spinner"></div>
+<div id="overlay"></div>
+<div id="page-container">
+  <!-- --------------------------------Body Content-------------------------------- -->
+  <div id="content-wrap">
+    <!-- -----------------------------------header----------------------------------- -->
+    {% include 'header.html' %}
+    <!-- ---------------------------------------Main--------------------------------------- -->
+    <div class="info sticky-top">
+      <div class="container-fluid">
+        <div class="info_list">
+          <div class="row">
+            <div class="col-lg-12 col-md-12 col-sm-12">
+              <div class="pt-3 pb-2">
+                <h6 class="wh">Game Control</h6>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <section id="main">
+      <div class="container">
+        <div class="row justify-content-center align-items-center">
+          <div class="col-md-4">
+            <div class="form-group mb-0">
+              <label for="onUsers">Online Users:</label>
+              <input type="number" id="onUsers" class="form-control" />
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="form-group mb-0">
+              <label for="variation">Factor:</label>
+              <input type="number" id="variation" class="form-control" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="yy">
+        <div class="xx">
+          <button class="button primary-button">Start Game</button>
+          <button class="button secondary-button">Stop Game</button>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div
+  class="modal fade"
+  id="errorModal"
+  tabindex="-1"
+  role="dialog"
+  aria-labelledby="errorModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-body bl c">
+        <div id="errorModalBody"></div>
+        <!-- Error messages will be displayed here -->
+        <div class="dig_btn modbtn">
+          <button type="button" class="btn svbtn c" data-dismiss="modal">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.3/jquery.validate.min.js"></script>
+<!-- <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script> -->
+<script
+  src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"
+  integrity="sha384-Fy6S3B9q64WdZWQUiU+q4/2Lc9npb8tCaSX9FK7E8HnRr0Jz8D6OP9dO5Vg3Q9ct"
+  crossorigin="anonymous"
+></script>
+
+<script nonce="{{ nonceValue }}">
+  const loadingSpinner = document.getElementById("loading-spinner");
+  const overlay = document.getElementById("overlay");
+  window.addEventListener("unload", function (event) {
+    hideOverlay();
+  });
+</script>
+
+<script nonce="{{ nonceValue }}">
+  $(document).ready(function () {
+    var fastapi = "{{ fastapi }}";
+    $(".primary-button").click(function () {
+      var onUsers = $("#onUsers").val();
+      var variation = $("#variation").val();
+      if (!onUsers) {
+        $("#errorModalBody").text("Please enter online users");
+        $("#errorModal").modal("show");
+        return;
+      }
+
+      if (!variation) {
+        $("#errorModalBody").text("Please enter user variation");
+        $("#errorModal").modal("show");
+        return;
+      }
+      showOverlay();
+      $.ajax({
+        url: fastapi + "/control/timer/start",
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({ user_count: onUsers, factor: variation }),
+        success: function (response) {
+          $("#errorModalBody").text("Game started!");
+          $("#errorModal").modal("show");
+        },
+        error: function (error) {
+          $("#errorModalBody").text("Failed to start game!");
+          $("#errorModal").modal("show");
+        },
+      }).always(function () {
+        hideOverlay();
+      });
+    });
+
+    $(".secondary-button").click(function () {
+      showOverlay();
+      $.ajax({
+        url: fastapi + "/control/timer/stop",
+        type: "POST",
+
+        success: function (response) {
+          $("#errorModalBody").text("Game stopped!");
+          $("#errorModal").modal("show");
+        },
+        error: function (xhr) {
+          console.log(xhr);
+          $("#errorModalBody").text("Failed to stop game!");
+          $("#errorModal").modal("show");
+        },
+      }).always(function () {
+        hideOverlay();
+      });
+    });
+  });
+</script>
+
+{% endblock %}
