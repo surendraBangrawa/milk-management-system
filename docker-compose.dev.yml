@@ -1,6 +1,3 @@
-# docker-compose.dev.yml
-version: "3.8"
-
 services:
   db:
     image: mysql:8.0
@@ -26,17 +23,14 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile.dev # Assuming a single Dockerfile for backend
+      dockerfile: Dockerfile.dev 
     container_name: milk_backend_dev
     ports:
       - "8000:8000"
     env_file:
       - ./.env.dev
     environment:
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_HOST: db # Service name in docker-compose for internal communication
-      DB_NAME: ${DB_NAME}
+      DB_HOST: db
       DB_PORT: 3306
       SECRET_KEY: ${FASTAPI_SECRET_KEY}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
@@ -60,13 +54,14 @@ services:
       - ./.env.dev
     environment:
       DJANGO_SETTINGS_MODULE: Admin_M.settings
-      DATABASE_URL: mysql://${DB_USER}:${DB_PASSWORD}@db:3306/${DB_NAME}
       FASTAPI_API: http://backend:8000
       SECRET_KEY: ${DJANGO_SECRET_KEY}
-      DEBUG: ${DEBUG} # Controlled by .env.development
+      DEBUG: ${DEBUG} 
       ALLOWED_HOSTS: ${ALLOWED_HOSTS}
       CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS}
       CORS_ORIGIN_WHITELIST: ${CORS_ORIGIN_WHITELIST}
+      DB_HOST: db
+      DB_PORT: 3306
     depends_on:
       db:
         condition: service_healthy

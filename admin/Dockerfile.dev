@@ -1,20 +1,33 @@
+# Use a specific Python version on a slim Debian base
 FROM python:3.10-slim-buster
 
+# Environment variables for Python to run unbuffered and not write .pyc files
 ENV PYTHONUNBUFFERED 1
 ENV PYTHONDONTWRITEBYTECODE 1
 
+# Set the working directory inside the container
 WORKDIR /app
 
+# Install system dependencies required for mysqlclient and other build tools
+# default-libmysqlclient-dev provides the necessary files for mysqlclient to compile
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    default-libmysqlclient-dev \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
+# Copy the requirements file into the container
 COPY ./requirements.txt /app/requirements.txt
 
+# Install Python dependencies from requirements.txt
+# --no-cache-dir reduces image size by not storing pip cache
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
+# Copy the rest of your application code into the container
 COPY . /app
 
+# Expose the port Django will run on
 EXPOSE 1002
 
+# Command to run the Django development server
 CMD ["python", "manage.py", "runserver", "0.0.0.0:1002"]

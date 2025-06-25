@@ -14,9 +14,12 @@ from decouple import config
 from dotenv import load_dotenv
 import os
 from pathlib import Path
-import dj_database_url
-from zoneinfo import ZoneInfo  # Python 3.9+ built-in module
 
+# --- ADD THESE TWO LINES AT THE VERY TOP ---
+import pymysql
+
+pymysql.install_as_MySQLdb()
+# --- END ADDITION ---
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -24,7 +27,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv()
 
-FASTAPI_API = config("FASTAPI_API")
+# In settings.py, right after load_dotenv()
+print("--- DEBUG DB SETTINGS FROM ENV ---")
+print(f"DB_USER: '{config('DB_USER')}'")
+print(f"DB_PASSWORD: '{config('DB_PASSWORD')}'")
+print(f"DB_NAME: '{config('DB_NAME')}'")
+print(f"DB_HOST: '{config('DB_HOST')}'")
+print(f"DB_PORT: '{config('DB_PORT')}'")
+print("--- END DEBUG DB SETTINGS FROM ENV ---")
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
@@ -50,8 +61,8 @@ INSTALLED_APPS = [
 ]
 
 REST_FRAMEWORK = {
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
     ],
 }
 
@@ -89,14 +100,22 @@ WSGI_APPLICATION = "Admin_M.wsgi.application"
 # GCP Hosting DB
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL')
-    )
+    "default": {
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": config("DB_NAME"),
+        "USER": config("DB_USER"),
+        "PASSWORD": config("DB_PASSWORD"),
+        "HOST": config("DB_HOST"),
+        "PORT": config("DB_PORT", cast=int),  # Cast port to integer
+        "OPTIONS": {
+            "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
+        },
+    }
 }
 
 
 # Password validation
-# https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
+# https://docs.djangoproject.com/en/4.2/topics/i18n/
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -119,7 +138,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = 'Asia/Kolkata'
+TIME_ZONE = "Asia/Kolkata"
 
 USE_I18N = True
 
@@ -131,6 +150,12 @@ USE_TZ = False
 
 STATIC_URL = "static/"
 
+# --- ADD THIS LINE ---
+STATIC_ROOT = (
+    BASE_DIR / "static_collected"
+)  # This path should match your docker-compose volume mount
+# --- END ADDITION ---
+
 LOGIN_URL = "/"
 
 # Default primary key field type
@@ -141,7 +166,6 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", default="").split(",")
 CORS_ORIGIN_WHITELIST = config("CORS_ORIGIN_WHITELIST", default="").split(",")
-
 
 
 SESSION_COOKIE_SECURE = True
