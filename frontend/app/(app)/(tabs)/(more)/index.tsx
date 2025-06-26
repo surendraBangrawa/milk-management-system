@@ -58,17 +58,37 @@ const sections: Section[] = [
     ],
   },
   {
-    titleKey: "account.support",
+    titleKey: "more.information_and_support",
     data: [
       {
-        labelKey: "account.help",
-        icon: "help-circle-outline",
-        path: "/(app)/help",
+        labelKey: "more.about_us",
+        path: "/(app)/about",
+        icon: "information-circle-outline",
       },
       {
-        labelKey: "account.about",
-        icon: "information-circle-outline",
-        path: "/(app)/about",
+        labelKey: "more.contact_us",
+        path: "/(app)/contact",
+        icon: "mail-outline",
+      },
+      {
+        labelKey: "more.terms_and_conditions",
+        path: "/(app)/terms",
+        icon: "document-text-outline",
+      },
+      {
+        labelKey: "more.privacy_policy",
+        path: "/(app)/privacy",
+        icon: "shield-checkmark-outline",
+      },
+      {
+        labelKey: "more.refund_policy",
+        path: "/(app)/refund",
+        icon: "cash-outline",
+      },
+      {
+        labelKey: "more.help",
+        path: "/(app)/help",
+        icon: "help-circle-outline",
       },
     ],
   },
