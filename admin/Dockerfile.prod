@@ -1,59 +1,43 @@
-# admin/Dockerfile.prod - Django Admin Production
+# admin/Dockerfile.prod
 
-# Stage 1: Build Stage
-# Use a lighter base image for the final stage
-FROM python:3.9-slim-buster as builder
+# Use the appropriate base image for your Django app
+FROM python:3.10-slim-buster
 
-# Set environment variables
-ENV PYTHONUNBUFFERED 1
+# Set environment variables for non-interactive commands
 ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+# Define build arguments that will be passed from docker-compose.yml
+ARG DB_USER
+ARG DB_PASSWORD
+ARG DB_HOST
+ARG DB_PORT
+ARG DB_NAME
+
+# Set environment variables from build arguments
+ENV DB_USER=$DB_USER
+ENV DB_PASSWORD=$DB_PASSWORD
+ENV DB_HOST=$DB_HOST
+ENV DB_PORT=$DB_PORT
+ENV DB_NAME=$DB_NAME
 
 # Set the working directory inside the container
 WORKDIR /app
 
-# Install system dependencies required for Django and database connector
-# 'libmysqlclient-dev' is crucial for the mysqlclient Python package
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        build-essential \
-        gcc \
-        libmysqlclient-dev \
-    && rm -rf /var/lib/apt/lists/*
+# Install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy requirements file first to leverage Docker caching
-COPY ./requirements.txt /app/requirements.txt
-
-# Install Python dependencies
-RUN pip install --no-cache-dir -r /app/requirements.txt
-
-# Copy the Django project code
+# Copy the entire Django project into the container
 COPY . /app
 
-# Collect static files during the build process
-# This is crucial for production, as Gunicorn won't serve static files directly.
-RUN python manage.py collectstatic --noinput
+# Ensure static and media directories exist and have correct permissions
+# This step might be handled by collectstatic, but good to ensure for permissions
+RUN mkdir -p /app/static_collected /app/media_collected && \
+    chmod -R 775 /app/static_collected /app/media_collected
 
-# Stage 2: Production Stage
-FROM python:3.9-slim-buster
-
-# Set environment variables
-ENV PYTHONUNBUFFERED 1
-ENV PYTHONDONTWRITEBYTECODE 1
-
-# Set the working directory inside the container
-WORKDIR /app
-
-# Create a non-root user and switch to it for security (optional but recommended)
-# RUN adduser --system --group appuser && chown -R appuser:appuser /app
-# USER appuser
-
-# Copy only the necessary files (installed packages, application code, collected static files) from the builder stage
-COPY --from=builder /usr/local/lib/python3.9/site-packages /usr/local/lib/python3.9/site-packages
-COPY --from=builder /app /app
-
-# Expose the port Gunicorn will listen on
-EXPOSE 1002
-
-# Command to run the Gunicorn server
-# This command is aligned with the 'command' in your docker-compose.prod.yml
-CMD ["gunicorn", "Admin_M.wsgi:application", "--bind", "0.0.0.0:1002"]
+# The collectstatic command will now have access to the DB_* environment variables
+# as they are set via ENV instructions above, which come from ARG.
+# The `command` in docker-compose.yml will override this `CMD` if it's set.
+# This `CMD` is here just as a placeholder if you run the container directly without compose.
+CMD ["sh", "-c", "python manage.py collectstatic --noinput && python manage.py migrate && gunicorn Admin_M.wsgi:application --bind 0.0.0.0:1002"]
