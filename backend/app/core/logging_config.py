@@ -4,10 +4,11 @@ import os
 from logging.handlers import RotatingFileHandler
 
 
-LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()  # Default to INFO
-LOG_FILE = os.getenv("LOG_FILE", "app.log")
-LOG_FILE_MAX_BYTES = int(os.getenv("LOG_FILE_MAX_BYTES", 1024 * 1024 * 5))  # 5 MB
-LOG_FILE_BACKUP_COUNT = int(os.getenv("LOG_FILE_BACKUP_COUNT", 5))  # Keep 5 backup logs
+# Hardcoded values for logging configuration
+LOG_LEVEL = "INFO"  # Set the log level (e.g., "INFO", "DEBUG", "WARNING")
+LOG_FILE = "app.log"  # Log file name
+LOG_FILE_MAX_BYTES = 1024 * 1024 * 5  # 5 MB max file size
+LOG_FILE_BACKUP_COUNT = 5  # Keep 5 backup logs
 
 
 def configure_logging():
@@ -38,8 +39,8 @@ def configure_logging():
         root_logger.addHandler(console_handler)
 
         # --- File Handler (Optional) ---
-        # Create logs directory if it doesn't exist
-        log_dir = "logs"
+        # Change log directory to /tmp/logs
+        log_dir = "/tmp/logs"
         os.makedirs(log_dir, exist_ok=True)
         log_file_path = os.path.join(log_dir, LOG_FILE)
 
@@ -63,16 +64,6 @@ def configure_logging():
         # Add the file handler to the root logger
         root_logger.addHandler(file_handler)
 
-        # --- Configure Loggers for specific libraries (Optional) ---
-        # You might want to set different levels for noisy libraries
-        # logging.getLogger("uvicorn").setLevel(logging.INFO)
-        # logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING) # Avoid noisy SQL logs
-
         print(
             f"Logging configured. Minimum level: {LOG_LEVEL}. Log file: {log_file_path}"
         )
-
-
-# Example of how to get a logger in another module
-# logger = logging.getLogger(__name__)
-# logger.info("This is an info message from the module.")

@@ -1,42 +1,42 @@
+# Stage 1: Builder
 FROM python:3.10-slim-buster AS builder
 
 ENV PYTHONUNBUFFERED 1
 ENV PYTHONDONTWRITEBYTECODE 1
 
-# Set the working directory inside the container
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements file first to leverage Docker caching
+# Copy requirements file and install dependencies
 COPY ./requirements.txt /app/requirements.txt
-
-# Install Python dependencies for production (gunicorn and uvicorn workers)
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
-# Copy the entire application code
+# Copy application code
 COPY . /app
 
-# Stage 2: Production Final Stage
+# Stage 2: Production
 FROM python:3.10-slim-buster
 
 ENV PYTHONUNBUFFERED 1
 ENV PYTHONDONTWRITEBYTECODE 1
 
-# Set the working directory inside the container
 WORKDIR /app
 
-# Create a non-root user and switch to it for enhanced security (optional but recommended)
+# Create a non-root user and switch to it for enhanced security
 RUN adduser --system --group appuser && chown -R appuser:appuser /app
 USER appuser
+RUN mkdir -p /app/logs && chown -R appuser:appuser /app/logs
 
-# Copy only the installed Python packages and the application code from the builder stage
+# Copy dependencies from builder stage
 COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
 COPY --from=builder /app /app
 
-# Expose the port your FastAPI application listens on
+# Expose the port the app will be listening on
 EXPOSE 8000
 
+# Run the FastAPI app using Gunicorn with Uvicorn workers
 CMD ["gunicorn", "main:app", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000"]

@@ -27,14 +27,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv()
 
-# In settings.py, right after load_dotenv()
-print("--- DEBUG DB SETTINGS FROM ENV ---")
-print(f"DB_USER: '{config('DB_USER')}'")
-print(f"DB_PASSWORD: '{config('DB_PASSWORD')}'")
-print(f"DB_NAME: '{config('DB_NAME')}'")
-print(f"DB_HOST: '{config('DB_HOST')}'")
-print(f"DB_PORT: '{config('DB_PORT')}'")
-print("--- END DEBUG DB SETTINGS FROM ENV ---")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
@@ -150,11 +142,11 @@ USE_TZ = False
 
 STATIC_URL = "static/"
 
-# --- ADD THIS LINE ---
+# --- MODIFIED THIS LINE ---
 STATIC_ROOT = (
-    BASE_DIR / "static_collected"
-)  # This path should match your docker-compose volume mount
-# --- END ADDITION ---
+    BASE_DIR / "home/static"
+)  # This path now correctly matches your docker-compose volume mount
+# --- END MODIFICATION ---
 
 LOGIN_URL = "/"
 

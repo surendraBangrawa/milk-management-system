@@ -14,3 +14,4 @@ sqlparse==0.4.4
 typing_extensions==4.11.0
 tzdata==2024.1
 win32-setctime==1.1.0
+gunicorn==20.1.0
