@@ -3,12 +3,27 @@ import { ExpoConfig } from "expo/config";
 
 const APP_ENV = process.env.APP_ENV || "dev";
 
+// Load environment variables based on APP_ENV
 require("dotenv").config({
   path: `.env.${APP_ENV}`,
 });
 
 export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
   const originalConfig = config;
+
+  const basePackageName = "com.yourcompany.digidairy";
+  const baseBundleIdentifier = "com.yourcompany.digidairy";
+
+  // Determine the package/bundle identifier based on APP_ENV
+  const androidPackage =
+    APP_ENV === "dev"
+      ? `${basePackageName}.dev` // e.g., com.yourcompany.digidairy.dev
+      : basePackageName; // e.g., com.yourcompany.digidairy
+
+  const iosBundleIdentifier =
+    APP_ENV === "dev"
+      ? `${baseBundleIdentifier}.dev` // e.g., com.yourcompany.digidairy.dev
+      : baseBundleIdentifier; // e.g., com.yourcompany.digidairy
 
   return {
     ...originalConfig,
@@ -33,9 +48,12 @@ export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
     ios: {
       ...originalConfig.ios,
       supportsTablet: originalConfig.ios?.supportsTablet || true,
+      bundleIdentifier: iosBundleIdentifier,
+      buildNumber: originalConfig.ios?.buildNumber || "1",
     },
     android: {
       ...originalConfig.android,
+      package: androidPackage,
       adaptiveIcon: {
         foregroundImage:
           originalConfig.android?.adaptiveIcon?.foregroundImage ||

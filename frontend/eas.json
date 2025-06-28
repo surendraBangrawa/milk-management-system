@@ -12,28 +12,29 @@
       }
     },
     "prod": {
-      "distribution": "store", // For submitting to app stores
+      // This is your base production profile
+      "distribution": "store",
       "env": {
-        "APP_ENV": "production" // Set the environment variable for production builds
+        "APP_ENV": "production"
       },
       "android": {
-        "buildType": "apk" // Specify APK build
+        "buildType": "apk"
       },
       "ios": {
-        "buildConfiguration": "Release" // Use Release build for production
+        "buildConfiguration": "Release"
       }
     },
     "dev": {
-      "extends": "production", // Inherit settings from production profile (optional)
-      "distribution": "internal", // Or "store" if you want to submit to internal testing tracks
+      "extends": "prod", // <-- Corrected: Changed from "production" to "prod"
+      "distribution": "internal",
       "env": {
-        "APP_ENV": "dev" // Set the environment variable for staging builds
+        "APP_ENV": "dev"
       },
       "android": {
-        "buildType": "apk" // Specify APK build
+        "buildType": "apk"
       },
       "ios": {
-        "buildConfiguration": "Release" // Use Release build for staging
+        "buildConfiguration": "Release"
       }
     }
   },

@@ -11,22 +11,23 @@ import * as Localization from "expo-localization";
 import { useFonts } from "expo-font";
 import Toast from "react-native-toast-message";
 
+// Prevent the splash screen from auto-hiding before asset loading is complete.
+SplashScreen.preventAutoHideAsync();
+
 export default function Root() {
   const { t, i18n } = useTranslation();
   const [fontsLoaded] = useFonts({
     NotoSansDevanagari: require("../assets/fonts/NotoSansDevanagari-Regular.ttf"),
   });
 
+  // This useEffect will always run on initial mount and when fontsLoaded changes
   useEffect(() => {
     if (fontsLoaded) {
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded]);
 
-  if (!fontsLoaded) {
-    return null; // Or a loading indicator
-  }
-
+  // This useEffect will also always run on initial mount and when i18n changes
   useEffect(() => {
     if (Platform.OS === "android") {
       const subscription = AppState.addEventListener(
@@ -47,6 +48,12 @@ export default function Root() {
       };
     }
   }, [i18n]);
+
+  // Only return null *after* all hooks have been called
+  if (!fontsLoaded) {
+    return null; // Or a loading indicator specific to fonts
+  }
+
   return (
     <Provider store={store}>
       <ThemeProvider>
