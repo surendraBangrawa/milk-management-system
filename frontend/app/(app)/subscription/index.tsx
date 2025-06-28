@@ -114,7 +114,7 @@ export default function Subscription() {
     >
       <Stack.Screen
         options={{
-          title: "Ratelist",
+          title: "Subscription Plans",
           headerStyle: {
             backgroundColor: colors.surface, // Example header background
           },

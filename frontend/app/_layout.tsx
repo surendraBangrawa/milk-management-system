@@ -5,27 +5,27 @@ import { Slot, SplashScreen } from "expo-router";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { AppState, Platform } from "react-native";
-import Toast from "react-native-toast-message";
 import { Provider } from "react-redux";
 import "../i18n";
 import * as Localization from "expo-localization";
 import { useFonts } from "expo-font";
+import Toast from "react-native-toast-message";
 
 export default function Root() {
   const { t, i18n } = useTranslation();
-  // const [fontsLoaded] = useFonts({
-  //   NotoSansDevanagari: require("./assets/fonts/NotoSansDevanagari-Regular.ttf"),
-  // });
+  const [fontsLoaded] = useFonts({
+    NotoSansDevanagari: require("../assets/fonts/NotoSansDevanagari-Regular.ttf"),
+  });
 
-  // useEffect(() => {
-  //   if (fontsLoaded) {
-  //     SplashScreen.hideAsync();
-  //   }
-  // }, [fontsLoaded]);
+  useEffect(() => {
+    if (fontsLoaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
 
-  // if (!fontsLoaded) {
-  //   return null; // Or a loading indicator
-  // }
+  if (!fontsLoaded) {
+    return null; // Or a loading indicator
+  }
 
   useEffect(() => {
     if (Platform.OS === "android") {

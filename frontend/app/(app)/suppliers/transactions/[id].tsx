@@ -7,22 +7,27 @@ import {
   Text,
   Alert,
 } from "react-native";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams } from "expo-router";
 import { formatDistanceToNow } from "date-fns";
 import Toast from "react-native-toast-message";
 import { getSupplierTransactionApi } from "@/redux/slice/supplier/supplierApi";
+import useTheme from "@/context/theme/useTheme";
 
-const getInitials = (name: string) => {
-  const nameParts = name.split(" ");
-  const firstInitial = nameParts[0].charAt(0).toUpperCase();
+const getInitials = (name: string | undefined | null): string => {
+  if (!name) return "";
+  const nameParts = name.split(" ").filter((part) => part.length > 0);
+  const firstInitial = nameParts[0]?.charAt(0).toUpperCase() || "";
   const lastInitial =
-    nameParts.length > 1 ? nameParts[1].charAt(0).toUpperCase() : "";
+    nameParts.length > 1
+      ? nameParts[nameParts.length - 1]?.charAt(0).toUpperCase() || ""
+      : "";
   return firstInitial + lastInitial;
 };
 
-const RandomAvatar = ({ name }: { name: string }) => {
-  const backgroundColor = "#6200ea"; // You can customize this color
-  const initials = getInitials(name); // Generate initials from the name
+const RandomAvatar = ({ name }: { name: string | undefined | null }) => {
+  const { colors } = useTheme();
+  const backgroundColor = colors.primaryLight;
+  const initials = getInitials(name);
   return (
     <View style={[styles.avatar, { backgroundColor }]}>
       <Text style={styles.avatarText}>{initials}</Text>
@@ -31,8 +36,10 @@ const RandomAvatar = ({ name }: { name: string }) => {
 };
 
 const TransactionScreen = () => {
-  const { id, name } = useLocalSearchParams();
+  const params = useLocalSearchParams();
+  const { id, name } = params as { id: string; name: string };
   const [transactions, setTransactions] = useState<any[]>([]);
+  const { colors } = useTheme();
 
   const fetchCustomerData = async () => {
     try {
@@ -41,7 +48,7 @@ const TransactionScreen = () => {
         const sortedData = res?.data?.sort((a, b) => {
           const dateA = new Date(a.added_at); // Sort by 'added_at' for display purposes
           const dateB = new Date(b.added_at);
-          return dateB - dateA;
+          return dateB.getTime() - dateA.getTime();
         });
         setTransactions(sortedData);
       }
@@ -77,27 +84,43 @@ const TransactionScreen = () => {
       <View
         style={[
           styles.transactionCard,
-          { borderLeftColor: item.amount < 0 ? "#F44336" : "#4CAF50" },
+          {
+            borderLeftColor: item.amount < 0 ? colors.error : colors.success,
+            backgroundColor: colors.surface,
+          },
         ]}
       >
         <View style={styles.leftSection}>
-          <Text style={styles.transactionDate}>
+          <Text
+            style={[styles.transactionDate, { color: colors.textSecondary }]}
+          >
             {formatDate(item.added_at)}
           </Text>
-          <Text style={styles.transactionAmount}>
+          <Text
+            style={[styles.transactionAmount, { color: colors.textPrimary }]}
+          >
             Amount: ₹{Math.abs(item.amount)}
           </Text>
-          <Text style={styles.transactionType}>
+          <Text style={[styles.transactionType, { color: colors.textPrimary }]}>
             {item.type === "expense" ? "Expense" : "Milk"}
           </Text>
           {item.expense_detail && (
             <View>
-              <Text style={styles.transactionExpenseDetail}>
+              <Text
+                style={[
+                  styles.transactionExpenseDetail,
+                  { color: colors.textSecondary },
+                ]}
+              >
                 Detail: {truncatedDetail}
               </Text>
               {item.expense_detail?.length > 50 && (
                 <Pressable onPress={() => handleReadMore(item.expense_detail)}>
-                  <Text style={styles.readMoreText}>Read More</Text>
+                  <Text
+                    style={[styles.readMoreText, { color: colors.primary }]}
+                  >
+                    Read More
+                  </Text>
                 </Pressable>
               )}
             </View>
@@ -105,10 +128,12 @@ const TransactionScreen = () => {
         </View>
 
         <View style={styles.rightSection}>
-          <Text style={styles.runningBalance}>
+          <Text style={[styles.runningBalance, { color: colors.textPrimary }]}>
             Running Balance: ₹{item.running_balance}
           </Text>
-          <Text style={styles.totalTillRecord}>
+          <Text
+            style={[styles.totalTillRecord, { color: colors.textSecondary }]}
+          >
             Total Till Record: ₹{item.total_till_record}
           </Text>
         </View>
@@ -117,18 +142,22 @@ const TransactionScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen
         options={{
           title: "",
+          headerStyle: { backgroundColor: colors.surface },
+          headerTintColor: colors.textPrimary,
           headerRight: () => (
             <View style={styles.headerLeft}>
               {name ? (
-                <RandomAvatar name={name as string} />
+                <RandomAvatar name={name} />
               ) : (
                 <RandomAvatar name="N/A" />
               )}
-              <Text style={styles.headerName}>{name}</Text>
+              <Text style={[styles.headerName, { color: colors.textPrimary }]}>
+                {name}
+              </Text>
             </View>
           ),
         }}
@@ -146,7 +175,6 @@ const TransactionScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f9f9f9", // Light background
     padding: 10,
   },
   headerLeft: {
@@ -159,8 +187,6 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     marginRight: 10,
-    borderWidth: 2,
-    borderColor: "#6200ea",
   },
   avatarText: {
     color: "#fff",
@@ -172,11 +198,9 @@ const styles = StyleSheet.create({
   headerName: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#333",
   },
   transactionCard: {
     padding: 15,
-    backgroundColor: "#fff",
     marginVertical: 8,
     borderRadius: 10,
     flexDirection: "row",
@@ -187,25 +211,20 @@ const styles = StyleSheet.create({
   },
   transactionDate: {
     fontSize: 14,
-    color: "#aaa",
   },
   transactionAmount: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#333",
     marginVertical: 5,
   },
   transactionType: {
     fontSize: 16,
     fontWeight: "500",
-    color: "#333",
   },
   transactionExpenseDetail: {
     fontSize: 14,
-    color: "#777",
   },
   readMoreText: {
-    color: "#2196F3",
     fontSize: 14,
     marginTop: 5,
   },
@@ -216,12 +235,10 @@ const styles = StyleSheet.create({
   runningBalance: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#333",
     marginTop: 5,
   },
   totalTillRecord: {
     fontSize: 14,
-    color: "#777",
   },
   actionButtons: {
     marginTop: 10,
