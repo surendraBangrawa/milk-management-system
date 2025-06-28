@@ -15,7 +15,8 @@
       // This is your base production profile
       "distribution": "store",
       "env": {
-        "APP_ENV": "production"
+        "APP_ENV": "production",
+        "API_BASE_URL": "http://your-production-api-url.com"
       },
       "android": {
         "buildType": "apk"
@@ -25,10 +26,11 @@
       }
     },
     "dev": {
-      "extends": "prod", // <-- Corrected: Changed from "production" to "prod"
+      "extends": "prod",
       "distribution": "internal",
       "env": {
-        "APP_ENV": "dev"
+        "APP_ENV": "dev",
+        "API_BASE_URL": "http://128.199.30.222:8000"
       },
       "android": {
         "buildType": "apk"

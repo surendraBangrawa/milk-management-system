@@ -20,6 +20,7 @@ export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
       ? `${basePackageName}.dev` // e.g., com.yourcompany.digidairy.dev
       : basePackageName; // e.g., com.yourcompany.digidairy
 
+  // The iOS bundle identifier logic remains the same.
   const iosBundleIdentifier =
     APP_ENV === "dev"
       ? `${baseBundleIdentifier}.dev` // e.g., com.yourcompany.digidairy.dev
@@ -62,12 +63,6 @@ export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
           originalConfig.android?.adaptiveIcon?.backgroundColor || "#ffffff",
       },
     },
-    web: {
-      ...originalConfig.web,
-      bundler: originalConfig.web?.bundler || "metro",
-      output: originalConfig.web?.output || "static",
-      favicon: originalConfig.web?.favicon || "./assets/images/favicon.png",
-    },
     plugins: originalConfig.plugins || [
       "expo-router",
       [
@@ -82,6 +77,14 @@ export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
       "expo-secure-store",
       "expo-localization",
       "expo-font",
+      [
+        "expo-build-properties",
+        {
+          android: {
+            usesCleartextTraffic: true,
+          },
+        },
+      ],
     ],
     experiments: {
       ...originalConfig.experiments,
