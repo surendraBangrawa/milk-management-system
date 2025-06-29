@@ -19,9 +19,13 @@ import {
   addCustomerTransactionApi,
   editCustomerTransactionApi,
 } from "@/redux/slice/transactions/transactionApi";
+import { useDispatch } from "react-redux";
+import { AppDispatch } from "@/redux/store";
+import { fetchSellerSummaries } from "@/redux/slice/transactions/transactionsSlice";
 
 const AddTransactionScreen = () => {
   const router = useRouter();
+  const dispatch = useDispatch<AppDispatch>();
   const { colors } = useTheme();
 
   const params = useLocalSearchParams();
@@ -147,6 +151,7 @@ const AddTransactionScreen = () => {
             effectiveType || "transaction"
           }!`, // Dynamic toast text
         });
+        dispatch(fetchSellerSummaries());
         // FIX: Use router.replace instead of router.push
         router.replace(
           `/(app)/customers/transactions/${effectiveSellerMobile}?name=${encodeURIComponent(
