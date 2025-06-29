@@ -6,7 +6,6 @@ import {
   View,
   TouchableOpacity,
   Platform,
-  ActivityIndicator,
 } from "react-native";
 import { useForm, Controller } from "react-hook-form";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -14,12 +13,13 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import Toast from "react-native-toast-message";
 import { Picker } from "@react-native-picker/picker";
 import { format } from "date-fns";
-import {
-  addSellerMilkTransactionApi,
-  editSellerTransactionApi,
-} from "@/redux/slice/transactions/transactionApi";
 import { getRate, Rate } from "@/redux/slice/ratelist/rateListApi";
 import useTheme from "@/context/theme/useTheme";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import {
+  addCustomerMilkTransactionApi,
+  editCustomerTransactionApi,
+} from "@/redux/slice/transactions/transactionApi";
 
 const fetchRate = async (data: Rate) => {
   try {
@@ -189,7 +189,6 @@ const AddMilk = () => {
         text1: "Invalid Input",
         text2: "Please enter valid numbers for Quantity, Fat, SNF, and Rate.",
       });
-      // Set specific errors if needed
       if (isNaN(quantityNum))
         setError("quantity", { type: "manual", message: "Invalid Quantity" });
       if (isNaN(fatNum))
@@ -200,14 +199,14 @@ const AddMilk = () => {
         setError("rate", { type: "manual", message: "Invalid Rate" });
       return;
     }
-    clearErrors(["quantity", "fat", "snf", "rate"]); // Clear errors if valid numbers
+    clearErrors(["quantity", "fat", "snf", "rate"]);
 
     const milkData = {
       quantity: quantityNum,
       fat: fatNum,
       snf: snfNum,
       milk_detail: data.note,
-      custom_date: format(data.date, "yyyy-MM-dd"), // Ensure date is formatted correctly
+      custom_date: format(data.date, "yyyy-MM-dd"),
       shift: data.shift,
       rate: rateNum,
       seller_mobile: effectiveSellerMobile,
@@ -215,12 +214,12 @@ const AddMilk = () => {
 
     try {
       const res = effectiveId
-        ? await editSellerTransactionApi({
+        ? await editCustomerTransactionApi({
             ...milkData,
             id: effectiveId,
             type: effectiveType,
           })
-        : await addSellerMilkTransactionApi(milkData);
+        : await addCustomerMilkTransactionApi(milkData);
       if (res?.status === 200) {
         Toast.show({
           type: "success",
@@ -266,7 +265,15 @@ const AddMilk = () => {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <KeyboardAwareScrollView
+      style={styles.keyboardAwareScrollViewContainer} // Flex: 1 here
+      contentContainerStyle={[
+        styles.container,
+        { backgroundColor: colors.background },
+      ]}
+      enableOnAndroid={true}
+      keyboardShouldPersistTaps="handled" // Keep the keyboard open after tapping
+    >
       <Stack.Screen
         options={{
           title: effectiveId ? "Edit Milk Transaction" : "Add Milk Transaction",
@@ -300,7 +307,7 @@ const AddMilk = () => {
             placeholderTextColor={colors.textSecondary}
             value={value}
             onChangeText={onChange}
-            onBlur={onBlur} // Make sure onBlur is passed for validation
+            onBlur={onBlur}
             keyboardType="numeric"
           />
         )}
@@ -317,7 +324,7 @@ const AddMilk = () => {
           required: "Fat % is required",
           pattern: {
             value: /^[0-9]+(\.[0-9]{1,2})?$/,
-            message: "Enter a valid fat % (e.g., 4.5)", // Improved message
+            message: "Enter a valid fat % (e.g., 4.5)",
           },
         }}
         render={({ field: { onChange, value, onBlur } }) => (
@@ -351,7 +358,7 @@ const AddMilk = () => {
           required: "SNF % is required",
           pattern: {
             value: /^[0-9]+(\.[0-9]{1,2})?$/,
-            message: "Enter a valid SNF % (e.g., 8.2)", // Improved message
+            message: "Enter a valid SNF % (e.g., 8.2)",
           },
         }}
         render={({ field: { onChange, value, onBlur } }) => (
@@ -398,7 +405,7 @@ const AddMilk = () => {
             placeholder="Enter any notes (optional)"
             placeholderTextColor={colors.textSecondary}
             multiline
-            numberOfLines={4} // Suggest a number of lines
+            numberOfLines={4}
           />
         )}
       />
@@ -464,8 +471,8 @@ const AddMilk = () => {
             <Picker
               selectedValue={value}
               onValueChange={onChange}
-              style={[styles.picker, { color: colors.textPrimary }]} // Apply text color
-              dropdownIconColor={colors.textSecondary} // Style the dropdown icon
+              style={[styles.picker, { color: colors.textPrimary }]}
+              dropdownIconColor={colors.textSecondary}
             >
               <Picker.Item label="Morning" value="M" />
               <Picker.Item label="Evening" value="E" />
@@ -501,10 +508,10 @@ const AddMilk = () => {
                     color: colors.textPrimary,
                   },
                 ]}
-                value={value || rate} // Use value from form state, fallback to local state rate
+                value={value || rate}
                 onChangeText={(text) => {
-                  onChange(text); // Update form state
-                  setRate(text); // Update local state (optional, for visual sync)
+                  onChange(text);
+                  setRate(text);
                 }}
                 onBlur={onBlur}
                 keyboardType="numeric"
@@ -546,13 +553,16 @@ const AddMilk = () => {
           Submit
         </Text>
       </TouchableOpacity>
-    </View>
+    </KeyboardAwareScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  keyboardAwareScrollViewContainer: {
     flex: 1,
+  },
+  container: {
+    flexGrow: 1,
     padding: 16,
   },
   input: {
@@ -592,7 +602,8 @@ const styles = StyleSheet.create({
   },
   button: {
     padding: 15,
-    marginVertical: 16,
+    marginTop: 16, // Keep space from above
+    marginBottom: 0,
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
@@ -611,22 +622,17 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     borderWidth: 1,
     borderRadius: 10,
-    // Increased height to provide more vertical space
-    height: 55, // Try 55 or even 60
+    height: 55,
     justifyContent: "center",
     overflow: "hidden",
   },
   picker: {
-    // Platform-specific height adjustment for Android
     ...Platform.select({
       android: {
-        height: 55, // Match container height for Android
-        // Add paddingVertical here if needed, but often the container handles it
-        // paddingVertical: 0, // Sometimes resetting internal padding helps
+        height: 55,
       },
       ios: {
-        // iOS pickers behave differently and usually don't have this issue
-        height: 100, // iOS picker takes more height for the wheel
+        height: 100,
       },
     }),
     width: "100%",

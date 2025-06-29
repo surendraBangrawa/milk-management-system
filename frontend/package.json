@@ -27,6 +27,7 @@
     "date-fns": "^4.1.0",
     "expo": "~52.0.47",
     "expo-blur": "~14.0.3",
+    "expo-build-properties": "~0.13.3",
     "expo-checkbox": "~4.0.1",
     "expo-constants": "~17.0.8",
     "expo-contacts": "~14.0.5",
@@ -53,6 +54,7 @@
     "react-i18next": "^15.5.1",
     "react-native": "0.76.9",
     "react-native-gesture-handler": "~2.20.2",
+    "react-native-keyboard-aware-scroll-view": "^0.9.5",
     "react-native-localize": "^3.4.1",
     "react-native-paper": "^5.13.1",
     "react-native-reanimated": "~3.16.1",
@@ -61,8 +63,7 @@
     "react-native-toast-message": "^2.2.1",
     "react-native-web": "~0.19.13",
     "react-native-webview": "13.12.5",
-    "react-redux": "^9.2.0",
-    "expo-build-properties": "~0.13.3"
+    "react-redux": "^9.2.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
