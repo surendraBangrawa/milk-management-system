@@ -67,8 +67,6 @@ const RangeInputScreen = () => {
       return; // Stop here and wait for user confirmation
     }
 
-    console.log(sFat, eFat, sSnf, eSnf, "Ranges for Table Generation");
-
     router.push(
       `/(app)/ratelist/inputtable?sf=${sFat}&ef=${eFat}&ss=${sSnf}&es=${eSnf}`
     );
