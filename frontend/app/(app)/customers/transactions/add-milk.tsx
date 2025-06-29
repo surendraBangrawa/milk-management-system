@@ -20,6 +20,9 @@ import {
   addCustomerMilkTransactionApi,
   editCustomerTransactionApi,
 } from "@/redux/slice/transactions/transactionApi";
+import { useDispatch } from "react-redux";
+import { AppDispatch } from "@/redux/store";
+import { fetchSellerSummaries } from "@/redux/slice/transactions/transactionsSlice";
 
 const fetchRate = async (data: Rate) => {
   try {
@@ -37,6 +40,7 @@ const fetchRate = async (data: Rate) => {
 };
 
 const AddMilk = () => {
+  const dispatch = useDispatch<AppDispatch>();
   const params = useLocalSearchParams();
   const { colors } = useTheme();
 
@@ -229,6 +233,7 @@ const AddMilk = () => {
           } transaction!`,
         });
         if (effectiveSellerMobile && effectiveName) {
+          dispatch(fetchSellerSummaries());
           router.replace(
             `/(app)/customers/transactions/${effectiveSellerMobile}?name=${encodeURIComponent(
               effectiveName
