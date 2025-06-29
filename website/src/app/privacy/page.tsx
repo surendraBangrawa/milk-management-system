@@ -268,11 +268,11 @@ const PrivacyPolicyPage = () => {
               <li>
                 By email:{" "}
                 <a
-                  href="mailto:privacy@digidairy.com"
+                  href="mailto:digidairyraj@gmail.com"
                   style={{ color: colors.primary }} // Apply primary color for links
                   className="hover:underline"
                 >
-                  privacy@digidairy.com
+                  digidairyraj@gmail.com
                 </a>
               </li>
               <li>

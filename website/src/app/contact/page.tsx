@@ -27,19 +27,19 @@ const ContactUsPage = () => {
               <p>
                 <span className="font-semibold">Email:</span>{" "}
                 <a
-                  href="mailto:support@digidairy.com"
+                  href="mailto:digidairyraj@gmail.com"
                   className="text-[#0a7ea4] hover:underline"
                 >
-                  support@digidairy.com
+                  digidairyraj@gmail.com
                 </a>
               </p>
               <p>
                 <span className="font-semibold">Phone:</span>{" "}
                 <a
-                  href="tel:+911234567890"
+                  href="tel:+918875353053"
                   className="text-[#0a7ea4] hover:underline"
                 >
-                  +91 12345 67890
+                  +91 8875353053
                 </a>{" "}
                 (Mon-Fri, 9 AM - 6 PM IST)
               </p>

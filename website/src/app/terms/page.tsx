@@ -263,11 +263,11 @@ const TermsAndConditionsPage = () => {
               <li>
                 By email:{" "}
                 <a
-                  href="mailto:legal@digidairy.com"
+                  href="mailto:digidairyraj@gmail.com"
                   className="hover:underline"
                   style={{ color: colors.primary }} // Apply primary color for links
                 >
-                  legal@digidairy.com
+                  digidairyraj@gmail.com
                 </a>
               </li>
               <li>

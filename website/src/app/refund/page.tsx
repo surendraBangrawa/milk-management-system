@@ -139,11 +139,11 @@ const RefundPolicyPage = () => {
               <li>
                 Send an email to{" "}
                 <a
-                  href="mailto:billing@digidairy.com"
+                  href="mailto:digidairyraj@gmail.com"
                   className="hover:underline"
                   style={{ color: colors.primary }} // Apply primary color for links
                 >
-                  billing@digidairy.com
+                  digidairyraj@gmail.com
                 </a>{" "}
                 within <strong>14 days</strong> of the purchase date.
               </li>
@@ -209,11 +209,11 @@ const RefundPolicyPage = () => {
               <li>
                 By email:{" "}
                 <a
-                  href="mailto:billing@digidairy.com"
+                  href="mailto:digidairyraj@gmail.com"
                   className="hover:underline"
                   style={{ color: colors.primary }} // Apply primary color for links
                 >
-                  billing@digidairy.com
+                  digidairyraj@gmail.com
                 </a>
               </li>
               <li>
