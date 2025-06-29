@@ -116,8 +116,6 @@ export default function TabTwoScreen() {
       signOut();
     } else if (option.path) {
       router.push(option.path);
-    } else {
-      console.log(`${t(option.labelKey)}: Action not implemented or handled.`);
     }
   };
 

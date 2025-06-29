@@ -7,7 +7,7 @@ export interface AddSellerTransaction {
   seller_mobile: string;
   amount: number;
   expense_detail: string;
-  transaction_type: "GAVE" | "GOT";
+  transaction_type: string | undefined;
   custom_date: string;
 }
 export interface DeleteSellerTransaction {
@@ -17,10 +17,10 @@ export interface DeleteSellerTransaction {
 }
 
 export interface EditSellerTransaction {
-  seller_mobile: string;
-  amount: number;
-  expense_detail: string;
-  transaction_type: "GAVE" | "GOT";
+  seller_mobile: string | undefined;
+  amount?: number;
+  expense_detail?: string;
+  transaction_type?: string | undefined;
   custom_date: string;
   id: string;
   type?: string;
@@ -39,7 +39,7 @@ export interface AddSellerMilkTransaction {
   custom_date: string;
   shift: string;
   rate: number;
-  seller_mobile: string;
+  seller_mobile: string | undefined;
 }
 
 export const getCustomerSummaryApi = async () => {

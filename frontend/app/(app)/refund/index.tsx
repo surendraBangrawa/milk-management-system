@@ -5,24 +5,25 @@ import { Heading, Paragraph, Section } from "@/components/InfoPageComponents";
 
 export default function RefundPolicyScreen() {
   const { t } = useTranslation();
+  // Ensure the date is dynamically pulled or consistently managed.
+  // For now, we'll use the current date to reflect up-to-dateness.
+  const lastUpdatedDate = "June 29, 2025";
+
   return (
     <StaticInfoScreen title={t("more.refund_policy")}>
       <Section>
-        <Heading>Our Policy</Heading>
-        <Paragraph>
-          If you are not satisfied with our service, we offer a refund for any
-          undelivered products or payments made in advance.
-        </Paragraph>
+        <Heading>{t("more.refund_policy_our_policy_heading")}</Heading>
+        <Paragraph>{t("more.refund_policy_our_policy_paragraph")}</Paragraph>
       </Section>
       <Section>
-        <Heading>How to Request a Refund</Heading>
+        <Heading>{t("more.refund_policy_how_to_request_heading")}</Heading>
         <Paragraph>
-          To request a refund, please contact our support team through the
-          'Contact Us' section with your account details and the reason for the
-          request. Refunds are typically processed within 5-7 business days.
+          {t("more.refund_policy_how_to_request_paragraph")}
         </Paragraph>
       </Section>
-      <Paragraph>Last updated: [Date]</Paragraph>
+      <Paragraph>
+        {t("more.refund_policy_last_updated", { date: lastUpdatedDate })}
+      </Paragraph>
     </StaticInfoScreen>
   );
 }

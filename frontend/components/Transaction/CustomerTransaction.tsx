@@ -131,7 +131,7 @@ const CustomerTransaction = ({
         item.seller_mobile
       }&desc=${encodeURIComponent(item.milk_detail)}&date=${encodeURIComponent(
         item.custom_date
-      )}&rate=${item.rate}&name=${encodeURIComponent(customerName)}&quantity=${
+      )}&rate=${item.rate}&name=${encodeURIComponent(customer)}&quantity=${
         item.quantity
       }&snf=${item.snf}&fat=${item.fat}&type=${item.type}`;
     } else {

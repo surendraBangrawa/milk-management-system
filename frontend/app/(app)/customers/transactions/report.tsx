@@ -29,27 +29,33 @@ const ReportScreen = () => {
   const transactions = useSelector(
     (state: RootState) => state.transactions.sellerTransactions
   );
-  const loading = useSelector(
+  const loading: boolean = useSelector(
     (state: RootState) => state.transactions.sellerTransactionsLoading
   );
-  const error = useSelector(
+  const error: string | null = useSelector(
     (state: RootState) => state.transactions.sellerTransactionsError
   );
   const { colors } = useTheme();
-  const params = useLocalSearchParams();
-  const sellerId = Array.isArray(params.seller_mobile)
+
+  const params = useLocalSearchParams<{
+    seller_mobile: string;
+    name: string;
+  }>();
+
+  const sellerId: string | undefined = Array.isArray(params.seller_mobile)
     ? params.seller_mobile[0]
     : params.seller_mobile;
-  const customerName = Array.isArray(params.name)
+  const customerName: string | undefined = Array.isArray(params.name)
     ? params.name[0]
     : params.name;
 
-  const [startDate, setStartDate] = useState(new Date());
-  const [endDate, setEndDate] = useState(new Date());
-  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
-  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const [startDate, setStartDate] = useState<Date>(new Date());
+  const [endDate, setEndDate] = useState<Date>(new Date());
+  const [showStartDatePicker, setShowStartDatePicker] =
+    useState<boolean>(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState<boolean>(false);
 
-  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState<boolean>(false);
 
   useEffect(() => {
     if (sellerId) {
@@ -58,9 +64,9 @@ const ReportScreen = () => {
   }, [dispatch, sellerId]);
 
   const filteredTransactions = transactions.filter((transaction) => {
-    const transactionDate = new Date(
-      transaction.custom_date || transaction.added_at
-    );
+    const dateString = transaction.custom_date || transaction.added_at;
+    const transactionDate = new Date(dateString);
+
     const startOfDayStartDate = new Date(
       startDate.getFullYear(),
       startDate.getMonth(),
@@ -82,15 +88,15 @@ const ReportScreen = () => {
     );
   });
 
-  const renderTransactionItem = ({ item }) => (
+  const renderTransactionItem = ({ item }: { item }) => (
     <ReportCustomerTransaction item={item} />
   );
 
-  const formatDateForDisplay = (date) => {
+  const formatDateForDisplay = (date: Date | null | undefined): string => {
     return date ? moment(date).format("DD/MM/YYYY") : "Select Date";
   };
 
-  const blobToBase64 = (blob) => {
+  const blobToBase64 = (blob: Blob): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -102,20 +108,19 @@ const ReportScreen = () => {
         }
       };
       reader.onerror = (error) => {
-        console.error("FileReader error:", error);
         reject(error);
       };
       reader.readAsDataURL(blob);
     });
   };
 
-  const generatePdfApiCall = async () => {
+  const generatePdfApiCall = async (): Promise<string | null> => {
     try {
       const formattedStartDate = format(startDate, "yyyy-MM-dd");
       const formattedEndDate = format(endDate, "yyyy-MM-dd");
 
-      const pdfBlob = await getMilkReportTransactionApi({
-        sellerId,
+      const pdfBlob: Blob = await getMilkReportTransactionApi({
+        sellerId: sellerId || "",
         startDate: formattedStartDate,
         endDate: formattedEndDate,
       });
@@ -126,7 +131,7 @@ const ReportScreen = () => {
 
       const pdfBase64 = await blobToBase64(pdfBlob);
       return pdfBase64;
-    } catch (error) {
+    } catch (error: any) {
       Toast.show({
         type: "error",
         text1: "Error",
@@ -146,46 +151,57 @@ const ReportScreen = () => {
         return;
       }
 
-      const filename = `Report_${customerName}_${format(
+      const safeCustomerName = customerName || "UnknownCustomer";
+      const filename = `Report_${safeCustomerName}_${format(
         startDate,
         "yyyyMMdd"
       )}_${format(endDate, "yyyyMMdd")}.pdf`;
-      const fileUri = `${FileSystem.cacheDirectory}${filename}`;
-      await FileSystem.writeAsStringAsync(fileUri, pdfBase64, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
+
+      // Temporarily store the PDF in cache for non-Android platforms or as a fallback
+      // For Android, we will directly write to the SAF URI.
+      let tempFileUri: string | undefined;
+      if (Platform.OS !== "android") {
+        tempFileUri = `${FileSystem.cacheDirectory}${filename}`;
+        await FileSystem.writeAsStringAsync(tempFileUri, pdfBase64, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+      }
 
       if (Platform.OS === "android") {
-        let isSavedToPublicFolder = false;
         try {
           const permissions =
             await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
 
           if (permissions.granted) {
             try {
-              const newUri =
+              if (!permissions.directoryUri) {
+                const msg = "Directory URI not provided despite being granted.";
+                throw new Error(msg);
+              }
+
+              const finalFileUri =
                 await FileSystem.StorageAccessFramework.createFileAsync(
                   permissions.directoryUri,
                   filename,
                   "application/pdf"
                 );
-              await FileSystem.copyAsync({ from: fileUri, to: newUri });
-              isSavedToPublicFolder = true; // Mark as successful public save
+
+              await FileSystem.writeAsStringAsync(finalFileUri, pdfBase64, {
+                encoding: FileSystem.EncodingType.Base64,
+              });
+
               Toast.show({
                 type: "success",
                 text1: "Downloaded",
-                text2: `Report saved to your Downloads folder.`,
+                text2: `Report saved to: ${finalFileUri.split("/").pop()}`,
               });
-              await FileSystem.deleteAsync(fileUri, { idempotent: true });
-            } catch (androidSaveError) {
-              console.warn(
-                "Android: Failed to save to user-selected public folder:",
-                androidSaveError
-              );
+            } catch (androidSaveError: any) {
               Toast.show({
-                type: "error", // Change to error if public save is the main goal
+                type: "error",
                 text1: "Download Failed",
-                text2: `Could not save to Downloads. Please try again.`,
+                text2: `Could not save to chosen folder: ${
+                  androidSaveError.message || "Unknown error"
+                }`,
               });
             }
           } else {
@@ -195,11 +211,7 @@ const ReportScreen = () => {
               text2: "Cannot save to public folders without permission.",
             });
           }
-        } catch (permissionRequestError) {
-          console.error(
-            "Android: Error requesting storage permission:",
-            permissionRequestError
-          );
+        } catch (permissionRequestError: any) {
           Toast.show({
             type: "error",
             text1: "Permission Error",
@@ -208,13 +220,20 @@ const ReportScreen = () => {
             }`,
           });
         }
+      } else {
+        Toast.show({
+          type: "success",
+          text1: "Downloaded",
+          text2: `Report saved to cache directory.`,
+        });
       }
-    } catch (error) {
-      console.error("Error downloading PDF:", error);
+    } catch (error: any) {
       Toast.show({
         type: "error",
         text1: "Download Failed",
-        text2: `Could not download PDF: ${error.message || "Unknown error"}`,
+        text2: `An unexpected error occurred: ${
+          error.message || "Unknown error"
+        }`,
       });
     } finally {
       setIsGeneratingPdf(false);
@@ -231,7 +250,8 @@ const ReportScreen = () => {
         return;
       }
 
-      const filename = `Report_${customerName}_${format(
+      const safeCustomerName = customerName || "UnknownCustomer";
+      const filename = `Report_${safeCustomerName}_${format(
         startDate,
         "yyyyMMdd"
       )}_${format(endDate, "yyyyMMdd")}.pdf`;
@@ -255,11 +275,11 @@ const ReportScreen = () => {
         UTI: "com.adobe.pdf",
         dialogTitle: "Share Report",
       });
-    } catch (error) {
+    } catch (error: any) {
       Toast.show({
         type: "error",
         text1: "Share Failed",
-        text2: `Could not share PDF`,
+        text2: `Could not share PDF: ${error.message || "Unknown error"}`,
       });
     } finally {
       setIsGeneratingPdf(false);
@@ -314,7 +334,7 @@ const ReportScreen = () => {
       <DatePickerModal
         visible={showStartDatePicker}
         onClose={() => setShowStartDatePicker(false)}
-        onConfirm={(date) => {
+        onConfirm={(date: Date) => {
           if (date > endDate) {
             Toast.show({
               type: "error",
@@ -330,7 +350,7 @@ const ReportScreen = () => {
       <DatePickerModal
         visible={showEndDatePicker}
         onClose={() => setShowEndDatePicker(false)}
-        onConfirm={(date) => {
+        onConfirm={(date: Date) => {
           if (date < startDate) {
             Toast.show({
               type: "error",
@@ -360,7 +380,9 @@ const ReportScreen = () => {
         <FlatList
           data={filteredTransactions}
           renderItem={renderTransactionItem}
-          keyExtractor={(_, index) => index.toString()}
+          keyExtractor={(item, index) =>
+            item.id ? item.id.toString() : index.toString()
+          }
           contentContainerStyle={styles.transactionList}
           showsVerticalScrollIndicator={false}
         />

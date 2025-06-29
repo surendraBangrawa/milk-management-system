@@ -7,6 +7,7 @@ import {
   Alert,
   ActivityIndicator,
   TouchableOpacity,
+  Linking,
 } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import Toast from "react-native-toast-message";
@@ -21,6 +22,7 @@ import {
 import useTheme from "@/context/theme/useTheme";
 import CustomerTransaction from "@/components/Transaction/CustomerTransaction";
 
+// Helper function to get initials for avatar
 const getInitials = (name: string | undefined | null): string => {
   if (!name) return "";
   const nameParts = name.split(" ").filter((part) => part.length > 0);
@@ -32,6 +34,7 @@ const getInitials = (name: string | undefined | null): string => {
   return firstInitial + lastInitial;
 };
 
+// Avatar component
 const RandomAvatar = ({ name }: { name: string | undefined | null }) => {
   const { colors } = useTheme();
   const backgroundColor = colors.primaryLight;
@@ -68,12 +71,14 @@ const TransactionScreen = () => {
     (state: RootState) => state.transactions.deleteTransactionError
   );
 
+  // Fetch transactions when the screen loads or sellerId changes
   useEffect(() => {
     if (sellerId) {
       dispatch(fetchSellerTransactionsById(sellerId));
     }
   }, [dispatch, sellerId]);
 
+  // Show a toast message if transaction deletion fails
   useEffect(() => {
     if (deleteTransactionError) {
       Toast.show({
@@ -84,33 +89,90 @@ const TransactionScreen = () => {
     }
   }, [deleteTransactionError]);
 
-  const handleReminder = () => {
-    // You would typically open a modal or action sheet here
-    // to let the user choose between SMS and WhatsApp.
-    Alert.alert(
-      "Send Reminder",
-      "Choose how to send the reminder:\n\n- SMS\n- WhatsApp",
-      [
-        {
-          text: "SMS",
-          onPress: () => Alert.alert("SMS Reminder", "Sending SMS..."),
-        },
-        {
-          text: "WhatsApp",
-          onPress: () =>
-            Alert.alert("WhatsApp Reminder", "Opening WhatsApp..."),
-        },
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-      ]
+  // Helper function to calculate balance/credit status using + or -
+  const formatBalanceStatus = (transactions: Transaction[]) => {
+    const totalAmount = transactions.reduce(
+      (total, transaction) => total + transaction.amount,
+      0
     );
+
+    // If balance is positive, use "+"
+    if (totalAmount > 0) {
+      return `+₹${totalAmount}`;
+    }
+    // If balance is negative, use "-"
+    else if (totalAmount < 0) {
+      return `-₹${Math.abs(totalAmount)}`;
+    }
+    // If balance is zero
+    else {
+      return "₹0";
+    }
   };
 
+  const handleReminder = () => {
+    const balanceStatus = formatBalanceStatus(transactions);
+
+    // Show alert to choose SMS or WhatsApp
+    Alert.alert("Send Reminder", "Choose how to send this reminder:", [
+      {
+        text: "SMS",
+        onPress: () => {
+          if (sellerId) {
+            const url = `sms:${sellerId}?body=${encodeURIComponent(
+              `Friendly Reminder from DigiDairy! Your current balance is: ${balanceStatus}\n\nThank you for being a valued customer!`
+            )}`;
+            Linking.openURL(url).catch((err) =>
+              Toast.show({
+                type: "error",
+                text1: "Error",
+                text2: "Failed to open SMS app.",
+              })
+            );
+          } else {
+            Toast.show({
+              type: "error",
+              text1: "Error",
+              text2: "Customer contact number is missing.",
+            });
+          }
+        },
+      },
+      {
+        text: "WhatsApp",
+        onPress: () => {
+          if (sellerId) {
+            // Ensure sellerId is a valid mobile number (10 digits in India)
+            const url = `whatsapp://send?phone=91${sellerId}&text=${encodeURIComponent(
+              `Friendly Reminder from DigiDairy! Your current balance is: ${balanceStatus}\n\nThank you for being a valued customer!`
+            )}`;
+            Linking.openURL(url).catch((err) =>
+              Toast.show({
+                type: "error",
+                text1: "Error",
+                text2:
+                  "Failed to open WhatsApp. Please ensure WhatsApp is installed.",
+              })
+            );
+          } else {
+            Toast.show({
+              type: "error",
+              text1: "Error",
+              text2: "Customer contact number is missing.",
+            });
+          }
+        },
+      },
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+    ]);
+  };
+
+  // Handlers for navigation to add different transaction types
   const handlePressTransaction = (transactionType: "Gave" | "Got") => {
     if (!sellerId || !customerName) {
-      console.error("Missing seller ID or name for transaction navigation.");
       Toast.show({
         type: "error",
         text1: "Error",
@@ -127,9 +189,6 @@ const TransactionScreen = () => {
 
   const handlePressMilk = () => {
     if (!sellerId || !customerName) {
-      console.error(
-        "Missing seller ID or name for milk transaction navigation."
-      );
       Toast.show({
         type: "error",
         text1: "Error",
@@ -152,6 +211,7 @@ const TransactionScreen = () => {
     );
   };
 
+  // Render individual transaction item
   const renderTransaction = ({ item }: { item: Transaction }) => {
     return (
       <CustomerTransaction
@@ -317,7 +377,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 38,
   },
-  // Custom Header Bar Styles
   customHeaderBar: {
     flexDirection: "row",
     justifyContent: "space-around",
@@ -325,11 +384,11 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 5,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee", // Use a light border color from your theme if available
-    marginBottom: 10, // Space between this header and the list
+    borderBottomColor: "#eee",
+    marginBottom: 10,
     borderRadius: 8,
-    marginHorizontal: 16, // Match screen padding
-    marginTop: 8, // Space below native header
+    marginHorizontal: 16,
+    marginTop: 8,
   },
   customHeaderButton: {
     flexDirection: "row",
@@ -367,7 +426,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-around",
     alignItems: "center",
     paddingVertical: 10,
-    borderTopWidth: 1,
     position: "absolute",
     bottom: 0,
     left: 0,

@@ -1,25 +1,23 @@
+import { Heading, Paragraph, Section } from "@/components/InfoPageComponents";
+import StaticInfoScreen from "@/components/StaticInfoScreen";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import StaticInfoScreen from "@/components/StaticInfoScreen";
-import { Heading, Paragraph, Section } from "@/components/InfoPageComponents";
 
 export default function HelpScreen() {
   const { t } = useTranslation();
   return (
     <StaticInfoScreen title={t("more.help")}>
       <Section>
-        <Heading>Frequently Asked Questions</Heading>
+        <Heading>{t("more.help_faq_heading")}</Heading>
         <Paragraph>
-          How do I update my daily milk quantity?
+          {t("more.help_faq_q1")}
           {"\n"}
-          You can update your daily quantity from the 'Summary' tab on the home
-          screen.
+          {t("more.help_faq_a1")}
         </Paragraph>
         <Paragraph>
-          How can I view my past bills?
+          {t("more.help_faq_q2")}
           {"\n"}
-          All past and current bills are available in the 'Manage Subscription'
-          section.
+          {t("more.help_faq_a2")}
         </Paragraph>
       </Section>
     </StaticInfoScreen>

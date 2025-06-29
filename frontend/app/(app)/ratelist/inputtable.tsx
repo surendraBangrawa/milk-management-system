@@ -20,7 +20,6 @@ const API_BASE_URL = "YOUR_BACKEND_API_BASE_URL"; // ** IMPORTANT: Replace with 
 // --- Memoized Component for a Single Table Row ---
 const RateTableRow = React.memo(
   ({ item, value, onChangeText, columnWidths }) => {
-    // console.log(`Rendering row: ${item.key}`); // Uncomment to debug re-renders
     return (
       <View style={styles.tableRow}>
         <View style={[styles.cell, { width: columnWidths.fat }]}>

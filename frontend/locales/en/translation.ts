@@ -16,7 +16,7 @@ const enTranslations = {
     slide3_title: "Track Your Profits",
     slide3_desc:
       "Get clear summaries of your earnings, expenses, and overall financial health. Make informed decisions for your dairy.",
-    dot_label: "Go to slide {{index}}", // For accessibility, {{index}} is a placeholder
+    dot_label: "Go to slide {{index}}",
   },
   common: {
     error: "Error",
@@ -24,7 +24,7 @@ const enTranslations = {
     try_again: "Please try again.",
     error_verifying_otp: "Error verifying OTP",
     error_sending_otp: "Error sending OTP",
-    something_went_wrong: "Something went wrong. Please try again.", // New generic error
+    something_went_wrong: "Something went wrong. Please try again.",
   },
   signup: {
     title: "Sign Up",
@@ -34,7 +34,7 @@ const enTranslations = {
     phone_required: "Phone number is required",
     phone_invalid: "Please enter a valid 10-digit phone number",
     referral_placeholder: "Enter referral code (Optional)",
-    referral_optional_error_placeholder: "Referral code is optional", // For consistent spacing
+    referral_optional_error_placeholder: "Referral code is optional",
     agree_to_the: "I agree to the",
     terms_and_conditions: "Terms and Conditions",
     terms_required: "You must agree to the terms and conditions",
@@ -53,7 +53,7 @@ const enTranslations = {
     login_button: "Login",
     otp_success: "OTP sent successfully!",
     otp_failed_fallback: "Failed to send OTP. Please try again.",
-    loading_text: "Loading session...", // Used in HeroScreen's loading state, but good to have here too
+    loading_text: "Loading session...",
     no_account_prompt: "Don't have an account?",
     signup_link: "Sign Up",
   },
@@ -64,7 +64,7 @@ const enTranslations = {
     otp_length_invalid: "OTP must be 6 digits",
     verify_button: "Verify OTP",
     resend_button: "Resend OTP",
-    resend_timer: "Resend OTP in {{minutes}}:{{seconds}}", // Interpolation for timer
+    resend_timer: "Resend OTP in {{minutes}}:{{seconds}}",
     phone_not_found: "Phone number not found.",
     login_failed_no_token: "Login failed: No access token.",
     invalid_otp_fallback: "Invalid OTP",
@@ -95,12 +95,63 @@ const enTranslations = {
   language_screen: {
     select_language: "Select Your Language",
     current_language: "Current Language",
-    english: "English", // This is the key for the English name
-    hindi: "Hindi", // This is the key for the Hindi name
+    english: "English",
+    hindi: "Hindi",
     unknown_language: "Unknown",
     change_success: "Language changed successfully!",
     change_error: "Failed to change language. Please try again.",
   },
+  more: {
+    information_and_support: "Information & Support",
+    about_us: "About Us",
+    about_us_mission_heading: "Our Mission",
+    about_us_mission_paragraph:
+      "Welcome to DigiDairy! Our mission is to simplify milk management for households and businesses, ensuring timely deliveries and accurate billing. We are dedicated to providing a seamless and reliable service.",
+    about_us_who_we_are_heading: "Who We Are",
+    about_us_who_we_are_paragraph:
+      "We are a team of passionate developers and dairy enthusiasts committed to revolutionizing the way milk is managed and delivered.",
+    contact_us: "Contact Us",
+    contact_us_get_in_touch_heading: "Get in Touch",
+    contact_us_get_in_touch_paragraph:
+      "Have questions or need support? We're here to help!",
+    contact_us_email_heading: "Email",
+    contact_us_email_address: "support@example.com",
+    contact_us_phone_heading: "Phone",
+    contact_us_phone_number: "+1 (234) 567-890",
+    contact_us_address_heading: "Address",
+    contact_us_address_details: "123 Dairy Lane, Milkville, MK 45678",
+    terms_and_conditions: "Terms and Conditions",
+    terms_intro_heading: "1. Introduction",
+    terms_intro_paragraph:
+      "Welcome to DigiDairy! These terms and conditions outline the rules and regulations for the use of our application. By accessing this app, we assume you accept these terms and conditions.",
+    terms_accounts_heading: "2. User Accounts",
+    terms_accounts_paragraph:
+      "When you create an account with us, you must provide information that is accurate, complete, and current at all times. Failure to do so constitutes a breach of the Terms.",
+    terms_last_updated: "Last updated: {{date}}",
+    privacy_policy: "Privacy Policy",
+    privacy_policy_intro_heading: "Introduction",
+    privacy_policy_intro_paragraph:
+      "Your privacy is important to us. This privacy statement explains the personal data DigiDairy processes, how DigiDairy processes it, and for what purposes.",
+    privacy_policy_data_heading: "Data We Collect",
+    privacy_policy_data_paragraph:
+      "We collect data to operate effectively and provide you with the best experiences with our services. This includes your name, delivery address, and payment information.",
+    privacy_policy_last_updated: "Last updated: {{date}}",
+    refund_policy: "Refund Policy",
+    refund_policy_our_policy_heading: "Our Policy",
+    refund_policy_our_policy_paragraph:
+      "If you are not satisfied with our service, we offer a refund for any undelivered products or payments made in advance.",
+    refund_policy_how_to_request_heading: "How to Request a Refund",
+    refund_policy_how_to_request_paragraph:
+      "To request a refund, please contact our support team through the 'Contact Us' section with your account details and the reason for the request. Refunds are typically processed within 5-7 business days.",
+    refund_policy_last_updated: "Last updated: {{date}}",
+    help: "Help",
+    help_faq_heading: "Frequently Asked Questions",
+    help_faq_q1: "How do I update my daily milk quantity?",
+    help_faq_a1:
+      "You can update your daily quantity from the 'Summary' tab on the home screen.",
+    help_faq_q2: "How can I view my past bills?",
+    help_faq_a2:
+      "All past and current bills are available in the 'Manage Subscription' section.",
+  },
 };
-
 export default enTranslations;

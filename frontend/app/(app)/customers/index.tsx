@@ -137,13 +137,9 @@ const CustomerScreen = () => {
           <Text style={[styles.personPhone, { color: colors.textSecondary }]}>
             {item.mobile || "N/A"}
           </Text>
-          {item.date ? (
+          {item.date && (
             <Text style={[styles.personDate, { color: colors.textSecondary }]}>
               {formatDate(item.date)}
-            </Text>
-          ) : (
-            <Text style={[styles.personDate, { color: colors.textSecondary }]}>
-              No date provided
             </Text>
           )}
         </View>
