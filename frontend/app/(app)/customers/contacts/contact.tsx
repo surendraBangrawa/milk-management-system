@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react"; // Added useMemo
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   TextInput,
@@ -8,13 +8,13 @@ import {
   Pressable,
   Text,
   Image,
-  Platform, // Import Platform
-  ActivityIndicator, // Added ActivityIndicator for contacts loading
+  Platform,
+  ActivityIndicator,
 } from "react-native";
 import * as Contacts from "expo-contacts";
 import { Stack, useRouter } from "expo-router";
 
-import useTheme from "@/context/theme/useTheme"; // Import useTheme
+import useTheme from "@/context/theme/useTheme";
 import Toast from "react-native-toast-message";
 
 const getInitials = (name: string | undefined | null): string => {
@@ -29,8 +29,8 @@ const getInitials = (name: string | undefined | null): string => {
 };
 
 const RandomAvatar = ({ name }: { name: string | undefined | null }) => {
-  const { colors } = useTheme(); // Use useTheme hook
-  const backgroundColor = colors.primaryLight; // Use lighter primary color from theme
+  const { colors } = useTheme();
+  const backgroundColor = colors.primaryLight;
   const initials = getInitials(name);
   return (
     <View style={[styles.avatar, { backgroundColor }]}>
@@ -41,95 +41,119 @@ const RandomAvatar = ({ name }: { name: string | undefined | null }) => {
 
 const AddCustomerScreen = () => {
   const router = useRouter();
-  const { colors } = useTheme(); // Use the useTheme hook
+  const { colors } = useTheme();
 
-  const [contacts, setContacts] = useState<Contacts.Contact[]>([]); // Use Contacts.Contact type
+  const [contacts, setContacts] = useState<Contacts.Contact[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [loading, setLoading] = useState(true); // State for loading contacts
+  const [loading, setLoading] = useState(true);
 
-  // Filter contacts based on search query using useMemo for performance
-  const filteredContacts = useMemo(() => {
-    if (!searchQuery) {
-      return contacts; // If no search query, show all contacts
-    }
-    const lowerCaseQuery = searchQuery.toLowerCase();
-    return contacts.filter(
-      (contact) =>
-        (contact.name &&
-          contact.name.toLowerCase().trim().includes(lowerCaseQuery.trim())) ||
-        (contact.phoneNumbers &&
-          contact.phoneNumbers[0]?.number &&
-          contact.phoneNumbers[0].number
-            .replace(/[^\d]/g, "")
-            .includes(lowerCaseQuery.replace(/[^\d]/g, ""))) // Clean and compare numbers
-    );
-  }, [contacts, searchQuery]); // Recalculate when contacts or searchQuery changes
-
-  // Function to clean and format the phone number (re-using from previous code)
+  // Helper function to clean and format phone numbers for display and comparison
   const formatPhoneNumber = (phone: string | undefined | null): string => {
     if (!phone) return "";
 
-    // Remove any non-numeric characters
     let cleanedPhone = phone.replace(/[^\d]/g, "");
 
-    // If country code is present (e.g., +91), remove it (basic check, might need refinement)
-    if (cleanedPhone.startsWith("91") && cleanedPhone.length > 10) {
-      // Check length is > 10 for 10-digit numbers + 91
+    if (cleanedPhone.startsWith("91") && cleanedPhone.length === 12) {
       cleanedPhone = cleanedPhone.substring(2);
+    } else if (cleanedPhone.startsWith("+91") && cleanedPhone.length === 13) {
+      cleanedPhone = cleanedPhone.substring(3);
     }
 
-    // Basic check to ensure it's a potential phone number (e.g., at least 7 digits)
     if (cleanedPhone.length < 7) {
-      return ""; // Or return original unformatted string if preferred
+      return "";
     }
 
-    // Optionally format the number for display (e.g., add dashes)
-    // For now, just return the cleaned number
     return cleanedPhone;
   };
 
+  // Filter contacts based on search query using useMemo for performance
+  const filteredContacts = useMemo(() => {
+    // Normalize the search query once for both name and number comparison.
+    // This `lowerCaseTrimmedQuery` will be used for name matching.
+    const lowerCaseTrimmedQuery = searchQuery
+      .toLowerCase()
+      .trim()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
+    // If the normalized search query is empty, return all contacts.
+    // This handles cases where the user clears the search or types only spaces.
+    if (!lowerCaseTrimmedQuery) {
+      return contacts;
+    }
+
+    // For phone number matching, we need a digit-only version of the query.
+    // This is distinct from the name search query.
+    const digitOnlySearchQuery = searchQuery.replace(/[^\d]/g, "");
+
+    return contacts.filter((contact) => {
+      // Normalize the contact's name for comparison
+      const contactName =
+        contact.name
+          ?.toLowerCase()
+          .trim()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "") || "";
+
+      // Get and format the primary phone number for comparison
+      const primaryPhoneNumber =
+        contact.phoneNumbers && contact.phoneNumbers.length > 0
+          ? formatPhoneNumber(contact.phoneNumbers[0].number)
+          : "";
+
+      // Check if the contact's name includes the processed search query
+      const nameMatches = contactName.includes(lowerCaseTrimmedQuery);
+
+      // Check if the cleaned primary phone number includes the digit-only search query
+      // Only check phone match if digitOnlySearchQuery is not empty
+      const phoneMatches =
+        digitOnlySearchQuery &&
+        primaryPhoneNumber.includes(digitOnlySearchQuery);
+
+      // A contact matches if either their name OR their phone number matches
+      return nameMatches || phoneMatches;
+    });
+  }, [contacts, searchQuery]); // Dependencies: contacts array and the search query string
+
   useEffect(() => {
     async function fetchContacts() {
-      setLoading(true); // Start loading
+      setLoading(true);
       const { status } = await Contacts.requestPermissionsAsync();
+
       if (status === "granted") {
         const { data } = await Contacts.getContactsAsync({
           fields: [Contacts.Fields.PhoneNumbers, Contacts.Fields.Image],
         });
-        // Filter out contacts without phone numbers or names before setting state
+
         const contactsWithInfo = data.filter(
           (contact) =>
             contact.name &&
             contact.phoneNumbers &&
-            contact.phoneNumbers.length > 0
+            contact.phoneNumbers.length > 0 &&
+            contact.phoneNumbers[0]?.number
         );
         setContacts(contactsWithInfo);
-        // filteredContacts will be updated automatically by useMemo
       } else {
-        console.warn("Contacts permission not granted.");
-        // Optionally show an error message to the user
+        Toast.show({
+          type: "error",
+          text1: "Permission Denied",
+          text2: "Please grant contacts permission to add from contacts.",
+        });
       }
-      setLoading(false); // Stop loading
+      setLoading(false);
     }
     fetchContacts();
-  }, []); // Empty dependency array to run once on mount
+  }, []);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    // Filtering is now handled by useMemo
   };
 
   const handleContactSelect = (contact: Contacts.Contact) => {
-    // Use Contact type
     const name = contact.name;
-    // Use the formatPhoneNumber function to clean the first phone number
     const mobile = formatPhoneNumber(contact.phoneNumbers?.[0]?.number);
 
     if (!name || !mobile) {
-      console.warn(
-        "Cannot select contact: Missing name or phone number",
-        contact
-      );
       Toast.show({
         type: "error",
         text1: "Invalid Contact",
@@ -138,24 +162,25 @@ const AddCustomerScreen = () => {
       return;
     }
 
-    // Navigate to add-contact screen with selected contact details
     router.push(
       `/(app)/customers/contacts/add-contact?name=${encodeURIComponent(
         name
-      )}&mobile=${encodeURIComponent(mobile)}` // Encode params
+      )}&mobile=${encodeURIComponent(mobile)}`
     );
   };
 
-  const renderContact = (
-    { item }: { item: Contacts.Contact } // Use Contact type
-  ) => (
+  const renderContact = ({ item }: { item: Contacts.Contact }) => (
     <View style={[styles.contactCard, { backgroundColor: colors.surface }]}>
       <TouchableOpacity
         onPress={() => handleContactSelect(item)}
         style={styles.contactContainer}
-        activeOpacity={0.8} // Subtle press feedback
+        activeOpacity={0.8}
       >
-        <RandomAvatar name={item.name} />
+        {item.imageAvailable && item.imageUri ? (
+          <Image source={{ uri: item.imageUri }} style={styles.avatarImage} />
+        ) : (
+          <RandomAvatar name={item.name} />
+        )}
         <View style={styles.contactInfo}>
           <Text
             style={[styles.contactName, { color: colors.textPrimary }]}
@@ -221,19 +246,19 @@ const AddCustomerScreen = () => {
           color={colors.primary}
           style={styles.loadingIndicator}
         />
-      ) : filteredContacts.length === 0 && searchQuery !== "" ? (
+      ) : filteredContacts.length === 0 && searchQuery.trim() !== "" ? (
         <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
           No contacts found matching your search.
         </Text>
-      ) : contacts.length === 0 && searchQuery === "" ? (
+      ) : contacts.length === 0 && searchQuery.trim() === "" ? (
         <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
           No contacts found on your device.
-        </Text> // Message if no contacts fetched
+        </Text>
       ) : (
         <FlatList
-          data={filteredContacts} // Use the filtered list
+          data={filteredContacts}
           renderItem={renderContact}
-          keyExtractor={(item, index) => index.toString()}
+          keyExtractor={(item, index) => item.id || index.toString()}
           contentContainerStyle={styles.contactList}
           showsVerticalScrollIndicator={false}
         />
@@ -245,18 +270,15 @@ const AddCustomerScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // Background color from theme applied inline
-    padding: 16, // Adjusted padding
+    padding: 16,
   },
   searchBar: {
-    height: 48, // Adjusted height
+    height: 48,
     borderWidth: 1,
-    // Border color, background, text color from theme applied inline
-    borderRadius: 24, // More rounded corners
-    paddingHorizontal: 16, // Adjusted padding
+    borderRadius: 24,
+    paddingHorizontal: 16,
     fontSize: 16,
-    marginBottom: 16, // Adjusted margin
-    // Shadow from theme applied inline
+    marginBottom: 16,
     ...Platform.select({
       ios: {
         shadowOffset: { width: 0, height: 1 },
@@ -269,13 +291,11 @@ const styles = StyleSheet.create({
     }),
   },
   addButton: {
-    // Background color from theme applied inline
-    paddingVertical: 14, // Adjusted padding
-    borderRadius: 8, // Slightly less rounded than search bar
+    paddingVertical: 14,
+    borderRadius: 8,
     width: "100%",
     alignItems: "center",
-    marginBottom: 16, // Adjusted margin
-    // Shadow from theme applied inline
+    marginBottom: 16,
     ...Platform.select({
       ios: {
         shadowOffset: { width: 0, height: 2 },
@@ -288,16 +308,13 @@ const styles = StyleSheet.create({
     }),
   },
   addButtonText: {
-    fontSize: 17, // Adjusted font size
+    fontSize: 17,
     fontWeight: "600",
-    // Color from theme applied inline
   },
   contactCard: {
-    padding: 12, // Adjusted padding
-    // Background color from theme applied inline
-    marginVertical: 6, // Adjusted vertical margin
-    borderRadius: 10, // Adjusted border radius
-    // Shadow from theme applied inline
+    padding: 12,
+    marginVertical: 6,
+    borderRadius: 10,
     ...Platform.select({
       ios: {
         shadowOffset: { width: 0, height: 1 },
@@ -314,59 +331,50 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   avatar: {
-    width: 50, // Adjusted size
-    height: 50,
-    borderRadius: 25, // Perfectly round
-    // Background color from theme applied inline
-    borderWidth: 0, // Removed border for cleaner look
-    justifyContent: "center",
-    alignItems: "center",
-    overflow: "hidden",
-  },
-  avatarImage: {
-    // Style for Image component when avatar URL is available
     width: 50,
     height: 50,
     borderRadius: 25,
-    borderWidth: 0, // Removed border
+    borderWidth: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
+    marginRight: 15,
+  },
+  avatarImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 0,
+    marginRight: 15,
   },
   avatarText: {
-    fontSize: 20, // Adjusted font size
+    fontSize: 20,
     fontWeight: "bold",
     textAlign: "center",
-    lineHeight: 48, // Adjusted line height
-    // Color from theme applied inline
+    color: "white",
   },
   contactInfo: {
     flex: 1,
   },
   contactName: {
-    fontSize: 17, // Adjusted font size
+    fontSize: 17,
     fontWeight: "600",
-    // Color from theme applied inline
-    marginBottom: 2, // Added margin
+    marginBottom: 2,
   },
   contactPhone: {
-    fontSize: 14, // Adjusted font size
-    marginTop: 2, // Added margin
-    // Color from theme applied inline
+    fontSize: 14,
+    marginTop: 2,
   },
   contactList: {
-    // No specific margin top needed if spacing is handled by searchBar/addButton margin bottom
-    // marginTop: 20,
-    paddingBottom: 20, // Add some padding at the bottom
+    paddingBottom: 20,
   },
   loadingIndicator: {
-    // Style for loading indicator
     marginTop: 20,
-    textAlign: "center", // Not applicable to ActivityIndicator, but good practice for text
   },
   noDataText: {
-    // Style for no data/no results text
     fontSize: 16,
     textAlign: "center",
     marginTop: 20,
-    // Color from theme applied inline
   },
 });
 

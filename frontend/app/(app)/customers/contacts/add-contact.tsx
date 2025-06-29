@@ -15,7 +15,6 @@ import Toast from "react-native-toast-message";
 import { saveContactApi } from "@/redux/slice/customers/customerApi";
 
 import useTheme from "@/context/theme/useTheme"; // Import useTheme
-import { ColorPalette } from "@/context/theme/theme"; // Import ColorPalette type
 
 // Assuming ProfileIcon is a static local image, it doesn't need theming
 const ProfileIcon = require("../../../../assets/images/avatar.jpg");
