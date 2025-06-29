@@ -1,25 +1,23 @@
+import { Heading, Paragraph, Section } from "@/components/InfoPageComponents";
+import StaticInfoScreen from "@/components/StaticInfoScreen";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import StaticInfoScreen from "@/components/StaticInfoScreen";
-import { Heading, Paragraph, Section } from "@/components/InfoPageComponents";
 
 export default function ContactUsScreen() {
   const { t } = useTranslation();
   return (
     <StaticInfoScreen title={t("more.contact_us")}>
       <Section>
-        <Heading>Get in Touch</Heading>
-        <Paragraph>
-          Have questions or need support? We're here to help!
-        </Paragraph>
+        <Heading>{t("more.contact_us_get_in_touch_heading")}</Heading>
+        <Paragraph>{t("more.contact_us_get_in_touch_paragraph")}</Paragraph>
       </Section>
       <Section>
-        <Heading>Email</Heading>
-        <Paragraph>support@example.com</Paragraph>
-        <Heading>Phone</Heading>
-        <Paragraph>+1 (234) 567-890</Paragraph>
-        <Heading>Address</Heading>
-        <Paragraph>123 Dairy Lane, Milkville, MK 45678</Paragraph>
+        <Heading>{t("more.contact_us_email_heading")}</Heading>
+        <Paragraph>{t("more.contact_us_email_address")}</Paragraph>
+        <Heading>{t("more.contact_us_phone_heading")}</Heading>
+        <Paragraph>{t("more.contact_us_phone_number")}</Paragraph>
+        <Heading>{t("more.contact_us_address_heading")}</Heading>
+        <Paragraph>{t("more.contact_us_address_details")}</Paragraph>
       </Section>
     </StaticInfoScreen>
   );

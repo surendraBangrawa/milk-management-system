@@ -5,25 +5,23 @@ import { Heading, Paragraph, Section } from "@/components/InfoPageComponents";
 
 export default function PrivacyPolicyScreen() {
   const { t } = useTranslation();
+  // You might want to get the last updated date dynamically, e.g., from an API or a constant.
+  // For now, let's use a static date as per your current setup, but formatted for i18n.
+  const lastUpdatedDate = "June 29, 2025"; // Example date
+
   return (
     <StaticInfoScreen title={t("more.privacy_policy")}>
       <Section>
-        <Heading>Introduction</Heading>
-        <Paragraph>
-          Your privacy is important to us. This privacy statement explains the
-          personal data [Your App Name] processes, how [Your App Name] processes
-          it, and for what purposes.
-        </Paragraph>
+        <Heading>{t("more.privacy_policy_intro_heading")}</Heading>
+        <Paragraph>{t("more.privacy_policy_intro_paragraph")}</Paragraph>
       </Section>
       <Section>
-        <Heading>Data We Collect</Heading>
-        <Paragraph>
-          We collect data to operate effectively and provide you with the best
-          experiences with our services. This includes your name, delivery
-          address, and payment information.
-        </Paragraph>
+        <Heading>{t("more.privacy_policy_data_heading")}</Heading>
+        <Paragraph>{t("more.privacy_policy_data_paragraph")}</Paragraph>
       </Section>
-      <Paragraph>Last updated: [Date]</Paragraph>
+      <Paragraph>
+        {t("more.privacy_policy_last_updated", { date: lastUpdatedDate })}
+      </Paragraph>
     </StaticInfoScreen>
   );
 }
