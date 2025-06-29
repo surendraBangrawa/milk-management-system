@@ -7,7 +7,7 @@ export interface AddSellerTransaction {
   seller_mobile: string;
   amount: number;
   expense_detail: string;
-  transaction_type: "GAVE" | "GOT";
+  transaction_type: string | undefined;
   custom_date: string;
 }
 export interface DeleteSellerTransaction {
@@ -20,7 +20,7 @@ export interface EditSellerTransaction {
   seller_mobile: string | undefined;
   amount?: number;
   expense_detail?: string;
-  transaction_type?: "GAVE" | "GOT";
+  transaction_type?: string | undefined;
   custom_date: string;
   id: string;
   type?: string;

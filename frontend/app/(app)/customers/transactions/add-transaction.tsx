@@ -6,7 +6,7 @@ import {
   View,
   TouchableOpacity,
   Platform,
-  ActivityIndicator, // Added ActivityIndicator
+  ActivityIndicator,
 } from "react-native";
 import { useRouter, useLocalSearchParams, Stack } from "expo-router";
 import { format } from "date-fns";
@@ -14,7 +14,7 @@ import { useForm, Controller } from "react-hook-form";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import Toast from "react-native-toast-message";
 
-import useTheme from "@/context/theme/useTheme"; // Import useTheme
+import useTheme from "@/context/theme/useTheme";
 import {
   addCustomerTransactionApi,
   editCustomerTransactionApi,
@@ -70,7 +70,6 @@ const AddTransactionScreen = () => {
       description: effectiveDesc ?? "", // Use effectiveDesc
       date: initialDateValue, // Use initialDateValue
     } as {
-      // Explicitly type default values
       amount: string;
       description: string;
       date: Date;
@@ -80,11 +79,7 @@ const AddTransactionScreen = () => {
   // Update form fields when the params change (for editing)
   useEffect(() => {
     if (effectiveId && effectiveDateParam) {
-      // Set the date value in the form state when editing
       setValue("date", new Date(effectiveDateParam));
-      // Optionally set other values if they are not reliably in defaultValues
-      // setValue("amount", effectiveAmount ?? "");
-      // setValue("description", effectiveDesc ?? "");
     }
   }, [
     effectiveId,
@@ -207,7 +202,6 @@ const AddTransactionScreen = () => {
         name="amount"
         rules={{
           required: "Amount is required",
-          // Use a more robust pattern that allows decimals
           pattern: {
             value: /^[0-9]+(\.[0-9]{1,2})?$/,
             message: "Enter a valid amount (e.g., 100 or 100.50)",
@@ -244,7 +238,6 @@ const AddTransactionScreen = () => {
       <Controller
         control={control}
         name="description"
-        rules={{ required: "Description is required" }}
         render={(
           { field: { onChange, value, onBlur } } // Added onBlur
         ) => (
