@@ -9,6 +9,7 @@ from sqlalchemy import (
     CheckConstraint,
     Boolean,
     JSON,
+    BigInteger
 )
 from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
@@ -46,15 +47,15 @@ class Customer(Base):
     added_at = Column(DateTime, default=local_now)  # Use local_now
 
 
-class AuthUser(Base):
-    __tablename__ = "login_details"
+# class AuthUser(Base):
+#     __tablename__ = "login_details"
 
-    mobile = Column(String(10), primary_key=True, nullable=False)  # Mobile as PK
-    otp = Column(String(6), nullable=False)
-    expire_at = Column(DateTime, nullable=False)
-    login_at = Column(DateTime, nullable=True)
-    logout_at = Column(DateTime, nullable=True)
-    access_token = Column(String(255), nullable=True)
+#     mobile = Column(String(10), primary_key=True, nullable=False)  # Mobile as PK
+#     otp = Column(String(6), nullable=False)
+#     expire_at = Column(DateTime, nullable=False)
+#     login_at = Column(DateTime, nullable=True)
+#     logout_at = Column(DateTime, nullable=True)
+#     access_token = Column(String(255), nullable=True)
 
 
 # Milk Transactions
@@ -144,3 +145,35 @@ class SubscriptionPlan(Base):
     is_deleted = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=local_now)  # Use local_now
     updated_at = Column(DateTime, nullable=True, onupdate=local_now)  # Use local_now
+
+
+class Otp_Table(Base):
+    __tablename__ = "OTP_TABLE"
+ 
+    otp_id = Column(
+        BigInteger, primary_key=True, index=True, autoincrement=True, name="OTP_ID"
+    )
+    mobile_number = Column(
+        String(12), unique=False, name="MOBILE_NUMBER", nullable=False
+    )
+    otp = Column(String(6), unique=False, name="OTP", nullable=True)
+    count = Column(BigInteger, unique=False, name="COUNT",
+                   nullable=True, default=1)
+    time = Column(
+        DateTime, unique=False, name="TIME", nullable=False, default=local_now
+    )
+    CREATE_DATE = Column(
+        DateTime,
+        unique=False,
+        name="CREATE_DATE",
+        nullable=False,
+        default=local_now,
+    )
+    UPDATE_DATE = Column(
+        DateTime,
+        unique=False,
+        name="UPDATE_DATE",
+        nullable=False,
+        default=local_now,
+        onupdate=local_now,
+    )

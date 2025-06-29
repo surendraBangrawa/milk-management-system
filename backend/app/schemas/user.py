@@ -9,7 +9,7 @@ class SignupRequest(BaseModel):
 
 
 class OtpRequest(BaseModel):
-    mobile: str = Field(..., pattern="^[0-9]{10}$", example="9876543210")
+    mobile_number: str = Field(..., pattern="^[0-9]{10}$", example="9876543210")
 
 
 class LoginRequest(BaseModel):

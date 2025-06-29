@@ -1,5 +1,7 @@
 import os
 import pytz
+from dotenv import load_dotenv
+load_dotenv()
 
 TIME_ZONE = os.getenv("TZ", "Asia/Kolkata")
 try:
