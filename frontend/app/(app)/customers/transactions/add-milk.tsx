@@ -553,28 +553,14 @@ const AddMilk = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // Background color now from theme
-    padding: 16, // Adjusted padding
+    padding: 16,
   },
   input: {
     borderWidth: 1,
-    // Colors from theme applied inline
     padding: 12,
     marginVertical: 8,
     borderRadius: 8,
     fontSize: 16,
-    // Shadow (optional, add if desired)
-    // ...Platform.select({
-    //   ios: {
-    //     shadowColor: '#000',
-    //     shadowOffset: { width: 0, height: 1 },
-    //     shadowOpacity: 0.05,
-    //     shadowRadius: 2,
-    //   },
-    //   android: {
-    //     elevation: 2,
-    //   },
-    // }),
   },
   multilineInput: {
     minHeight: 100,
@@ -582,7 +568,6 @@ const styles = StyleSheet.create({
   },
   datePicker: {
     borderWidth: 1,
-    // Colors from theme applied inline
     padding: 12,
     marginVertical: 8,
     borderRadius: 8,
@@ -591,7 +576,6 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 16,
-    // Color from theme applied inline
   },
   fetchButton: {
     paddingVertical: 12,
@@ -600,12 +584,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
-    elevation: 2, // Consider removing or styling shadows consistently via Platform
+    elevation: 2,
   },
   fetchButtonText: {
     fontSize: 16,
     fontWeight: "bold",
-    // Color from theme applied inline
   },
   button: {
     padding: 15,
@@ -613,7 +596,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
-    elevation: 2, // Consider removing or styling shadows consistently via Platform
+    elevation: 2,
   },
   buttonText: {
     fontSize: 18,
@@ -626,10 +609,27 @@ const styles = StyleSheet.create({
   },
   pickerContainer: {
     marginVertical: 8,
-    // Border, background, border radius, border color handled inline
+    borderWidth: 1,
+    borderRadius: 10,
+    // Increased height to provide more vertical space
+    height: 55, // Try 55 or even 60
+    justifyContent: "center",
+    overflow: "hidden",
   },
   picker: {
-    height: 50,
+    // Platform-specific height adjustment for Android
+    ...Platform.select({
+      android: {
+        height: 55, // Match container height for Android
+        // Add paddingVertical here if needed, but often the container handles it
+        // paddingVertical: 0, // Sometimes resetting internal padding helps
+      },
+      ios: {
+        // iOS pickers behave differently and usually don't have this issue
+        height: 100, // iOS picker takes more height for the wheel
+      },
+    }),
+    width: "100%",
   },
   rowContainer: {
     flexDirection: "row",
@@ -641,7 +641,6 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   overlayLoading: {
-    // Style for a full-screen overlay loading indicator (Not used in this version)
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(255, 255, 255, 0.7)",
     justifyContent: "center",
