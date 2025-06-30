@@ -249,41 +249,62 @@ const TransactionScreen = () => {
       <View
         style={[styles.customHeaderBar, { backgroundColor: colors.surface }]}
       >
-        <TouchableOpacity
-          onPress={handleReport}
-          style={styles.customHeaderButton}
-          activeOpacity={0.7}
-        >
+        {/* Breadcrumb Navigation */}
+        <View style={styles.breadcrumbContainer}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.breadcrumbItem}
+            accessibilityLabel="Go back to customers list"
+          >
+            <FontAwesome
+              name="arrow-left"
+              size={16}
+              color={colors.textSecondary}
+            />
+            <Text
+              style={[styles.breadcrumbText, { color: colors.textSecondary }]}
+            >
+              Customers
+            </Text>
+          </TouchableOpacity>
           <FontAwesome
-            name="file-text-o"
-            size={20}
-            color={colors.textPrimary}
+            name="chevron-right"
+            size={12}
+            color={colors.textSecondary}
           />
-          <Text
-            style={[
-              styles.customHeaderButtonText,
-              { color: colors.textPrimary },
-            ]}
-          >
-            Report
+          <Text style={[styles.breadcrumbText, { color: colors.textPrimary }]}>
+            {customerName || "Customer"}
           </Text>
-        </TouchableOpacity>
+        </View>
 
-        <TouchableOpacity
-          onPress={handleReminder}
-          style={styles.customHeaderButton}
-          activeOpacity={0.7}
-        >
-          <FontAwesome name="bell-o" size={20} color={colors.textPrimary} />
-          <Text
-            style={[
-              styles.customHeaderButtonText,
-              { color: colors.textPrimary },
-            ]}
+        {/* Action Buttons */}
+        <View style={styles.actionButtonsContainer}>
+          <TouchableOpacity
+            onPress={handleReport}
+            style={styles.actionButton}
+            activeOpacity={0.7}
+            accessibilityLabel="Generate report"
+            accessibilityHint="Generate a detailed report for this customer"
           >
-            Reminder
-          </Text>
-        </TouchableOpacity>
+            <FontAwesome name="file-text-o" size={18} color={colors.primary} />
+            <Text style={[styles.actionButtonText, { color: colors.primary }]}>
+              Report
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={handleReminder}
+            style={styles.actionButton}
+            activeOpacity={0.7}
+            accessibilityLabel="Send reminder"
+            accessibilityHint="Send a reminder message to this customer"
+          >
+            <FontAwesome name="bell-o" size={18} color={colors.primary} />
+            <Text style={[styles.actionButtonText, { color: colors.primary }]}>
+              Reminder
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {loading ? (
@@ -314,33 +335,55 @@ const TransactionScreen = () => {
           { backgroundColor: colors.surface, borderTopColor: colors.border },
         ]}
       >
-        <TouchableOpacity
-          style={[
-            styles.bottomActionButton,
-            { backgroundColor: colors.primaryLight },
-          ]}
-          onPress={handlePressMilk}
-          activeOpacity={0.9}
-        >
-          <Text style={styles.bottomActionButtonText}>Milk</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.bottomActionButton, { backgroundColor: colors.error }]}
-          onPress={() => handlePressTransaction("Gave")}
-          activeOpacity={0.9}
-        >
-          <Text style={styles.bottomActionButtonText}>Gave</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.bottomActionButton,
-            { backgroundColor: colors.success },
-          ]}
-          onPress={() => handlePressTransaction("Got")}
-          activeOpacity={0.9}
-        >
-          <Text style={styles.bottomActionButtonText}>Got</Text>
-        </TouchableOpacity>
+        <View style={styles.actionBarHeader}>
+          <Text style={[styles.actionBarTitle, { color: colors.textPrimary }]}>
+            Quick Actions
+          </Text>
+        </View>
+
+        <View style={styles.actionButtonsRow}>
+          <TouchableOpacity
+            style={[
+              styles.bottomActionButton,
+              { backgroundColor: colors.primaryLight },
+            ]}
+            onPress={handlePressMilk}
+            activeOpacity={0.9}
+            accessibilityLabel="Add milk transaction"
+            accessibilityHint="Add a new milk transaction for this customer"
+          >
+            <FontAwesome name="tint" size={20} color={colors.surface} />
+            <Text style={styles.bottomActionButtonText}>Milk</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.bottomActionButton,
+              { backgroundColor: colors.error },
+            ]}
+            onPress={() => handlePressTransaction("Gave")}
+            activeOpacity={0.9}
+            accessibilityLabel="Add expense transaction"
+            accessibilityHint="Record money given to this customer"
+          >
+            <FontAwesome name="money" size={20} color={colors.surface} />
+            <Text style={styles.bottomActionButtonText}>Gave</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.bottomActionButton,
+              { backgroundColor: colors.success },
+            ]}
+            onPress={() => handlePressTransaction("Got")}
+            activeOpacity={0.9}
+            accessibilityLabel="Add income transaction"
+            accessibilityHint="Record money received from this customer"
+          >
+            <FontAwesome name="plus" size={20} color={colors.surface} />
+            <Text style={styles.bottomActionButtonText}>Got</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -390,14 +433,32 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 8,
   },
-  customHeaderButton: {
+  breadcrumbContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  breadcrumbItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 5,
+  },
+  breadcrumbText: {
+    fontSize: 15,
+    fontWeight: "600",
+    marginLeft: 5,
+  },
+  actionButtonsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  actionButton: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 8,
     paddingHorizontal: 15,
     borderRadius: 20,
   },
-  customHeaderButtonText: {
+  actionButtonText: {
     marginLeft: 8,
     fontSize: 15,
     fontWeight: "600",
@@ -444,6 +505,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     color: "#fff",
+    marginTop: 4,
+  },
+  actionBarHeader: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  actionBarTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  actionButtonsRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+    paddingHorizontal: 16,
   },
 });
 

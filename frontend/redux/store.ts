@@ -1,16 +1,23 @@
 import { configureStore } from "@reduxjs/toolkit";
 // Import the reducer from your transactions slice
 import transactionsReducer from "./slice/transactions/transactionsSlice";
+// Import subscription API
+import subscriptionApi from "./slice/subscription/subscriptionApi";
 // Assuming your slice file is in a 'slices' directory within your redux folder
 
 export const store = configureStore({
   reducer: {
     // Add your reducers here
     transactions: transactionsReducer,
+    // Add subscription API reducer
+    [subscriptionApi.reducerPath]: subscriptionApi.reducer,
     // If you have other slices, add their reducers here as well:
     // users: usersReducer,
     // products: productsReducer,
   },
+  // Add subscription API middleware
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware().concat(subscriptionApi.middleware),
   // middleware can be customized here if needed,
   // but configureStore includes helpful defaults like Redux Thunk and immutability checks
   // middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(myCustomMiddleware),

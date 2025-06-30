@@ -32,13 +32,16 @@ load_dotenv()
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-r_aq%07cm#_=a#n^1f3x(gmv6b_g0o6k*uw!97-#akc#6zt=6r"
+SECRET_KEY = config(
+    "SECRET_KEY",
+    default="django-insecure-r_aq%07cm#_=a#n^1f3x(gmv6b_g0o6k*uw!97-#akc#6zt=6r",
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config("DEBUG", default=True, cast=bool)
 
 # ALLOWED_HOSTS = ["adminvegagaming.online"]
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="*").split(",")
 
 
 INSTALLED_APPS = [

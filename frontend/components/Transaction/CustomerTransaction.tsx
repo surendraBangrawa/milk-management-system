@@ -7,7 +7,14 @@ import { AppDispatch, RootState } from "@/redux/store";
 import { FontAwesome } from "@expo/vector-icons";
 import { formatDistanceToNow } from "date-fns";
 import { useRouter } from "expo-router";
-import { Pressable, Text, View, StyleSheet, Alert } from "react-native";
+import {
+  Pressable,
+  Text,
+  View,
+  StyleSheet,
+  Alert,
+  TouchableOpacity,
+} from "react-native";
 import Toast from "react-native-toast-message";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -145,7 +152,7 @@ const CustomerTransaction = ({
     }
 
     if (navigateUrl) {
-      router.push(navigateUrl);
+      router.push(navigateUrl as any);
     }
   };
 
@@ -176,22 +183,42 @@ const CustomerTransaction = ({
           borderLeftColor: item.amount < 0 ? colors.error : colors.success,
         },
       ]}
+      accessibilityLabel={`${item.type} transaction for ${
+        item.amount < 0 ? "debit" : "credit"
+      } of ₹${Math.abs(item.amount || 0)}`}
+      accessibilityHint="Double tap to edit this transaction"
     >
       <View style={styles.leftSection}>
-        {typeof item.added_at === "string" ? (
-          <Text
-            style={[styles.transactionDate, { color: colors.textSecondary }]}
-          >
-            {formatDate(item.added_at)}
-          </Text>
-        ) : (
-          <Text
-            style={[styles.transactionDate, { color: colors.textSecondary }]}
-          >
-            No date
-          </Text>
-        )}
+        {/* Transaction Header */}
+        <View style={styles.transactionHeader}>
+          <View style={styles.typeContainer}>
+            <FontAwesome
+              name={item.type === "expense" ? "money" : "tint"}
+              size={16}
+              color={item.amount < 0 ? colors.error : colors.success}
+            />
+            <Text
+              style={[styles.transactionType, { color: colors.textPrimary }]}
+            >
+              {item.type === "expense" ? "Expense" : "Milk"}
+            </Text>
+          </View>
+          {typeof item.added_at === "string" ? (
+            <Text
+              style={[styles.transactionDate, { color: colors.textSecondary }]}
+            >
+              {formatDate(item.added_at)}
+            </Text>
+          ) : (
+            <Text
+              style={[styles.transactionDate, { color: colors.textSecondary }]}
+            >
+              No date
+            </Text>
+          )}
+        </View>
 
+        {/* Amount Display */}
         {typeof item.amount === "number" ? (
           <Text
             style={[
@@ -201,7 +228,7 @@ const CustomerTransaction = ({
           >
             {item.amount < 0
               ? `-₹${Math.abs(item.amount).toFixed(2)}`
-              : `₹${item.amount.toFixed(2)}`}
+              : `+₹${item.amount.toFixed(2)}`}
           </Text>
         ) : (
           <Text
@@ -211,28 +238,29 @@ const CustomerTransaction = ({
           </Text>
         )}
 
-        <Text style={[styles.transactionType, { color: colors.textPrimary }]}>
-          {item.type === "expense" ? "Expense" : "Milk"}
-        </Text>
+        {/* Transaction Details */}
         {detail && (
-          <View style={{ marginTop: 5 }}>
+          <View style={styles.detailContainer}>
             <Text
               style={[
                 styles.transactionDetailText,
                 { color: colors.textSecondary },
               ]}
+              numberOfLines={2}
             >
-              Detail: {truncatedDetail}
+              {detail}
             </Text>
             {detail.length > 50 && (
-              <Pressable onPress={() => handleReadMore(detail)}>
+              <TouchableOpacity onPress={() => handleReadMore(detail)}>
                 <Text style={[styles.readMoreText, { color: colors.primary }]}>
                   Read More
                 </Text>
-              </Pressable>
+              </TouchableOpacity>
             )}
           </View>
         )}
+
+        {/* Milk Details */}
         {item.type === "milk" && (
           <View
             style={[
@@ -240,78 +268,152 @@ const CustomerTransaction = ({
               { borderTopColor: colors.border },
             ]}
           >
-            {typeof item.quantity === "number" && (
-              <Text
-                style={[styles.milkDetailText, { color: colors.textSecondary }]}
-              >
-                Qty: {item.quantity} kg
-              </Text>
-            )}
-            {typeof item.fat === "number" && (
-              <Text
-                style={[styles.milkDetailText, { color: colors.textSecondary }]}
-              >
-                Fat: {item.fat}%
-              </Text>
-            )}
-            {typeof item.snf === "number" && (
-              <Text
-                style={[styles.milkDetailText, { color: colors.textSecondary }]}
-              >
-                SNF: {item.snf}%
-              </Text>
-            )}
-            {typeof item.rate === "number" && (
-              <Text
-                style={[styles.milkDetailText, { color: colors.textSecondary }]}
-              >
-                Rate: ₹{item.rate.toFixed(2)}
-              </Text>
-            )}
+            <Text
+              style={[styles.milkDetailsTitle, { color: colors.textPrimary }]}
+            >
+              Milk Details:
+            </Text>
+            <View style={styles.milkDetailsGrid}>
+              {typeof item.quantity === "number" && (
+                <View style={styles.milkDetailItem}>
+                  <Text
+                    style={[
+                      styles.milkDetailLabel,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Quantity:
+                  </Text>
+                  <Text
+                    style={[
+                      styles.milkDetailValue,
+                      { color: colors.textPrimary },
+                    ]}
+                  >
+                    {item.quantity} kg
+                  </Text>
+                </View>
+              )}
+              {typeof item.fat === "number" && (
+                <View style={styles.milkDetailItem}>
+                  <Text
+                    style={[
+                      styles.milkDetailLabel,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Fat:
+                  </Text>
+                  <Text
+                    style={[
+                      styles.milkDetailValue,
+                      { color: colors.textPrimary },
+                    ]}
+                  >
+                    {item.fat}%
+                  </Text>
+                </View>
+              )}
+              {typeof item.snf === "number" && (
+                <View style={styles.milkDetailItem}>
+                  <Text
+                    style={[
+                      styles.milkDetailLabel,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    SNF:
+                  </Text>
+                  <Text
+                    style={[
+                      styles.milkDetailValue,
+                      { color: colors.textPrimary },
+                    ]}
+                  >
+                    {item.snf}%
+                  </Text>
+                </View>
+              )}
+              {typeof item.rate === "number" && (
+                <View style={styles.milkDetailItem}>
+                  <Text
+                    style={[
+                      styles.milkDetailLabel,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Rate:
+                  </Text>
+                  <Text
+                    style={[
+                      styles.milkDetailValue,
+                      { color: colors.textPrimary },
+                    ]}
+                  >
+                    ₹{item.rate.toFixed(2)}
+                  </Text>
+                </View>
+              )}
+            </View>
           </View>
         )}
       </View>
 
       <View style={styles.rightSection}>
+        {/* Running Balance */}
         {typeof item.total_till_record === "number" ? (
-          <Text
-            style={[styles.totalTillRecord, { color: colors.textSecondary }]}
-          >
-            Total: ₹{item.total_till_record.toFixed(2)}
-          </Text>
+          <View style={styles.balanceContainer}>
+            <Text
+              style={[styles.balanceLabel, { color: colors.textSecondary }]}
+            >
+              Balance:
+            </Text>
+            <Text
+              style={[styles.totalTillRecord, { color: colors.textPrimary }]}
+            >
+              ₹{item.total_till_record.toFixed(2)}
+            </Text>
+          </View>
         ) : (
           <Text
             style={[styles.totalTillRecord, { color: colors.textSecondary }]}
           >
-            Total: N/A
+            Balance: N/A
           </Text>
         )}
 
+        {/* Action Buttons */}
         <View style={styles.actionButtons}>
-          <Pressable
-            style={({ pressed }) => [
+          <TouchableOpacity
+            style={[
               styles.actionButton,
               {
-                backgroundColor: pressed ? colors.border : "transparent",
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
               },
             ]}
             onPress={() => handleEdit(item)}
+            accessibilityLabel="Edit transaction"
+            accessibilityHint="Tap to edit this transaction"
           >
-            <FontAwesome name="edit" size={20} color={colors.textSecondary} />
-          </Pressable>
-          <Pressable
-            style={({ pressed }) => [
+            <FontAwesome name="edit" size={18} color={colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
               styles.actionButton,
               {
-                backgroundColor: pressed ? colors.border : "transparent",
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
                 opacity: isDeletingTransaction ? 0.5 : 1,
               },
             ]}
             onPress={() => handleDelete(item)}
             disabled={isDeletingTransaction}
+            accessibilityLabel="Delete transaction"
+            accessibilityHint="Tap to delete this transaction"
           >
-            <FontAwesome name="trash" size={20} color={colors.error} />
-          </Pressable>
+            <FontAwesome name="trash" size={18} color={colors.error} />
+          </TouchableOpacity>
         </View>
       </View>
     </View>
@@ -329,6 +431,14 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingRight: 8,
   },
+  transactionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  typeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   transactionDate: {
     fontSize: 13,
     marginBottom: 4,
@@ -344,6 +454,9 @@ const styles = StyleSheet.create({
     marginTop: 2,
     marginBottom: 4,
   },
+  detailContainer: {
+    marginTop: 5,
+  },
   transactionDetailText: {
     fontSize: 13,
     marginTop: 4,
@@ -358,20 +471,39 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     borderTopWidth: 1,
   },
-  milkDetailText: {
+  milkDetailsTitle: {
+    fontSize: 14,
+    fontWeight: "500",
+    marginBottom: 8,
+  },
+  milkDetailsGrid: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  milkDetailItem: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  milkDetailLabel: {
     fontSize: 12,
-    marginBottom: 2,
+    marginRight: 4,
+  },
+  milkDetailValue: {
+    fontSize: 12,
   },
   rightSection: {
     flex: 0.8,
     alignItems: "flex-end",
     paddingLeft: 8,
   },
-  runningBalance: {
+  balanceContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  balanceLabel: {
     fontSize: 14,
     fontWeight: "600",
-    marginTop: 0,
-    marginBottom: 2,
+    marginRight: 4,
   },
   totalTillRecord: {
     fontSize: 12,
@@ -386,6 +518,7 @@ const styles = StyleSheet.create({
     padding: 8,
     marginHorizontal: 4,
     borderRadius: 20,
+    borderWidth: 1,
   },
 });
 export default CustomerTransaction;

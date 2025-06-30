@@ -94,7 +94,7 @@ def store_rate_list(
             min_fat=record.min_fat,
             max_fat=record.max_fat,
             min_snf=record.min_snf,
-            max_snf=record.max_snf
+            max_snf=record.max_snf,
         )
 
         # Add new rate list to the database
@@ -390,7 +390,9 @@ def fetch_rate(
         logger.info(f"In gate_rate")
 
         if len(str(fat).split(".")[1]) > 1 or len(str(snf).split(".")[1]) > 1:
-            raise HTTPException(status_code=400, detail="Fat and SNF must have only 1 decimal place.")
+            raise HTTPException(
+                status_code=400, detail="Fat and SNF must have only 1 decimal place."
+            )
 
         rate_list = (
             db.query(RateList)
@@ -399,8 +401,11 @@ def fetch_rate(
         )
 
         if not rate_list:
-            raise HTTPException(status_code=404, detail=f"Rate List not found for buyer_mobile: {buyer_mobile}")
-        
+            raise HTTPException(
+                status_code=404,
+                detail=f"Rate List not found for buyer_mobile: {buyer_mobile}",
+            )
+
         # Cap snf and fat at their maximum values
         snf = min(snf, rate_list.max_snf)  # Cap SNF to max_snf
         fat = min(fat, rate_list.max_fat)  # Cap Fat to max_fat
@@ -416,28 +421,35 @@ def fetch_rate(
                 if rate["fat"] == fat and rate["snf"] == snf:
                     matching_rate = rate["rate"]  # Exact match found, apply fat
                     break
-        
-         # Step 2: If no exact match is found, apply the adjustment logic
+
+        # Step 2: If no exact match is found, apply the adjustment logic
         if not matching_rate:
             # Case 1: fat < min_fat and snf < min_snf
             if fat < rate_list.min_fat and snf < rate_list.min_snf:
                 for rate in rate_list.rates:
-                    if rate["fat"] == rate_list.min_fat and rate["snf"] == rate_list.min_snf:
-                        matching_rate = (rate["rate"]/rate_list.min_fat)*fat  # Rate at (min_fat, min_snf)/min_fat * fat
+                    if (
+                        rate["fat"] == rate_list.min_fat
+                        and rate["snf"] == rate_list.min_snf
+                    ):
+                        matching_rate = (
+                            rate["rate"] / rate_list.min_fat
+                        ) * fat  # Rate at (min_fat, min_snf)/min_fat * fat
                         # Calculate snf_diff if needed
                         if snf_diff is None:
                             snf_diff = calculate_snf_diff(rate_list, rate_list.min_fat)
-                        rate_diff = (rate_list.min_snf - snf)* 10 * snf_diff
-                        matching_rate -= rate_diff  # Subtract (min_snf - snf)*10 * snf_diff
-                        matching_rate = round(matching_rate,2)
+                        rate_diff = (rate_list.min_snf - snf) * 10 * snf_diff
+                        matching_rate -= (
+                            rate_diff  # Subtract (min_snf - snf)*10 * snf_diff
+                        )
+                        matching_rate = round(matching_rate, 2)
                         break
 
             # Case 2: fat < min_fat and snf > min_snf
             elif fat < rate_list.min_fat and snf >= rate_list.min_snf:
                 for rate in rate_list.rates:
                     if rate["fat"] == rate_list.min_fat and rate["snf"] == snf:
-                        matching_rate = (rate["rate"]/rate_list.min_fat)*fat
-                        matching_rate = round(matching_rate,2)
+                        matching_rate = (rate["rate"] / rate_list.min_fat) * fat
+                        matching_rate = round(matching_rate, 2)
                         break
 
             # Case 3: fat > min_fat and snf < min_snf
@@ -449,12 +461,14 @@ def fetch_rate(
                         print(f"matching rate1 : {matching_rate}")
                         if snf_diff is None:
                             snf_diff = calculate_snf_diff(rate_list, fat)
-                        rate_diff = (rate_list.min_snf - snf)* 10 * snf_diff
+                        rate_diff = (rate_list.min_snf - snf) * 10 * snf_diff
                         print(rate_diff)
-                        matching_rate -= rate_diff  # Subtract (min_snf - snf)*10 * snf_diff
-                        matching_rate = round(matching_rate,2)
+                        matching_rate -= (
+                            rate_diff  # Subtract (min_snf - snf)*10 * snf_diff
+                        )
+                        matching_rate = round(matching_rate, 2)
                         break
-        
+
         # If no matching rate is found, raise 404 error with detailed message
         if not matching_rate:
             raise HTTPException(
@@ -478,21 +492,37 @@ def fetch_rate(
         logger.error(f"Error: {e}")
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
+
 def calculate_snf_diff(rate_list, fat_value):
+    """
+    Calculate the average rate difference for SNF changes at a given fat value.
+    Handles edge cases and prevents division by zero.
+    """
     rate_diffs = []  # List to store rate differences
 
     # Iterate over the rates list
     for i, rate in enumerate(rate_list.rates):
         if rate["fat"] == fat_value:
             # Ensure there's a previous element to compare
-            if i > 0 and rate_list.rates[i - 1]["fat"] == fat_value:   
+            if i > 0 and rate_list.rates[i - 1]["fat"] == fat_value:
                 # Calculate the difference between consecutive rate values
-                rate_diff = abs(rate_list.rates[i]["rate"] - rate_list.rates[i - 1]["rate"])
+                rate_diff = abs(
+                    rate_list.rates[i]["rate"] - rate_list.rates[i - 1]["rate"]
+                )
+                # Calculate SNF difference
+                snf_diff = abs(
+                    rate_list.rates[i]["snf"] - rate_list.rates[i - 1]["snf"]
+                )
 
-                # Add the difference to the rate_diffs list
-                rate_diffs.append(rate_diff)
+                # Only add if SNF difference is not zero to avoid division by zero
+                if snf_diff > 0:
+                    rate_diffs.append(rate_diff / snf_diff)
 
     # Calculate the average of rate_diff if any differences exist
-    average_rate_diff = sum(rate_diffs) / len(rate_diffs) if rate_diffs else 0
+    if rate_diffs:
+        average_rate_diff = sum(rate_diffs) / len(rate_diffs)
+    else:
+        # Default fallback if no valid differences found
+        average_rate_diff = 0.1  # Default small value
 
     return average_rate_diff

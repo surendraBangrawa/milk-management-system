@@ -15,6 +15,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchSellerSummaries } from "@/redux/slice/transactions/transactionsSlice";
 import { AppDispatch, RootState } from "@/redux/store";
 import useTheme from "@/context/theme/useTheme";
+import { FontAwesome } from "@expo/vector-icons";
 
 interface Customer {
   mobile: string;
@@ -169,37 +170,88 @@ const CustomerScreen = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <TextInput
-        style={[
-          styles.searchInput,
-          {
-            borderColor: colors.border,
-            backgroundColor: colors.surface,
-            color: colors.textPrimary,
-          },
-        ]}
-        placeholder="Search by name or mobile"
-        placeholderTextColor={colors.textSecondary}
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-        clearButtonMode="while-editing"
-      />
-      {loading ? (
-        <ActivityIndicator
-          size="large"
-          color={colors.primary}
-          style={styles.loadingIndicator}
+      {/* Search Header */}
+      <View style={[styles.searchHeader, { backgroundColor: colors.surface }]}>
+        <FontAwesome
+          name="search"
+          size={16}
+          color={colors.textSecondary}
+          style={styles.searchIcon}
         />
+        <TextInput
+          style={[
+            styles.searchInput,
+            {
+              borderColor: colors.border,
+              backgroundColor: colors.surface,
+              color: colors.textPrimary,
+            },
+          ]}
+          placeholder="Search by name or mobile"
+          placeholderTextColor={colors.textSecondary}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          clearButtonMode="while-editing"
+          accessibilityLabel="Search customers"
+          accessibilityHint="Search for customers by name or mobile number"
+        />
+      </View>
+
+      {/* Results Count */}
+      {!loading && filteredPeople.length > 0 && (
+        <Text style={[styles.resultsCount, { color: colors.textSecondary }]}>
+          {filteredPeople.length} customer
+          {filteredPeople.length !== 1 ? "s" : ""} found
+        </Text>
+      )}
+
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+            Loading customers...
+          </Text>
+        </View>
       ) : error ? (
-        <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
+        <View style={styles.errorContainer}>
+          <FontAwesome
+            name="exclamation-triangle"
+            size={48}
+            color={colors.error}
+          />
+          <Text style={[styles.errorText, { color: colors.error }]}>
+            {error}
+          </Text>
+          <TouchableOpacity
+            style={[styles.retryButton, { backgroundColor: colors.primary }]}
+            onPress={() => dispatch(fetchSellerSummaries())}
+            accessibilityLabel="Retry loading customers"
+          >
+            <Text style={[styles.retryButtonText, { color: colors.surface }]}>
+              Retry
+            </Text>
+          </TouchableOpacity>
+        </View>
       ) : filteredPeople.length === 0 && searchQuery !== "" ? (
-        <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
-          No customers found matching your search.
-        </Text>
+        <View style={styles.emptyContainer}>
+          <FontAwesome name="search" size={48} color={colors.textSecondary} />
+          <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
+            No customers found matching "{searchQuery}"
+          </Text>
+          <Text style={[styles.noDataSubtext, { color: colors.textSecondary }]}>
+            Try adjusting your search terms
+          </Text>
+        </View>
       ) : people.length === 0 && searchQuery === "" ? (
-        <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
-          No customer data available.
-        </Text>
+        <View style={styles.emptyContainer}>
+          <FontAwesome name="users" size={48} color={colors.textSecondary} />
+          <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
+            No customers yet
+          </Text>
+          <Text style={[styles.noDataSubtext, { color: colors.textSecondary }]}>
+            Add your first customer to get started
+          </Text>
+        </View>
       ) : (
         <FlatList
           data={filteredPeople}
@@ -207,14 +259,18 @@ const CustomerScreen = () => {
           keyExtractor={(item, index) => index.toString()}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
+          accessibilityLabel="Customer list"
         />
       )}
+
       <TouchableOpacity
         style={[styles.floatingButton, { backgroundColor: colors.primary }]}
         onPress={() => router.push("/customers/contacts/contact")}
         activeOpacity={0.85}
+        accessibilityLabel="Add new customer"
+        accessibilityHint="Tap to add a new customer"
       >
-        <Text style={[styles.buttonText, { color: colors.surface }]}>+</Text>
+        <FontAwesome name="plus" size={24} color={colors.surface} />
       </TouchableOpacity>
     </View>
   );
@@ -226,13 +282,69 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
   },
+  searchHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+  },
+  searchIcon: {
+    marginRight: 16,
+  },
   searchInput: {
     height: 48,
     borderWidth: 1,
     borderRadius: 24,
     paddingHorizontal: 16,
-    marginBottom: 16,
+    flex: 1,
     fontSize: 15,
+  },
+  resultsCount: {
+    fontSize: 13,
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    fontSize: 16,
+    marginTop: 16,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  errorText: {
+    fontSize: 16,
+    marginTop: 16,
+    textAlign: "center",
+  },
+  retryButton: {
+    padding: 16,
+    borderRadius: 24,
+  },
+  retryButtonText: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  noDataText: {
+    fontSize: 16,
+    textAlign: "center",
+    marginTop: 20,
+  },
+  noDataSubtext: {
+    fontSize: 13,
+    textAlign: "center",
+    marginTop: 8,
   },
   listContainer: {
     paddingBottom: 100,
@@ -312,27 +424,6 @@ const styles = StyleSheet.create({
     height: 56,
     justifyContent: "center",
     alignItems: "center",
-  },
-  buttonText: {
-    fontSize: 30,
-    fontWeight: "normal",
-    lineHeight: 54,
-  },
-  errorText: {
-    fontSize: 16,
-    marginTop: 20,
-    textAlign: "center",
-  },
-  noDataText: {
-    fontSize: 16,
-    textAlign: "center",
-    marginTop: 20,
-  },
-  loadingIndicator: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 20,
   },
 });
 

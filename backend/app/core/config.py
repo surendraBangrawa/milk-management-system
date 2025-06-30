@@ -1,6 +1,7 @@
 import os
 import pytz
 from dotenv import load_dotenv
+
 load_dotenv()
 
 TIME_ZONE = os.getenv("TZ", "Asia/Kolkata")
@@ -13,12 +14,9 @@ except pytz.UnknownTimeZoneError:
 
 
 # Security Configuration
-SECRET_KEY = os.getenv("SECRET_KEY", "your_default_secret_key")
-if SECRET_KEY == "your_default_secret_key":
-    print(
-        "Warning: SECRET_KEY is using the default value. Set SECRET_KEY in your .env file for security."
-    )
-
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise ValueError("SECRET_KEY environment variable is required and must be set.")
 
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 
@@ -35,16 +33,21 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
     print("Warning: GEMINI_API_KEY is not set. AI features may not work.")
 
+# Database Configuration
 DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_HOST = os.getenv("DB_HOST")
 DB_NAME = os.getenv("DB_NAME")
 DB_PORT = os.getenv("DB_PORT")
 
+# Validate required database configuration
+if not all([DB_USER, DB_PASSWORD, DB_HOST, DB_NAME, DB_PORT]):
+    raise ValueError(
+        "All database environment variables (DB_USER, DB_PASSWORD, DB_HOST, DB_NAME, DB_PORT) are required."
+    )
+
 DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
+# Only print non-sensitive debug information
 print(f"DEBUG: TIME_ZONE = {TIME_ZONE}")
-print(f"DEBUG: SECRET_KEY = {SECRET_KEY}")
-print(f"DEBUG: GEMINI_API_KEY = {GEMINI_API_KEY}")
-print(f"DEBUG: DB_USER = {DB_USER}")
-print(f"DEBUG: DATABASE_URL = {DATABASE_URL}")
+print(f"DEBUG: Database configured for {DB_HOST}:{DB_PORT}/{DB_NAME}")

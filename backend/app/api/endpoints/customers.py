@@ -5,6 +5,7 @@ from app.db.session import get_db
 from app.db.models import Customer, MilkRecord, ExpenseRecord
 from app.core.security import get_current_user
 from app.core.config import local_timezone
+from app.services.subscription_service import subscription_service
 from datetime import datetime
 import logging
 
@@ -48,6 +49,13 @@ def add_customer(
                 status_code=400, detail="Customer is already registered."
             )
 
+        # Check usage limits before adding customer
+        allowed, message = subscription_service.check_usage_limits(
+            db, current_mobile, "add_customer"
+        )
+        if not allowed:
+            raise HTTPException(status_code=403, detail=message)
+
         customer_entry = Customer(
             mobile=customer.mobile,
             name=customer.name,
@@ -55,6 +63,10 @@ def add_customer(
         )
 
         db.add(customer_entry)
+
+        # Update usage tracking
+        subscription_service.update_usage(db, current_mobile, "add_customer")
+
         db.commit()
         db.refresh(customer_entry)
 
