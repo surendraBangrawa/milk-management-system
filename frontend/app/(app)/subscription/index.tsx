@@ -1,5 +1,5 @@
 import { Stack } from "expo-router";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   ScrollView,
@@ -7,103 +7,93 @@ import {
   Text,
   Pressable,
   Linking,
+  ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import Toast from "react-native-toast-message";
-
-import useTheme from "@/context/theme/useTheme"; // Import useTheme
+import useTheme from "@/context/theme/useTheme";
+import axios from "@/lib/axiosIntance";
 
 export default function Subscription() {
-  const { colors } = useTheme(); // Use the useTheme hook
+  const { colors } = useTheme();
+  const [plans, setPlans] = useState<any[]>([]);
+  const [current, setCurrent] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [paying, setPaying] = useState(false);
 
-  const subscriptionPlans = [
-    {
-      id: 1,
-      name: "Basic Plan",
-      price: "0.99",
-      features: [
-        "Feature 1: Access to basic content",
-        "Feature 2: 24/7 support",
-        "Feature 3: Limited storage",
-      ],
-      upiId: "8875353053@ybl", // Example UPI ID
-    },
-    {
-      id: 2,
-      name: "Premium Plan",
-      price: "1.99",
-      features: [
-        "Feature 1: Access to all content",
-        "Feature 2: Priority support",
-        "Feature 3: Unlimited storage",
-      ],
-      upiId: "8875353053@ybl", // Example UPI ID
-    },
-    {
-      id: 3,
-      name: "Ultimate Plan",
-      price: "2.99",
-      features: [
-        "Feature 1: Access to exclusive content",
-        "Feature 2: VIP support",
-        "Feature 3: Unlimited storage",
-        "Feature 4: Free premium features for 1 year",
-      ],
-      upiId: "8875353053@ybl", // Example UPI ID
-    },
-  ];
-
-  // Generate UPI payment link
-  const generateUpiLink = (plan: {
-    name: string;
-    price: string;
-    upiId: string;
-  }) => {
-    // Explicitly type plan
-    const amount = parseFloat(plan.price).toFixed(2);
-    // Using a simple timestamp for transaction ID - consider a more robust unique ID generation
-    const transactionId = `txn${Date.now()}${Math.floor(Math.random() * 1000)}`; // Added random suffix
-    const transactionNote = `Payment for ${plan.name}`;
-    // Ensure all components are correctly encoded for the URL
-    const upiLink = `upi://pay?pa=${encodeURIComponent(
-      plan.upiId
-    )}&pn=${encodeURIComponent("Merchant")}&tid=${encodeURIComponent(
-      transactionId
-    )}&tr=${encodeURIComponent(transactionId)}&tn=${encodeURIComponent(
-      transactionNote
-    )}&am=${encodeURIComponent(amount)}&cu=INR`;
-
-    return upiLink;
+  const fetchPlansAndStatus = async () => {
+    setLoading(true);
+    try {
+      const [plansRes, statusRes] = await Promise.all([
+        axios.get("/subscriptions/fetch_plans"),
+        axios.get("/subscriptions/check"),
+      ]);
+      setPlans(plansRes.data.plans || []);
+      setCurrent(statusRes.data);
+    } catch (e: any) {
+      console.error("Error fetching subscription data:", e);
+      Toast.show({
+        type: "error",
+        text1: "Connection Error",
+        text2:
+          "Could not load subscription data. Please check your connection and try again.",
+      });
+      setPlans([]);
+      setCurrent(null);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
-  // Open UPI app with payment link
-  const handlePayment = async (plan: {
-    name: string;
-    price: string;
-    upiId: string;
-  }) => {
-    // Explicitly type plan
-    try {
-      const upiLink = generateUpiLink(plan);
+  useEffect(() => {
+    fetchPlansAndStatus();
+  }, []);
 
-      // Check if any app can handle the UPI scheme
-      const supported = await Linking.canOpenURL(upiLink);
-      if (supported) {
-        await Linking.openURL(upiLink);
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchPlansAndStatus();
+  };
+
+  const handleUpgrade = async () => {
+    setPaying(true);
+    try {
+      const res = await axios.post("/subscriptions/create_payment_link");
+      if (res.data && res.data.payment_link) {
+        const supported = await Linking.canOpenURL(res.data.payment_link);
+        if (supported) {
+          await Linking.openURL(res.data.payment_link);
+          Toast.show({
+            type: "info",
+            text1: "Complete Payment",
+            text2: "After payment, return and refresh to activate Premium.",
+          });
+        } else {
+          Toast.show({
+            type: "error",
+            text1: "Payment Error",
+            text2: "Could not open payment link. Please try again.",
+          });
+        }
       } else {
         Toast.show({
           type: "error",
           text1: "Error",
-          text2: "No UPI apps found on your device or UPI link is invalid.", // Improved message
+          text2: "Could not get payment link.",
         });
-        console.warn("UPI link not supported:", upiLink); // Log warning
       }
-    } catch (error) {
-      console.error("Error handling payment:", error); // Log the error
+    } catch (e: any) {
+      console.error("Payment error:", e);
+      const errorMessage =
+        e?.response?.data?.detail || "Payment failed. Please try again.";
       Toast.show({
         type: "error",
-        text1: "Payment Failed",
-        text2: "There was an issue opening the UPI app or generating the link.", // Improved message
+        text1: "Payment Error",
+        text2: errorMessage,
       });
+    } finally {
+      setPaying(false);
     }
   };
 
@@ -111,57 +101,108 @@ export default function Subscription() {
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
       keyboardShouldPersistTaps="handled"
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
     >
       <Stack.Screen
         options={{
           title: "Subscription Plans",
-          headerStyle: {
-            backgroundColor: colors.surface, // Example header background
-          },
-          headerTintColor: colors.textPrimary, // Example header text color
+          headerStyle: { backgroundColor: colors.surface },
+          headerTintColor: colors.textPrimary,
         }}
       />
-      {subscriptionPlans.map((plan) => (
-        <View
-          key={plan.id}
-          style={[styles.planCard, { backgroundColor: colors.surface }]}
-        >
-          <Text style={[styles.planTitle, { color: colors.textPrimary }]}>
-            {plan.name}
-          </Text>
-          <Text style={[styles.planPrice, { color: colors.primary }]}>
-            ₹{parseFloat(plan.price).toFixed(2)}/month
-          </Text>
-          <Text style={[styles.featuresTitle, { color: colors.textPrimary }]}>
-            Features:
-          </Text>
-          {plan.features.map((feature, index) => (
-            <Text
-              key={index}
-              style={[styles.featureItem, { color: colors.textSecondary }]}
+      {loading ? (
+        <ActivityIndicator
+          size="large"
+          color={colors.primary}
+          style={{ marginTop: 40 }}
+        />
+      ) : (
+        <>
+          {current && (
+            <View
+              style={[styles.statusCard, { backgroundColor: colors.surface }]}
             >
-              {feature}
-            </Text>
+              <Text style={[styles.statusTitle, { color: colors.textPrimary }]}>
+                Current Plan:
+              </Text>
+              <Text style={[styles.statusValue, { color: colors.primary }]}>
+                {current.subsription_type || current.message}
+              </Text>
+              {current.end_date && (
+                <Text style={{ color: colors.textSecondary }}>
+                  Valid till: {current.end_date}
+                </Text>
+              )}
+            </View>
+          )}
+          {plans.map((plan) => (
+            <View
+              key={plan.id}
+              style={[styles.planCard, { backgroundColor: colors.surface }]}
+            >
+              <Text style={[styles.planTitle, { color: colors.textPrimary }]}>
+                {plan.plan_name}
+              </Text>
+              <Text style={[styles.planPrice, { color: colors.primary }]}>
+                ₹{plan.price}/ {plan.validity} days
+              </Text>
+              <Text
+                style={[styles.featuresTitle, { color: colors.textPrimary }]}
+              >
+                Limits:
+              </Text>
+              <Text
+                style={[styles.featureItem, { color: colors.textSecondary }]}
+              >
+                Customers: {plan.customer_limit ?? "Unlimited"}
+              </Text>
+              <Text
+                style={[styles.featureItem, { color: colors.textSecondary }]}
+              >
+                Suppliers: {plan.supplier_limit ?? "Unlimited"}
+              </Text>
+              <Text
+                style={[styles.featureItem, { color: colors.textSecondary }]}
+              >
+                Daily Transactions: {plan.transaction_limit ?? "Unlimited"}
+              </Text>
+              <Text
+                style={[styles.featureItem, { color: colors.textSecondary }]}
+              >
+                Description: {plan.description}
+              </Text>
+              {plan.plan_name === "Premium" &&
+                (!current ||
+                  current.subsription_type?.toLowerCase() !== "full") && (
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.subscribeButton,
+                      {
+                        backgroundColor: pressed
+                          ? colors.primaryDark
+                          : colors.primary,
+                      },
+                    ]}
+                    onPress={handleUpgrade}
+                    disabled={paying}
+                    android_ripple={{ color: colors.primaryDark }}
+                  >
+                    <Text
+                      style={[
+                        styles.subscribeButtonText,
+                        { color: colors.surface },
+                      ]}
+                    >
+                      Upgrade to Premium
+                    </Text>
+                  </Pressable>
+                )}
+            </View>
           ))}
-          <Pressable
-            style={({ pressed }) => [
-              // Use pressed state for feedback
-              styles.subscribeButton,
-              {
-                backgroundColor: pressed ? colors.primaryDark : colors.primary, // Darker on press
-              },
-            ]}
-            onPress={() => handlePayment(plan)}
-            android_ripple={{ color: colors.primaryDark }} // Add ripple effect for Android
-          >
-            <Text
-              style={[styles.subscribeButtonText, { color: colors.surface }]}
-            >
-              Subscribe Now
-            </Text>
-          </Pressable>
-        </View>
-      ))}
+        </>
+      )}
     </ScrollView>
   );
 }
@@ -169,54 +210,55 @@ export default function Subscription() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // Background color from theme applied inline
-    padding: 16, // Adjusted padding for consistency
-  },
-  title: {
-    // This style is not used in the current component structure
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-    // Color from theme applied inline if used
+    padding: 16,
   },
   planCard: {
-    // Background color from theme applied inline
-    borderRadius: 10, // Adjusted border radius
-    padding: 16, // Adjusted padding
-    marginVertical: 8, // Adjusted vertical margin
+    borderRadius: 10,
+    padding: 16,
+    marginVertical: 8,
   },
   planTitle: {
-    fontSize: 20, // Adjusted font size
+    fontSize: 20,
     fontWeight: "600",
-    // Color from theme applied inline
   },
   planPrice: {
-    fontSize: 17, // Adjusted font size
+    fontSize: 17,
     fontWeight: "500",
-    marginVertical: 8, // Adjusted vertical margin
-    // Color from theme applied inline
+    marginVertical: 8,
   },
   featuresTitle: {
-    fontSize: 15, // Adjusted font size
-    fontWeight: "600",
-    marginTop: 12, // Adjusted margin
-    // Color from theme applied inline
+    fontSize: 15,
+    fontWeight: "bold",
+    marginTop: 8,
   },
   featureItem: {
     fontSize: 14,
-    // Color from theme applied inline
-    marginBottom: 4, // Added margin between features
+    marginLeft: 8,
+    marginVertical: 2,
   },
   subscribeButton: {
-    // Background color from theme applied inline
-    paddingVertical: 12, // Adjusted padding
-    marginTop: 16, // Adjusted margin
-    borderRadius: 8, // Adjusted border radius
+    marginTop: 16,
+    paddingVertical: 10,
+    borderRadius: 6,
     alignItems: "center",
   },
   subscribeButtonText: {
     fontSize: 16,
-    fontWeight: "600", // Bolder text
-    // Color from theme applied inline
+    fontWeight: "bold",
+  },
+  statusCard: {
+    borderRadius: 10,
+    padding: 16,
+    marginVertical: 8,
+    alignItems: "flex-start",
+  },
+  statusTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  statusValue: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginTop: 4,
   },
 });

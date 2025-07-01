@@ -1,6 +1,7 @@
 import os
 import pytz
 from dotenv import load_dotenv
+
 load_dotenv()
 
 TIME_ZONE = os.getenv("TZ", "Asia/Kolkata")
@@ -48,3 +49,17 @@ print(f"DEBUG: SECRET_KEY = {SECRET_KEY}")
 print(f"DEBUG: GEMINI_API_KEY = {GEMINI_API_KEY}")
 print(f"DEBUG: DB_USER = {DB_USER}")
 print(f"DEBUG: DATABASE_URL = {DATABASE_URL}")
+
+# Razorpay Configuration
+RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID")
+RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
+RAZORPAY_WEBHOOK_SECRET = os.getenv("RAZORPAY_WEBHOOK_SECRET")
+RAZORPAY_CALLBACK_URL = os.getenv("RAZORPAY_CALLBACK_URL")
+
+if not RAZORPAY_KEY_ID or not RAZORPAY_KEY_SECRET:
+    print("Warning: Razorpay keys not configured. Payment features will not work.")
+
+if not RAZORPAY_WEBHOOK_SECRET:
+    print(
+        "Warning: Razorpay webhook secret not configured. Webhook verification will fail."
+    )
