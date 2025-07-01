@@ -13,6 +13,11 @@ import {
 import Toast from "react-native-toast-message";
 import useTheme from "@/context/theme/useTheme";
 import axios from "@/lib/axiosIntance";
+import {
+  refreshSubscriptionStatus,
+  checkCustomerLimit,
+  checkTransactionLimit,
+} from "@/lib/subscriptionUtils";
 
 export default function Subscription() {
   const { colors } = useTheme();
@@ -21,6 +26,7 @@ export default function Subscription() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [usage, setUsage] = useState<any>(null);
 
   const fetchPlansAndStatus = async () => {
     setLoading(true);
@@ -47,13 +53,35 @@ export default function Subscription() {
     }
   };
 
+  const fetchUsage = async () => {
+    try {
+      const [customerRes, transactionRes] = await Promise.all([
+        axios.get("/customers/get_customer_summary"),
+        axios.get(
+          `/transactions/total_record_date_range?start_date=${
+            new Date().toISOString().split("T")[0]
+          }&end_date=${new Date().toISOString().split("T")[0]}`
+        ),
+      ]);
+
+      setUsage({
+        customers: customerRes.data?.total_sellers_count || 0,
+        dailyTransactions: transactionRes.data?.total_entries_count || 0,
+      });
+    } catch (error) {
+      console.error("Error fetching usage:", error);
+    }
+  };
+
   useEffect(() => {
     fetchPlansAndStatus();
+    fetchUsage();
   }, []);
 
   const onRefresh = () => {
     setRefreshing(true);
     fetchPlansAndStatus();
+    fetchUsage();
   };
 
   const handleUpgrade = async () => {
@@ -69,6 +97,10 @@ export default function Subscription() {
             text1: "Complete Payment",
             text2: "After payment, return and refresh to activate Premium.",
           });
+          setTimeout(() => {
+            refreshSubscriptionStatus();
+            fetchPlansAndStatus();
+          }, 30000);
         } else {
           Toast.show({
             type: "error",
@@ -135,6 +167,21 @@ export default function Subscription() {
                   Valid till: {current.end_date}
                 </Text>
               )}
+            </View>
+          )}
+          {usage && (
+            <View
+              style={[styles.usageCard, { backgroundColor: colors.surface }]}
+            >
+              <Text style={[styles.usageTitle, { color: colors.textPrimary }]}>
+                Current Usage:
+              </Text>
+              <Text style={[styles.usageItem, { color: colors.textSecondary }]}>
+                Customers: {usage.customers}/5
+              </Text>
+              <Text style={[styles.usageItem, { color: colors.textSecondary }]}>
+                Today's Transactions: {usage.dailyTransactions}/3
+              </Text>
             </View>
           )}
           {plans.map((plan) => (
@@ -260,5 +307,20 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     marginTop: 4,
+  },
+  usageCard: {
+    borderRadius: 10,
+    padding: 16,
+    marginVertical: 8,
+    alignItems: "flex-start",
+  },
+  usageTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  usageItem: {
+    fontSize: 14,
+    marginVertical: 2,
   },
 });
