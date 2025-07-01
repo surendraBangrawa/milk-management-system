@@ -9,7 +9,10 @@ from pydantic import BaseModel
 
 from app.db.session import get_db
 from app.db.models import OfflineSync, MilkRecord, ExpenseRecord, User
-from app.middleware.security_middleware import security_middleware
+from app.middleware.security_middleware import (
+    security_middleware,
+    get_current_user_enhanced,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +50,7 @@ async def sync_offline_data(
     request: Request,
     sync_data: SyncRequest,
     db: Session = Depends(get_db),
-    user_mobile: str = Depends(security_middleware.authenticate_request),
+    user_mobile: str = Depends(get_current_user_enhanced),
 ):
     """Sync offline transactions with server"""
     try:
@@ -317,7 +320,7 @@ async def get_sync_status(
     device_id: str,
     request: Request,
     db: Session = Depends(get_db),
-    user_mobile: str = Depends(security_middleware.authenticate_request),
+    user_mobile: str = Depends(get_current_user_enhanced),
 ):
     """Get sync status for a device"""
     try:
@@ -355,7 +358,7 @@ async def remove_sync_device(
     device_id: str,
     request: Request,
     db: Session = Depends(get_db),
-    user_mobile: str = Depends(security_middleware.authenticate_request),
+    user_mobile: str = Depends(get_current_user_enhanced),
 ):
     """Remove sync record for a device"""
     try:

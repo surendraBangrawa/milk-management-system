@@ -27,6 +27,8 @@ class JWTMiddleware(BaseHTTPMiddleware):
             "/auth/login",
             "/auth/signup",
             "/auth/send_login_otp",
+            "/api/health",
+            "/health",
         ]
         if request.url.path in excluded_paths or request.url.path.startswith("/static"):
             return await call_next(request)

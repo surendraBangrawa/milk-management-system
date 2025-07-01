@@ -51,3 +51,25 @@ DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB
 # Only print non-sensitive debug information
 print(f"DEBUG: TIME_ZONE = {TIME_ZONE}")
 print(f"DEBUG: Database configured for {DB_HOST}:{DB_PORT}/{DB_NAME}")
+
+
+class Settings:
+    SECRET_KEY = SECRET_KEY
+    ALGORITHM = ALGORITHM
+    ACCESS_TOKEN_EXPIRE_MINUTES = ACCESS_TOKEN_EXPIRE_MINUTES
+    GEMINI_API_KEY = GEMINI_API_KEY
+    DB_USER = DB_USER
+    DB_PASSWORD = DB_PASSWORD
+    DB_HOST = DB_HOST
+    DB_NAME = DB_NAME
+    DB_PORT = DB_PORT
+    DATABASE_URL = DATABASE_URL
+    TIME_ZONE = TIME_ZONE
+    local_timezone = local_timezone
+    CORS_ORIGINS = os.getenv(
+        "CORS_ORIGINS",
+        "http://localhost:3000,http://localhost:8081,http://localhost:19006",
+    ).split(",")
+
+
+settings = Settings()

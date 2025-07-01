@@ -12,7 +12,10 @@ from app.db.session import get_db
 from app.db.models import User, UserSession, UserDevice, Otp_Table
 from app.core.security import create_access_token, verify_password, get_password_hash
 from app.core.config import ACCESS_TOKEN_EXPIRE_MINUTES, local_timezone
-from app.middleware.security_middleware import security_middleware
+from app.middleware.security_middleware import (
+    security_middleware,
+    get_current_user_enhanced,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -58,18 +61,20 @@ class SessionInfo(BaseModel):
 
 @router.post("/login")
 async def enhanced_login(
-    request: Request,
-    login_data: EnhancedLoginRequest,
-    db: Session = Depends(get_db)
+    request: Request, login_data: EnhancedLoginRequest, db: Session = Depends(get_db)
 ):
     """Enhanced login with device management and session tracking"""
     try:
         # Verify OTP
-        otp_record = db.query(Otp_Table).filter(
-            Otp_Table.mobile_number == login_data.mobile,
-            Otp_Table.otp == login_data.otp,
-            Otp_Table.time > datetime.now(local_timezone) - timedelta(minutes=10)
-        ).first()
+        otp_record = (
+            db.query(Otp_Table)
+            .filter(
+                Otp_Table.mobile_number == login_data.mobile,
+                Otp_Table.otp == login_data.otp,
+                Otp_Table.time > datetime.now(local_timezone) - timedelta(minutes=10),
+            )
+            .first()
+        )
 
         if not otp_record:
             await security_middleware.log_failed_login(login_data.mobile, request, db)
@@ -81,10 +86,12 @@ async def enhanced_login(
             raise HTTPException(status_code=404, detail="User not found")
 
         # Check if account is locked
-        if user.account_locked_until and user.account_locked_until > datetime.now(local_timezone):
+        if user.account_locked_until and user.account_locked_until > datetime.now(
+            local_timezone
+        ):
             raise HTTPException(
                 status_code=423,
-                detail=f"Account locked until {user.account_locked_until.strftime('%Y-%m-%d %H:%M:%S')}"
+                detail=f"Account locked until {user.account_locked_until.strftime('%Y-%m-%d %H:%M:%S')}",
             )
 
         # Reset failed login attempts
@@ -94,25 +101,26 @@ async def enhanced_login(
         device_id = None
         if login_data.device_info:
             device_id = await security_middleware.register_device(
-                login_data.mobile, 
-                login_data.device_info.dict(), 
-                request, 
-                db
+                login_data.mobile, login_data.device_info.dict(), request, db
             )
 
         # Create access token
         access_token = create_access_token(data={"sub": login_data.mobile})
-        expires_at = datetime.now(local_timezone) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        expires_at = datetime.now(local_timezone) + timedelta(
+            minutes=ACCESS_TOKEN_EXPIRE_MINUTES
+        )
 
         # Create session record
         session = UserSession(
             session_id=access_token,
             user_mobile=login_data.mobile,
             device_id=device_id,
-            device_name=login_data.device_info.device_name if login_data.device_info else None,
+            device_name=(
+                login_data.device_info.device_name if login_data.device_info else None
+            ),
             ip_address=security_middleware._get_client_ip(request),
             user_agent=request.headers.get("User-Agent"),
-            expires_at=expires_at
+            expires_at=expires_at,
         )
         db.add(session)
         db.commit()
@@ -124,7 +132,7 @@ async def enhanced_login(
             resource_type="AUTH",
             resource_id=login_data.mobile,
             request=request,
-            db=db
+            db=db,
         )
 
         return {
@@ -136,9 +144,9 @@ async def enhanced_login(
                 "name": user.name,
                 "two_factor_enabled": user.two_factor_enabled,
                 "preferred_language": user.preferred_language,
-                "theme_preference": user.theme_preference
+                "theme_preference": user.theme_preference,
             },
-            "device_id": device_id
+            "device_id": device_id,
         }
 
     except HTTPException:
@@ -152,12 +160,12 @@ async def enhanced_login(
 async def enhanced_logout(
     request: Request,
     db: Session = Depends(get_db),
-    user_mobile: str = Depends(security_middleware.authenticate_request)
+    user_mobile: str = Depends(get_current_user_enhanced),
 ):
     """Enhanced logout with session cleanup"""
     try:
         token = request.headers.get("Authorization", "").split(" ")[1]
-        
+
         # Deactivate session
         session = db.query(UserSession).filter(UserSession.session_id == token).first()
         if session:
@@ -171,7 +179,7 @@ async def enhanced_logout(
             resource_type="AUTH",
             resource_id=user_mobile,
             request=request,
-            db=db
+            db=db,
         )
 
         return {"message": "Logged out successfully"}
@@ -185,26 +193,32 @@ async def enhanced_logout(
 async def get_user_sessions(
     request: Request,
     db: Session = Depends(get_db),
-    user_mobile: str = Depends(security_middleware.authenticate_request)
+    user_mobile: str = Depends(get_current_user_enhanced),
 ):
     """Get all active sessions for the user"""
     try:
-        sessions = db.query(UserSession).filter(
-            UserSession.user_mobile == user_mobile,
-            UserSession.is_active == True,
-            UserSession.expires_at > datetime.now(local_timezone)
-        ).all()
+        sessions = (
+            db.query(UserSession)
+            .filter(
+                UserSession.user_mobile == user_mobile,
+                UserSession.is_active == True,
+                UserSession.expires_at > datetime.now(local_timezone),
+            )
+            .all()
+        )
 
         session_list = []
         for session in sessions:
-            session_list.append(SessionInfo(
-                session_id=session.session_id,
-                device_name=session.device_name,
-                ip_address=session.ip_address,
-                created_at=session.created_at,
-                last_activity=session.last_activity,
-                expires_at=session.expires_at
-            ))
+            session_list.append(
+                SessionInfo(
+                    session_id=session.session_id,
+                    device_name=session.device_name,
+                    ip_address=session.ip_address,
+                    created_at=session.created_at,
+                    last_activity=session.last_activity,
+                    expires_at=session.expires_at,
+                )
+            )
 
         return {"sessions": session_list}
 
@@ -218,14 +232,18 @@ async def revoke_session(
     session_id: str,
     request: Request,
     db: Session = Depends(get_db),
-    user_mobile: str = Depends(security_middleware.authenticate_request)
+    user_mobile: str = Depends(get_current_user_enhanced),
 ):
     """Revoke a specific session"""
     try:
-        session = db.query(UserSession).filter(
-            UserSession.session_id == session_id,
-            UserSession.user_mobile == user_mobile
-        ).first()
+        session = (
+            db.query(UserSession)
+            .filter(
+                UserSession.session_id == session_id,
+                UserSession.user_mobile == user_mobile,
+            )
+            .first()
+        )
 
         if not session:
             raise HTTPException(status_code=404, detail="Session not found")
@@ -240,7 +258,7 @@ async def revoke_session(
             resource_type="SESSION",
             resource_id=session_id,
             request=request,
-            db=db
+            db=db,
         )
 
         return {"message": "Session revoked successfully"}
@@ -256,27 +274,29 @@ async def revoke_session(
 async def get_user_devices(
     request: Request,
     db: Session = Depends(get_db),
-    user_mobile: str = Depends(security_middleware.authenticate_request)
+    user_mobile: str = Depends(get_current_user_enhanced),
 ):
     """Get all devices registered for the user"""
     try:
-        devices = db.query(UserDevice).filter(
-            UserDevice.user_mobile == user_mobile
-        ).all()
+        devices = (
+            db.query(UserDevice).filter(UserDevice.user_mobile == user_mobile).all()
+        )
 
         device_list = []
         for device in devices:
-            device_list.append({
-                "id": device.id,
-                "device_id": device.device_id,
-                "device_name": device.device_name,
-                "device_type": device.device_type,
-                "os_info": device.os_info,
-                "app_version": device.app_version,
-                "is_trusted": device.is_trusted,
-                "last_used": device.last_used,
-                "created_at": device.created_at
-            })
+            device_list.append(
+                {
+                    "id": device.id,
+                    "device_id": device.device_id,
+                    "device_name": device.device_name,
+                    "device_type": device.device_type,
+                    "os_info": device.os_info,
+                    "app_version": device.app_version,
+                    "is_trusted": device.is_trusted,
+                    "last_used": device.last_used,
+                    "created_at": device.created_at,
+                }
+            )
 
         return {"devices": device_list}
 
@@ -290,14 +310,18 @@ async def trust_device(
     trust_data: TrustDeviceRequest,
     request: Request,
     db: Session = Depends(get_db),
-    user_mobile: str = Depends(security_middleware.authenticate_request)
+    user_mobile: str = Depends(get_current_user_enhanced),
 ):
     """Trust or untrust a device"""
     try:
-        device = db.query(UserDevice).filter(
-            UserDevice.user_mobile == user_mobile,
-            UserDevice.device_id == trust_data.device_id
-        ).first()
+        device = (
+            db.query(UserDevice)
+            .filter(
+                UserDevice.user_mobile == user_mobile,
+                UserDevice.device_id == trust_data.device_id,
+            )
+            .first()
+        )
 
         if not device:
             raise HTTPException(status_code=404, detail="Device not found")
@@ -314,10 +338,12 @@ async def trust_device(
             request=request,
             db=db,
             old_values={"is_trusted": not trust_data.trust},
-            new_values={"is_trusted": trust_data.trust}
+            new_values={"is_trusted": trust_data.trust},
         )
 
-        return {"message": f"Device {'trusted' if trust_data.trust else 'untrusted'} successfully"}
+        return {
+            "message": f"Device {'trusted' if trust_data.trust else 'untrusted'} successfully"
+        }
 
     except HTTPException:
         raise
@@ -331,22 +357,24 @@ async def remove_device(
     device_id: str,
     request: Request,
     db: Session = Depends(get_db),
-    user_mobile: str = Depends(security_middleware.authenticate_request)
+    user_mobile: str = Depends(get_current_user_enhanced),
 ):
     """Remove a device"""
     try:
-        device = db.query(UserDevice).filter(
-            UserDevice.user_mobile == user_mobile,
-            UserDevice.device_id == device_id
-        ).first()
+        device = (
+            db.query(UserDevice)
+            .filter(
+                UserDevice.user_mobile == user_mobile, UserDevice.device_id == device_id
+            )
+            .first()
+        )
 
         if not device:
             raise HTTPException(status_code=404, detail="Device not found")
 
         # Revoke all sessions for this device
         db.query(UserSession).filter(
-            UserSession.user_mobile == user_mobile,
-            UserSession.device_id == device_id
+            UserSession.user_mobile == user_mobile, UserSession.device_id == device_id
         ).update({"is_active": False})
 
         # Remove device
@@ -360,7 +388,7 @@ async def remove_device(
             resource_type="DEVICE",
             resource_id=device_id,
             request=request,
-            db=db
+            db=db,
         )
 
         return {"message": "Device removed successfully"}
@@ -374,10 +402,10 @@ async def remove_device(
 
 @router.put("/profile/preferences")
 async def update_user_preferences(
-    preferences: Dict[str, Any] = Body(...),
     request: Request,
+    preferences: Dict[str, Any] = Body(...),
     db: Session = Depends(get_db),
-    user_mobile: str = Depends(security_middleware.authenticate_request)
+    user_mobile: str = Depends(get_current_user_enhanced),
 ):
     """Update user preferences (language, theme, etc.)"""
     try:
@@ -388,7 +416,7 @@ async def update_user_preferences(
         # Store old values for audit
         old_values = {
             "preferred_language": user.preferred_language,
-            "theme_preference": user.theme_preference
+            "theme_preference": user.theme_preference,
         }
 
         # Update preferences
@@ -408,19 +436,19 @@ async def update_user_preferences(
             request=request,
             db=db,
             old_values=old_values,
-            new_values=preferences
+            new_values=preferences,
         )
 
         return {
             "message": "Preferences updated successfully",
             "preferences": {
                 "preferred_language": user.preferred_language,
-                "theme_preference": user.theme_preference
-            }
+                "theme_preference": user.theme_preference,
+            },
         }
 
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Update preferences error: {e}")
-        raise HTTPException(status_code=500, detail="Failed to update preferences") 
+        raise HTTPException(status_code=500, detail="Failed to update preferences")
