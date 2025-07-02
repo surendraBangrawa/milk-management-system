@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.core.security import get_current_user
 from app.db.session import get_db
@@ -7,6 +7,8 @@ from app.core.config import local_timezone
 from app.db.models import Subscription, SubscriptionPlan, User
 from datetime import datetime, timedelta
 import logging
+from app.services.razorpay_service import create_payment_link, verify_webhook_signature
+import os
 
 
 logger = logging.getLogger(__name__)
@@ -197,8 +199,10 @@ def check_subscription(
     except Exception as e:
         # This catches any other unexpected errors and provides a more specific 500 error.
         logger.error(f"Error in check_subscription: {e}")
-        raise HTTPException(status_code=500, detail="An internal server error occurred while checking subscription.")
-
+        raise HTTPException(
+            status_code=500,
+            detail="An internal server error occurred while checking subscription.",
+        )
 
 
 @router.get("/fetch_plans")
@@ -219,3 +223,131 @@ def fetch_plans(
     except Exception as e:
         logger.error(f"Error : {e}")
         raise HTTPException(status_code=404, detail="Something went wrong")
+
+
+@router.post("/create_payment_link")
+def create_premium_payment_link(
+    db: Session = Depends(get_db),
+    buyer_mobile: str = Depends(get_current_user),
+):
+    """
+    Create a Razorpay payment link for the Premium plan and return the link.
+    """
+    user = (
+        db.query(User).filter(User.mobile == buyer_mobile, User.is_deleted == 0).first()
+    )
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    plan = (
+        db.query(SubscriptionPlan)
+        .filter(SubscriptionPlan.plan_name == "Premium")
+        .first()
+    )
+    if not plan:
+        raise HTTPException(status_code=404, detail="Premium plan not found")
+    # For test, use dummy email if not present
+    email = getattr(user, "email", None) or f"{buyer_mobile}@test.com"
+    payment = create_payment_link(
+        amount=plan.price,
+        customer_name=user.name,
+        customer_email=email,
+        customer_contact=buyer_mobile,
+        description="Premium Subscription (30 days)",
+        callback_url=os.getenv(
+            "RAZORPAY_CALLBACK_URL", "https://example.com/payment-callback"
+        ),
+    )
+    return {"payment_link": payment["short_url"], "id": payment["id"]}
+
+
+@router.post("/razorpay_webhook")
+async def razorpay_webhook(request: Request, db: Session = Depends(get_db)):
+    """
+    Handle Razorpay webhook for payment success and activate subscription.
+    """
+    try:
+        secret = os.getenv("RAZORPAY_WEBHOOK_SECRET", "testsecret")
+        body = await request.body()
+        signature = request.headers.get("x-razorpay-signature")
+
+        if not signature:
+            logger.error("Webhook called without signature")
+            raise HTTPException(status_code=400, detail="Missing signature")
+
+        # Verify webhook signature
+        try:
+            verify_webhook_signature(body, signature, secret)
+        except Exception as e:
+            logger.error(f"Invalid webhook signature: {e}")
+            raise HTTPException(status_code=400, detail="Invalid webhook signature")
+
+        payload = await request.json()
+        event = payload.get("event")
+
+        if event == "payment_link.paid":
+            payment_link_id = payload["payload"]["payment_link"]["entity"]["id"]
+            buyer_mobile = payload["payload"]["payment_link"]["entity"]["customer"][
+                "contact"
+            ]
+
+            # Check if subscription already activated for this payment
+            existing_sub = (
+                db.query(Subscription)
+                .filter(
+                    Subscription.buyer_mobile == buyer_mobile,
+                    Subscription.subscription_type == "Full",
+                )
+                .order_by(Subscription.created_at.desc())
+                .first()
+            )
+
+            if (
+                existing_sub
+                and (
+                    datetime.now(local_timezone).date() - existing_sub.created_at.date()
+                ).days
+                < 1
+            ):
+                logger.info(f"Subscription already activated for {buyer_mobile} today")
+                return {"message": "Subscription already activated"}
+
+            user = (
+                db.query(User)
+                .filter(User.mobile == buyer_mobile, User.is_deleted == 0)
+                .first()
+            )
+            plan = (
+                db.query(SubscriptionPlan)
+                .filter(SubscriptionPlan.plan_name == "Premium")
+                .first()
+            )
+
+            if not user or not plan:
+                logger.error(f"User or plan not found for {buyer_mobile}")
+                raise HTTPException(status_code=404, detail="User or plan not found")
+
+            local_time = datetime.now(local_timezone).replace(tzinfo=None)
+            start_date = local_time.date()
+            end_date = start_date + timedelta(days=plan.validity - 1)
+
+            new_entry = Subscription(
+                buyer_mobile=buyer_mobile,
+                start_date=start_date,
+                end_date=end_date,
+                subscription_type=plan.access_type,
+            )
+
+            db.add(new_entry)
+            db.commit()
+
+            logger.info(f"Premium subscription activated for {buyer_mobile}")
+            return {"message": "Subscription activated"}
+
+        logger.info(f"Webhook event received: {event}")
+        return {"message": "Webhook received"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Webhook error: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")

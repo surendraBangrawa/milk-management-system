@@ -9,7 +9,7 @@ from sqlalchemy import (
     CheckConstraint,
     Boolean,
     JSON,
-    BigInteger
+    BigInteger,
 )
 from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
@@ -139,17 +139,66 @@ class SubscriptionPlan(Base):
     __tablename__ = "subscription_plan"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    plan_name = Column(String(20), nullable=False, unique=True)  # Free, Trial, Premium
     price = Column(Float, nullable=False)
-    validity = Column(Integer, nullable=False)  # e.g., days, months
+    validity = Column(Integer, nullable=False)  # in days
     access_type = Column(Enum(AccessType), nullable=False)
+    customer_limit = Column(Integer, nullable=True)  # Null means unlimited
+    supplier_limit = Column(Integer, nullable=True)
+    transaction_limit = Column(Integer, nullable=True)
+    description = Column(String(255), nullable=True)
     is_deleted = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=local_now)  # Use local_now
     updated_at = Column(DateTime, nullable=True, onupdate=local_now)  # Use local_now
 
+    @staticmethod
+    def seed_plans(session):
+        plans = [
+            {
+                "plan_name": "Free",
+                "price": 0.0,
+                "validity": 3650,  # 10 years, effectively unlimited
+                "access_type": AccessType.PARTIAL,
+                "customer_limit": 5,
+                "supplier_limit": 5,
+                "transaction_limit": 3,
+                "description": "Free plan: 5 customers, 5 suppliers, 3 daily transactions.",
+            },
+            {
+                "plan_name": "Trial",
+                "price": 0.0,
+                "validity": 15,
+                "access_type": AccessType.PARTIAL,
+                "customer_limit": 5,
+                "supplier_limit": 5,
+                "transaction_limit": 3,
+                "description": "Trial plan: 15 days, 5 customers, 5 suppliers, 3 daily transactions.",
+            },
+            {
+                "plan_name": "Premium",
+                "price": 99.0,
+                "validity": 30,
+                "access_type": AccessType.FULL,
+                "customer_limit": None,
+                "supplier_limit": None,
+                "transaction_limit": None,
+                "description": "Premium plan: 30 days, unlimited customers, suppliers, and transactions.",
+            },
+        ]
+        for plan in plans:
+            existing = (
+                session.query(SubscriptionPlan)
+                .filter_by(plan_name=plan["plan_name"])
+                .first()
+            )
+            if not existing:
+                session.add(SubscriptionPlan(**plan))
+        session.commit()
+
 
 class Otp_Table(Base):
     __tablename__ = "OTP_TABLE"
- 
+
     otp_id = Column(
         BigInteger, primary_key=True, index=True, autoincrement=True, name="OTP_ID"
     )
@@ -157,8 +206,7 @@ class Otp_Table(Base):
         String(12), unique=False, name="MOBILE_NUMBER", nullable=False
     )
     otp = Column(String(6), unique=False, name="OTP", nullable=True)
-    count = Column(BigInteger, unique=False, name="COUNT",
-                   nullable=True, default=1)
+    count = Column(BigInteger, unique=False, name="COUNT", nullable=True, default=1)
     time = Column(
         DateTime, unique=False, name="TIME", nullable=False, default=local_now
     )

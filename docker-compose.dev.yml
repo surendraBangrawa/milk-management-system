@@ -2,15 +2,10 @@ services:
   db:
     image: mysql:8.0
     container_name: milk_db_dev
-    env_file: 
+    env_file:
       - ./.env.dev
-    environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-      MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_USER: ${DB_USER}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
     volumes:
-      - db_data_dev:/var/lib/mysql 
+      - db_data_dev:/var/lib/mysql
     ports:
       - "3306:3306"
     healthcheck:
@@ -23,7 +18,7 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile.dev 
+      dockerfile: Dockerfile.dev
     container_name: milk_backend_dev
     ports:
       - "8000:8000"
@@ -39,7 +34,7 @@ services:
   admin:
     build:
       context: ./admin
-      dockerfile: Dockerfile.dev 
+      dockerfile: Dockerfile.dev
     container_name: milk_admin_dev
     ports:
       - "1002:1002"
@@ -47,7 +42,7 @@ services:
       - ./.env.dev
     environment:
       DJANGO_SETTINGS_MODULE: Admin_M.settings
-      DEBUG: ${DEBUG} 
+      DEBUG: ${DEBUG}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS}
     depends_on:
       db:
@@ -55,9 +50,9 @@ services:
       backend:
         condition: service_started
     volumes:
-      - ./admin:/app 
+      - ./admin:/app
       - static_volume_dev:/app/static_collected
-      - media_volume_dev:/app/media_collected 
+      - media_volume_dev:/app/media_collected
     restart: always
     command: >
       sh -c "python manage.py collectstatic --noinput &&
@@ -65,6 +60,6 @@ services:
              python manage.py runserver 0.0.0.0:1002"
 
 volumes:
-  db_data_dev: 
-  static_volume_dev: 
-  media_volume_dev: 
+  db_data_dev:
+  static_volume_dev:
+  media_volume_dev:

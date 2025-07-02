@@ -144,6 +144,31 @@ const HelpFAQPage = () => {
             Contact Support
           </Link>
         </div>
+        <div className="text-center mt-8">
+          <h3
+            className="text-2xl font-bold mb-2"
+            style={{ color: colors.primary }}
+          >
+            Grievance Redressal
+          </h3>
+          <p className="text-lg mb-1" style={{ color: colors.textPrimary }}>
+            For unresolved issues, please contact our Grievance Officer:
+          </p>
+          <p className="text-lg" style={{ color: colors.textPrimary }}>
+            <strong>Name:</strong> Surendra Kumar
+            <br />
+            <strong>Email:</strong>{" "}
+            <a
+              href="mailto:digidairyraj@gmail.com"
+              style={{ color: colors.primary }}
+              className="hover:underline"
+            >
+              digidairyraj@gmail.com
+            </a>
+            <br />
+            <strong>Phone:</strong> +91 88753 53053 (Mon-Fri, 10 AM - 5 PM IST)
+          </p>
+        </div>
       </div>
     </div>
   );

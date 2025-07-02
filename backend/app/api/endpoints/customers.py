@@ -7,6 +7,7 @@ from app.core.security import get_current_user
 from app.core.config import local_timezone
 from datetime import datetime
 import logging
+from app.services.subscription_service import can_add_customer
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,12 @@ def add_customer(
     current_mobile: str = Depends(get_current_user),
 ):
     try:
+        # Enforce subscription customer limit
+        if not can_add_customer(db, current_mobile):
+            raise HTTPException(
+                status_code=403,
+                detail="Customer limit reached for your subscription plan. Upgrade to add more customers.",
+            )
         local_time = datetime.now(local_timezone).replace(tzinfo=None)
         existing_customer = (
             db.query(Customer)
