@@ -1,0 +1,854 @@
+{
+  "info": {
+    "_postman_id": "milk-management-system-api",
+    "name": "Milk Management System API",
+    "description": "Complete API testing collection for the Milk Management System backend. This collection includes all endpoints for authentication, customer management, transactions, profile management, rate lists, and subscriptions.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "milk-management-system"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "User Signup",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"mobile\": \"{{mobile_number}}\",\n    \"name\": \"{{user_name}}\",\n    \"referral_code\": \"{{referral_code}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/signup",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "signup"]
+            },
+            "description": "Register a new user with mobile number, name, and optional referral code"
+          },
+          "response": []
+        },
+        {
+          "name": "Send Login OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"mobile_number\": \"{{mobile_number}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/send_login_otp",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "send_login_otp"]
+            },
+            "description": "Send OTP to registered mobile number for login"
+          },
+          "response": []
+        },
+        {
+          "name": "User Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.access_token) {",
+                  "        pm.environment.set('access_token', response.access_token);",
+                  "        console.log('Access token saved:', response.access_token);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"mobile\": \"{{mobile_number}}\",\n    \"otp\": \"{{otp_code}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Login with mobile number and OTP. Saves access token to environment."
+          },
+          "response": []
+        },
+        {
+          "name": "User Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "logout"]
+            },
+            "description": "Logout user and invalidate access token"
+          },
+          "response": []
+        }
+      ],
+      "description": "Authentication endpoints for user registration, login, and logout"
+    },
+    {
+      "name": "Customers",
+      "item": [
+        {
+          "name": "Add Customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"mobile\": \"{{customer_mobile}}\",\n    \"name\": \"{{customer_name}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/customers/add",
+              "host": ["{{base_url}}"],
+              "path": ["customers", "add"]
+            },
+            "description": "Add a new customer under the authenticated user"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Customer",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"seller_mobile\": \"{{customer_mobile}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/customers/delete",
+              "host": ["{{base_url}}"],
+              "path": ["customers", "delete"]
+            },
+            "description": "Delete a customer and all related milk/expense records"
+          },
+          "response": []
+        }
+      ],
+      "description": "Customer management endpoints for adding and deleting customers"
+    },
+    {
+      "name": "Transactions",
+      "item": [
+        {
+          "name": "Add Milk Record",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"seller_mobile\": \"{{customer_mobile}}\",\n    \"quantity\": 10.5,\n    \"fat\": 3.8,\n    \"snf\": 8.5,\n    \"rate\": 45.0,\n    \"shift\": \"M\",\n    \"milk_detail\": \"Fresh morning milk\",\n    \"custom_date\": \"{{$timestamp}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/transactions/add_milk_record",
+              "host": ["{{base_url}}"],
+              "path": ["transactions", "add_milk_record"]
+            },
+            "description": "Add a new milk record for a customer"
+          },
+          "response": []
+        },
+        {
+          "name": "Add Expense Record",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"seller_mobile\": \"{{customer_mobile}}\",\n    \"amount\": 500.0,\n    \"expense_detail\": \"Feed expense\",\n    \"custom_date\": \"{{$timestamp}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/transactions/add_expense",
+              "host": ["{{base_url}}"],
+              "path": ["transactions", "add_expense"]
+            },
+            "description": "Add an expense record for a customer"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Transaction",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/transactions/delete_transaction?record_id={{record_id}}&record_type={{record_type}}&seller_mobile={{customer_mobile}}",
+              "host": ["{{base_url}}"],
+              "path": ["transactions", "delete_transaction"],
+              "query": [
+                {
+                  "key": "record_id",
+                  "value": "{{record_id}}"
+                },
+                {
+                  "key": "record_type",
+                  "value": "{{record_type}}"
+                },
+                {
+                  "key": "seller_mobile",
+                  "value": "{{customer_mobile}}"
+                }
+              ]
+            },
+            "description": "Delete a specific transaction (milk or expense record)"
+          },
+          "response": []
+        },
+        {
+          "name": "Edit Transaction",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"quantity\": 12.0,\n    \"fat\": 4.0,\n    \"snf\": 8.8,\n    \"rate\": 48.0,\n    \"shift\": \"E\",\n    \"milk_detail\": \"Updated evening milk\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/transactions/edit_transaction?record_id={{record_id}}&record_type={{record_type}}&seller_mobile={{customer_mobile}}",
+              "host": ["{{base_url}}"],
+              "path": ["transactions", "edit_transaction"],
+              "query": [
+                {
+                  "key": "record_id",
+                  "value": "{{record_id}}"
+                },
+                {
+                  "key": "record_type",
+                  "value": "{{record_type}}"
+                },
+                {
+                  "key": "seller_mobile",
+                  "value": "{{customer_mobile}}"
+                }
+              ]
+            },
+            "description": "Edit an existing transaction"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Customer Transactions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/transactions/get_transactions_customer?seller_mobile={{customer_mobile}}&start_date={{start_date}}&end_date={{end_date}}&offset=0&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["transactions", "get_transactions_customer"],
+              "query": [
+                {
+                  "key": "seller_mobile",
+                  "value": "{{customer_mobile}}"
+                },
+                {
+                  "key": "start_date",
+                  "value": "{{start_date}}"
+                },
+                {
+                  "key": "end_date",
+                  "value": "{{end_date}}"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get transactions for a specific customer within date range"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Supplier Transactions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/transactions/get_transactions_supplier?buyer_mobile={{buyer_mobile}}&start_date={{start_date}}&end_date={{end_date}}&offset=0&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["transactions", "get_transactions_supplier"],
+              "query": [
+                {
+                  "key": "buyer_mobile",
+                  "value": "{{buyer_mobile}}"
+                },
+                {
+                  "key": "start_date",
+                  "value": "{{start_date}}"
+                },
+                {
+                  "key": "end_date",
+                  "value": "{{end_date}}"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get transactions for a specific supplier within date range"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Customer Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/transactions/get_customer_summary?offset=0&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["transactions", "get_customer_summary"],
+              "query": [
+                {
+                  "key": "offset",
+                  "value": "0"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get summary of all customers with their transaction totals"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Supplier Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/transactions/get_supplier_summary?offset=0&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["transactions", "get_supplier_summary"],
+              "query": [
+                {
+                  "key": "offset",
+                  "value": "0"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get summary of all suppliers with their transaction totals"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Total Records by Date Range",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/transactions/total_record_date_range?start_date={{start_date}}&end_date={{end_date}}&shift={{shift}}",
+              "host": ["{{base_url}}"],
+              "path": ["transactions", "total_record_date_range"],
+              "query": [
+                {
+                  "key": "start_date",
+                  "value": "{{start_date}}"
+                },
+                {
+                  "key": "end_date",
+                  "value": "{{end_date}}"
+                },
+                {
+                  "key": "shift",
+                  "value": "{{shift}}"
+                }
+              ]
+            },
+            "description": "Get total records within a date range with optional shift filter"
+          },
+          "response": []
+        },
+        {
+          "name": "Generate Milk Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/transactions/generate_milk_report?start_date={{start_date}}&end_date={{end_date}}",
+              "host": ["{{base_url}}"],
+              "path": ["transactions", "generate_milk_report"],
+              "query": [
+                {
+                  "key": "start_date",
+                  "value": "{{start_date}}"
+                },
+                {
+                  "key": "end_date",
+                  "value": "{{end_date}}"
+                }
+              ]
+            },
+            "description": "Generate a comprehensive milk report for the specified date range"
+          },
+          "response": []
+        }
+      ],
+      "description": "Transaction management endpoints for milk records, expenses, and reports"
+    },
+    {
+      "name": "Profile",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/profile/get",
+              "host": ["{{base_url}}"],
+              "path": ["profile", "get"]
+            },
+            "description": "Get current user profile information"
+          },
+          "response": []
+        },
+        {
+          "name": "Edit Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"new_name\": \"{{new_user_name}}\",\n    \"seller_mobile\": \"{{customer_mobile}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/profile/edit",
+              "host": ["{{base_url}}"],
+              "path": ["profile", "edit"]
+            },
+            "description": "Edit user or customer profile name"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Profile",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/profile/delete",
+              "host": ["{{base_url}}"],
+              "path": ["profile", "delete"]
+            },
+            "description": "Delete user profile and all related data"
+          },
+          "response": []
+        }
+      ],
+      "description": "Profile management endpoints for user information"
+    },
+    {
+      "name": "Rate List",
+      "item": [
+        {
+          "name": "Store Rate List",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"rates\": [\n        {\n            \"fat\": 3.0,\n            \"snf\": 8.0,\n            \"rate\": 40.0\n        },\n        {\n            \"fat\": 3.5,\n            \"snf\": 8.5,\n            \"rate\": 45.0\n        },\n        {\n            \"fat\": 4.0,\n            \"snf\": 9.0,\n            \"rate\": 50.0\n        }\n    ],\n    \"min_fat\": 3.0,\n    \"max_fat\": 6.0,\n    \"min_snf\": 8.0,\n    \"max_snf\": 10.0\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/ratelist/store",
+              "host": ["{{base_url}}"],
+              "path": ["ratelist", "store"]
+            },
+            "description": "Store a new rate list with fat, SNF, and rate combinations"
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Rate List Image",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/ratelist/upload_image",
+              "host": ["{{base_url}}"],
+              "path": ["ratelist", "upload_image"]
+            },
+            "description": "Upload an image containing rate list data for OCR processing"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Rate List",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/ratelist/get_list",
+              "host": ["{{base_url}}"],
+              "path": ["ratelist", "get_list"]
+            },
+            "description": "Get the current user's rate list"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Rate by Fat and SNF",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/ratelist/get_rate?fat={{fat_value}}&snf={{snf_value}}",
+              "host": ["{{base_url}}"],
+              "path": ["ratelist", "get_rate"],
+              "query": [
+                {
+                  "key": "fat",
+                  "value": "{{fat_value}}"
+                },
+                {
+                  "key": "snf",
+                  "value": "{{snf_value}}"
+                }
+              ]
+            },
+            "description": "Get rate for specific fat and SNF values"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Rate List",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/ratelist/delete",
+              "host": ["{{base_url}}"],
+              "path": ["ratelist", "delete"]
+            },
+            "description": "Delete the current user's rate list"
+          },
+          "response": []
+        }
+      ],
+      "description": "Rate list management endpoints for milk pricing"
+    },
+    {
+      "name": "Subscriptions",
+      "item": [
+        {
+          "name": "Check Subscription Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/subscriptions/check",
+              "host": ["{{base_url}}"],
+              "path": ["subscriptions", "check"]
+            },
+            "description": "Check current subscription status and type"
+          },
+          "response": []
+        },
+        {
+          "name": "Fetch Available Plans",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/subscriptions/fetch_plans",
+              "host": ["{{base_url}}"],
+              "path": ["subscriptions", "fetch_plans"]
+            },
+            "description": "Get list of available subscription plans"
+          },
+          "response": []
+        },
+        {
+          "name": "Take Subscription",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"plan_id\": {{plan_id}}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/subscriptions/take",
+              "host": ["{{base_url}}"],
+              "path": ["subscriptions", "take"]
+            },
+            "description": "Subscribe to a specific plan"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Payment Link",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/subscriptions/create_payment_link",
+              "host": ["{{base_url}}"],
+              "path": ["subscriptions", "create_payment_link"]
+            },
+            "description": "Create a Razorpay payment link for premium subscription"
+          },
+          "response": []
+        },
+        {
+          "name": "Razorpay Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"event\": \"payment.captured\",\n    \"payload\": {\n        \"payment\": {\n            \"entity\": {\n                \"id\": \"pay_test123\",\n                \"amount\": 100000,\n                \"currency\": \"INR\",\n                \"status\": \"captured\"\n            }\n        }\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/subscriptions/razorpay_webhook",
+              "host": ["{{base_url}}"],
+              "path": ["subscriptions", "razorpay_webhook"]
+            },
+            "description": "Webhook endpoint for Razorpay payment notifications"
+          },
+          "response": []
+        }
+      ],
+      "description": "Subscription management endpoints for plan management and payments"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [""]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [""]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    }
+  ]
+}
