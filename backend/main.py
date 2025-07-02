@@ -13,11 +13,21 @@ from app.api.endpoints import (
 from app.core.logging_config import configure_logging
 from app.db.session import Base, engine
 from app.db.models import *
+from app.db.init_db import seed_subscription_plans
+import logging
+
+logger = logging.getLogger(__name__)
 
 configure_logging()
 load_dotenv()
 
+# Create database tables
 Base.metadata.create_all(bind=engine)
+
+try:
+    seed_subscription_plans()
+except Exception as e:
+    logger.error(f"Failed to seed subscription plans: {e}")
 
 app = FastAPI(
     title="Milk Management System API",
