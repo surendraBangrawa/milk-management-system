@@ -111,6 +111,12 @@ const Layout = ({ children }: LayoutProps) => {
                 Based in Sri Ganganagar, Rajasthan, India
               </p>
               <p className="text-sm">
+                <strong>Legal Name:</strong> DigiDairy Solutions Pvt. Ltd.
+                <br />
+                <strong>Registered Address:</strong> 5A Vivekanada Marg, Sri
+                Ganganagar, Rajasthan 335001, India
+              </p>
+              <p className="text-sm">
                 © {new Date().getFullYear()} DigiDairy. All rights reserved.
               </p>
             </div>

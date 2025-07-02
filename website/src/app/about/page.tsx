@@ -37,6 +37,36 @@ const AboutUsPage = () => {
               className="text-3xl font-bold mb-4"
               style={{ color: colors.primary }} // Apply primary color
             >
+              Our Company
+            </h2>
+            <p
+              className="text-lg leading-relaxed mb-4"
+              style={{ color: colors.textPrimary }} // Apply primary text color
+            >
+              <strong>Legal Name:</strong> DigiDairy Solutions Pvt. Ltd.
+              <br />
+              <strong>Registered Address:</strong> 5A Vivekanada Marg, Sri
+              Ganganagar, Rajasthan 335001, India
+              <br />
+              <strong>Support Email:</strong> digidairyraj@gmail.com
+              <br />
+              <strong>Support Phone:</strong> +91 88753 53053
+            </p>
+            <p
+              className="text-lg leading-relaxed"
+              style={{ color: colors.textPrimary }}
+            >
+              DigiDairy Solutions Pvt. Ltd. is a registered company in India,
+              dedicated to providing digital solutions for the dairy industry.
+              Our platform empowers dairy farmers and businesses to manage their
+              operations efficiently and transparently.
+            </p>
+          </div>
+          <div>
+            <h2
+              className="text-3xl font-bold mb-4"
+              style={{ color: colors.primary }} // Apply primary color
+            >
               Our Mission
             </h2>
             <p
