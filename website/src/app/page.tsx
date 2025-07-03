@@ -1,6 +1,6 @@
 "use client";
 import { useTheme } from "@/context/ThemeContext";
-// import Link from "next/link";
+import Link from "next/link";
 
 export default function LandingPage() {
   const { theme, colors } = useTheme();
@@ -26,21 +26,23 @@ export default function LandingPage() {
           DigiDairy provides cutting-edge digital solutions to optimize your
           dairy operations, from herd management to milk production.
         </p>
-        {/* <Link href="/signup" passHref>
-          <button
-            className="px-8 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold text-lg rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 active:scale-95"
-            style={{
-              backgroundColor: colors.primary,
-              boxShadow: `0 5px 15px ${colors.shadow}`,
-              backgroundImage:
-                theme === "light"
-                  ? `linear-gradient(to right, ${colors.primaryLight}, ${colors.primaryDark})` // Use colors from context
-                  : `linear-gradient(to right, ${colors.primaryLight}, ${colors.primaryDark})`, // Use colors from context
-            }}
-          >
-            Get Started Today
-          </button>
-        </Link> */}
+        { <Link href="/signup" passHref>
+  <button
+    className="px-8 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold text-lg rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 active:scale-95"
+    style={{
+      backgroundColor: colors.primary,
+      boxShadow: `0 5px 15px ${colors.shadow}`,
+      backgroundImage:
+        theme === "light"
+          ? `linear-gradient(to right, ${colors.primaryLight}, ${colors.primaryDark})`
+          : `linear-gradient(to right, ${colors.primaryLight}, ${colors.primaryDark})`,
+      display: 'none',  // Completely hide the button and remove it from the layout
+    }}
+  >
+    Get Started Today
+  </button>
+</Link>
+ }
       </header>
 
       {/* Features Section */}
