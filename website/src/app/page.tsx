@@ -26,7 +26,7 @@ export default function LandingPage() {
           DigiDairy provides cutting-edge digital solutions to optimize your
           dairy operations, from herd management to milk production.
         </p>
-        <Link href="/signup" passHref>
+        {/* <Link href="/signup" passHref>
           <button
             className="px-8 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold text-lg rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 active:scale-95"
             style={{
@@ -40,7 +40,7 @@ export default function LandingPage() {
           >
             Get Started Today
           </button>
-        </Link>
+        </Link> */}
       </header>
 
       {/* Features Section */}
