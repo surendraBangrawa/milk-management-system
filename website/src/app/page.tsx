@@ -1,6 +1,6 @@
 "use client";
 import { useTheme } from "@/context/ThemeContext";
-import Link from "next/link";
+// import Link from "next/link";
 
 export default function LandingPage() {
   const { theme, colors } = useTheme();
