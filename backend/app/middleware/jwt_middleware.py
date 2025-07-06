@@ -27,6 +27,11 @@ class JWTMiddleware(BaseHTTPMiddleware):
             "/auth/login",
             "/auth/signup",
             "/auth/send_login_otp",
+            "/subscriptions/razorpay_webhook",  # Webhook endpoint doesn't need JWT auth
+            "/subscriptions/webhook-test",  # Webhook test endpoint
+            "/subscriptions/debug-subscription",  # Debug endpoint
+            "/payment-callback",  # Payment callback doesn't need JWT auth
+            "/favicon.ico",  # Browser favicon requests
         ]
         if request.url.path in excluded_paths or request.url.path.startswith("/static"):
             return await call_next(request)

@@ -115,7 +115,7 @@ const OTP = () => {
         setIsResending(false);
         return;
       }
-      const resendOtpResponse = await sendOtpApi({ mobile: phone });
+      const resendOtpResponse = await sendOtpApi({ mobile_number: phone });
       if (resendOtpResponse.status === 200) {
         Toast.show({ type: "success", text1: t("otp.otp_sent_success") }); // Translated success
         setTimer(180); // Reset timer

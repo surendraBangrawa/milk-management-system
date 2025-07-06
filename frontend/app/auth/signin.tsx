@@ -43,7 +43,7 @@ const Signin = () => {
       await SecureStore.setItemAsync("user", JSON.stringify({ phone }));
 
       // Assuming sendOtpApi returns a Response object or similar
-      const sendOtpResponse = await sendOtpApi({ mobile: phone });
+      const sendOtpResponse = await sendOtpApi({ mobile_number: phone });
 
       if (sendOtpResponse.status === 200) {
         Toast.show({ type: "success", text1: t("signin.otp_success") }); // Translated success toast

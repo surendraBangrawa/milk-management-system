@@ -11,12 +11,10 @@ from sqlalchemy import (
     JSON,
     BigInteger,
 )
-from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
 import enum
 from app.core.config import local_timezone
-
-Base = declarative_base()
+from app.db.session import Base
 
 
 def local_now():
@@ -116,6 +114,9 @@ class RateList(Base):
     is_deleted = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=local_now)  # Use local_now
     updated_at = Column(DateTime, nullable=True, onupdate=local_now)  # Use local_now
+    status = Column(
+        String(20), nullable=False, default="processing"
+    )  # processing, complete, failed
 
 
 class Subscription(Base):

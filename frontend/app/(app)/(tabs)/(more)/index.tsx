@@ -125,9 +125,9 @@ export default function TabTwoScreen() {
     >
       {sections.map((section, sectionIndex) => (
         <View key={`section-${sectionIndex}`} style={styles.sectionContainer}>
-          {section.titleKey && ( // Check if titleKey exists
+          {section.titleKey && (
             <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-              {t(section.titleKey)} {/* Use t() for section title */}
+              {t(section.titleKey)}
             </Text>
           )}
           <View
@@ -169,7 +169,7 @@ export default function TabTwoScreen() {
                       },
                     ]}
                   >
-                    {t(option.labelKey)} {/* Use t() for option label */}
+                    {t(option.labelKey)}
                   </Text>
 
                   {option.path && !option.hideChevron && (

@@ -6,7 +6,6 @@ import {
   View,
   Text,
   Pressable,
-  Linking,
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
@@ -18,6 +17,7 @@ import {
   checkCustomerLimit,
   checkTransactionLimit,
 } from "@/lib/subscriptionUtils";
+import PaymentWebView from "@/components/PaymentWebView";
 
 export default function Subscription() {
   const { colors } = useTheme();
@@ -27,6 +27,8 @@ export default function Subscription() {
   const [refreshing, setRefreshing] = useState(false);
   const [paying, setPaying] = useState(false);
   const [usage, setUsage] = useState<any>(null);
+  const [showPaymentWebView, setShowPaymentWebView] = useState(false);
+  const [paymentUrl, setPaymentUrl] = useState<string>("");
 
   const fetchPlansAndStatus = async () => {
     setLoading(true);
@@ -35,7 +37,7 @@ export default function Subscription() {
         axios.get("/subscriptions/fetch_plans"),
         axios.get("/subscriptions/check"),
       ]);
-      setPlans(plansRes.data.plans || []);
+      setPlans(plansRes.data || []);
       setCurrent(statusRes.data);
     } catch (e: any) {
       console.error("Error fetching subscription data:", e);
@@ -53,66 +55,27 @@ export default function Subscription() {
     }
   };
 
-  const fetchUsage = async () => {
-    try {
-      const [customerRes, transactionRes] = await Promise.all([
-        axios.get("/customers/get_customer_summary"),
-        axios.get(
-          `/transactions/total_record_date_range?start_date=${
-            new Date().toISOString().split("T")[0]
-          }&end_date=${new Date().toISOString().split("T")[0]}`
-        ),
-      ]);
-
-      setUsage({
-        customers: customerRes.data?.total_sellers_count || 0,
-        dailyTransactions: transactionRes.data?.total_entries_count || 0,
-      });
-    } catch (error) {
-      console.error("Error fetching usage:", error);
-    }
-  };
-
   useEffect(() => {
     fetchPlansAndStatus();
-    fetchUsage();
   }, []);
 
   const onRefresh = () => {
     setRefreshing(true);
     fetchPlansAndStatus();
-    fetchUsage();
   };
 
-  const handleUpgrade = async () => {
+  const createPaymentIntent = async () => {
     setPaying(true);
     try {
-      const res = await axios.post("/subscriptions/create_payment_link");
-      if (res.data && res.data.payment_link) {
-        const supported = await Linking.canOpenURL(res.data.payment_link);
-        if (supported) {
-          await Linking.openURL(res.data.payment_link);
-          Toast.show({
-            type: "info",
-            text1: "Complete Payment",
-            text2: "After payment, return and refresh to activate Premium.",
-          });
-          setTimeout(() => {
-            refreshSubscriptionStatus();
-            fetchPlansAndStatus();
-          }, 30000);
-        } else {
-          Toast.show({
-            type: "error",
-            text1: "Payment Error",
-            text2: "Could not open payment link. Please try again.",
-          });
-        }
+      const res = await axios.post("/subscriptions/create_payment_intent");
+      if (res.data && res.data.payment_url) {
+        setPaymentUrl(res.data.payment_url);
+        setShowPaymentWebView(true);
       } else {
         Toast.show({
           type: "error",
           text1: "Error",
-          text2: "Could not get payment link.",
+          text2: "Could not create payment order.",
         });
       }
     } catch (e: any) {
@@ -129,100 +92,236 @@ export default function Subscription() {
     }
   };
 
+  const handlePaymentSuccess = () => {
+    Toast.show({
+      type: "success",
+      text1: "Payment Successful!",
+      text2: "Your Premium subscription has been activated.",
+    });
+
+    // Refresh subscription status immediately and after a delay
+    fetchPlansAndStatus();
+    setTimeout(() => {
+      refreshSubscriptionStatus();
+      fetchPlansAndStatus();
+    }, 2000);
+  };
+
+  const handlePaymentError = (error: string) => {
+    Toast.show({
+      type: "error",
+      text1: "Payment Failed",
+      text2: error || "Payment could not be completed. Please try again.",
+    });
+
+    // Refresh subscription status after a short delay
+    setTimeout(() => {
+      fetchPlansAndStatus();
+    }, 1000);
+  };
+
+  const handlePaymentClose = () => {
+    setShowPaymentWebView(false);
+    setPaymentUrl("");
+
+    // Check subscription status after payment closes
+    setTimeout(() => {
+      fetchPlansAndStatus();
+    }, 1000);
+  };
+
+  // Get current plan details
+  const getCurrentPlanDetails = () => {
+    if (!current) return null;
+
+    const currentPlanName = current.subsription_type || current.message;
+
+    // Map subscription types to plan names
+    let mappedPlanName = currentPlanName;
+    if (currentPlanName === "Full") {
+      mappedPlanName = "Premium";
+    } else if (currentPlanName === "Partial") {
+      mappedPlanName = "Free";
+    }
+
+    return plans.find(
+      (plan) =>
+        plan.plan_name.toLowerCase() === mappedPlanName.toLowerCase() ||
+        (currentPlanName.includes("trial") && plan.plan_name === "Trial") ||
+        (currentPlanName.includes("free") && plan.plan_name === "Free")
+    );
+  };
+
+  // Get premium plan
+  const getPremiumPlan = () => {
+    return plans.find((plan) => plan.plan_name === "Premium");
+  };
+
+  const currentPlanDetails = getCurrentPlanDetails();
+  const premiumPlan = getPremiumPlan();
+
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      keyboardShouldPersistTaps="handled"
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
-      <Stack.Screen
-        options={{
-          title: "Subscription Plans",
-          headerStyle: { backgroundColor: colors.surface },
-          headerTintColor: colors.textPrimary,
-        }}
-      />
-      {loading ? (
-        <ActivityIndicator
-          size="large"
-          color={colors.primary}
-          style={{ marginTop: 40 }}
+    <>
+      <ScrollView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        <Stack.Screen
+          options={{
+            title: "Subscription Plans",
+            headerStyle: { backgroundColor: colors.surface },
+            headerTintColor: colors.textPrimary,
+          }}
         />
-      ) : (
-        <>
-          {current && (
-            <View
-              style={[styles.statusCard, { backgroundColor: colors.surface }]}
-            >
-              <Text style={[styles.statusTitle, { color: colors.textPrimary }]}>
-                Current Plan:
-              </Text>
-              <Text style={[styles.statusValue, { color: colors.primary }]}>
-                {current.subsription_type || current.message}
-              </Text>
-              {current.end_date && (
-                <Text style={{ color: colors.textSecondary }}>
-                  Valid till: {current.end_date}
+        {loading ? (
+          <ActivityIndicator
+            size="large"
+            color={colors.primary}
+            style={{ marginTop: 40 }}
+          />
+        ) : (
+          <>
+            {current && (
+              <View
+                style={[styles.statusCard, { backgroundColor: colors.surface }]}
+              >
+                <Text
+                  style={[styles.statusTitle, { color: colors.textPrimary }]}
+                >
+                  Current Plan:
                 </Text>
-              )}
-            </View>
-          )}
-          {usage && (
-            <View
-              style={[styles.usageCard, { backgroundColor: colors.surface }]}
-            >
-              <Text style={[styles.usageTitle, { color: colors.textPrimary }]}>
-                Current Usage:
-              </Text>
-              <Text style={[styles.usageItem, { color: colors.textSecondary }]}>
-                Customers: {usage.customers}/5
-              </Text>
-              <Text style={[styles.usageItem, { color: colors.textSecondary }]}>
-                Today's Transactions: {usage.dailyTransactions}/3
-              </Text>
-            </View>
-          )}
-          {plans.map((plan) => (
-            <View
-              key={plan.id}
-              style={[styles.planCard, { backgroundColor: colors.surface }]}
-            >
-              <Text style={[styles.planTitle, { color: colors.textPrimary }]}>
-                {plan.plan_name}
-              </Text>
-              <Text style={[styles.planPrice, { color: colors.primary }]}>
-                ₹{plan.price}/ {plan.validity} days
-              </Text>
-              <Text
-                style={[styles.featuresTitle, { color: colors.textPrimary }]}
+                <Text style={[styles.statusValue, { color: colors.primary }]}>
+                  {current.subsription_type === "Full"
+                    ? "Premium"
+                    : current.subsription_type || current.message}
+                </Text>
+                {current.end_date && (
+                  <Text style={{ color: colors.textSecondary }}>
+                    Valid till: {current.end_date}
+                  </Text>
+                )}
+                {currentPlanDetails && (
+                  <View style={styles.currentPlanDetails}>
+                    <Text
+                      style={[
+                        styles.featuresTitle,
+                        { color: colors.textPrimary },
+                      ]}
+                    >
+                      Your Current Limits:
+                    </Text>
+                    <Text
+                      style={[
+                        styles.featureItem,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      Customers:{" "}
+                      {currentPlanDetails.customer_limit ?? "Unlimited"}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.featureItem,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      Suppliers:{" "}
+                      {currentPlanDetails.supplier_limit ?? "Unlimited"}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.featureItem,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      Daily Transactions:{" "}
+                      {currentPlanDetails.transaction_limit ?? "Unlimited"}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+            {usage && (
+              <View
+                style={[styles.usageCard, { backgroundColor: colors.surface }]}
               >
-                Limits:
-              </Text>
-              <Text
-                style={[styles.featureItem, { color: colors.textSecondary }]}
-              >
-                Customers: {plan.customer_limit ?? "Unlimited"}
-              </Text>
-              <Text
-                style={[styles.featureItem, { color: colors.textSecondary }]}
-              >
-                Suppliers: {plan.supplier_limit ?? "Unlimited"}
-              </Text>
-              <Text
-                style={[styles.featureItem, { color: colors.textSecondary }]}
-              >
-                Daily Transactions: {plan.transaction_limit ?? "Unlimited"}
-              </Text>
-              <Text
-                style={[styles.featureItem, { color: colors.textSecondary }]}
-              >
-                Description: {plan.description}
-              </Text>
-              {plan.plan_name === "Premium" &&
-                (!current ||
-                  current.subsription_type?.toLowerCase() !== "full") && (
+                <Text
+                  style={[styles.usageTitle, { color: colors.textPrimary }]}
+                >
+                  Current Usage:
+                </Text>
+                <Text
+                  style={[styles.usageItem, { color: colors.textSecondary }]}
+                >
+                  Customers: {usage.customers}/5
+                </Text>
+                <Text
+                  style={[styles.usageItem, { color: colors.textSecondary }]}
+                >
+                  Today's Transactions: {usage.dailyTransactions}/3
+                </Text>
+              </View>
+            )}
+
+            {/* Show Premium upgrade option only */}
+            {premiumPlan &&
+              (!current ||
+                current.subsription_type?.toLowerCase() !== "full") && (
+                <View
+                  style={[styles.planCard, { backgroundColor: colors.surface }]}
+                >
+                  <Text
+                    style={[styles.planTitle, { color: colors.textPrimary }]}
+                  >
+                    {premiumPlan.plan_name}
+                  </Text>
+                  <Text style={[styles.planPrice, { color: colors.primary }]}>
+                    ₹{premiumPlan.price}/ {premiumPlan.validity} days
+                  </Text>
+                  <Text
+                    style={[
+                      styles.featuresTitle,
+                      { color: colors.textPrimary },
+                    ]}
+                  >
+                    Premium Features:
+                  </Text>
+                  <Text
+                    style={[
+                      styles.featureItem,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Customers: {premiumPlan.customer_limit ?? "Unlimited"}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.featureItem,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Suppliers: {premiumPlan.supplier_limit ?? "Unlimited"}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.featureItem,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Daily Transactions:{" "}
+                    {premiumPlan.transaction_limit ?? "Unlimited"}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.featureItem,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Description: {premiumPlan.description}
+                  </Text>
                   <Pressable
                     style={({ pressed }) => [
                       styles.subscribeButton,
@@ -232,7 +331,7 @@ export default function Subscription() {
                           : colors.primary,
                       },
                     ]}
-                    onPress={handleUpgrade}
+                    onPress={createPaymentIntent}
                     disabled={paying}
                     android_ripple={{ color: colors.primaryDark }}
                   >
@@ -242,15 +341,24 @@ export default function Subscription() {
                         { color: colors.surface },
                       ]}
                     >
-                      Upgrade to Premium
+                      {paying ? "Processing..." : "Upgrade to Premium"}
                     </Text>
                   </Pressable>
-                )}
-            </View>
-          ))}
-        </>
-      )}
-    </ScrollView>
+                </View>
+              )}
+          </>
+        )}
+      </ScrollView>
+
+      {/* Payment WebView */}
+      <PaymentWebView
+        visible={showPaymentWebView}
+        paymentUrl={paymentUrl}
+        onClose={handlePaymentClose}
+        onSuccess={handlePaymentSuccess}
+        onError={handlePaymentError}
+      />
+    </>
   );
 }
 
@@ -307,6 +415,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     marginTop: 4,
+  },
+  currentPlanDetails: {
+    marginTop: 12,
+    width: "100%",
   },
   usageCard: {
     borderRadius: 10,
