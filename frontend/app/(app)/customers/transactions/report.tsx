@@ -17,6 +17,7 @@ import * as Sharing from "expo-sharing";
 import moment from "moment";
 
 import useTheme from "@/context/theme/useTheme";
+import SafeAreaWrapper from "@/components/SafeAreaWrapper";
 import DatePickerModal from "@/components/DatePickerModal";
 import ReportCustomerTransaction from "@/components/Transaction/ReportCustomerTransaction";
 import { useDispatch, useSelector } from "react-redux";
@@ -57,6 +58,14 @@ const ReportScreen = () => {
 
   const [isGeneratingPdf, setIsGeneratingPdf] = useState<boolean>(false);
 
+  // Force close modals when component unmounts
+  useEffect(() => {
+    return () => {
+      setShowStartDatePicker(false);
+      setShowEndDatePicker(false);
+    };
+  }, []);
+
   useEffect(() => {
     if (sellerId) {
       dispatch(fetchSellerTransactionsById(sellerId));
@@ -88,7 +97,7 @@ const ReportScreen = () => {
     );
   });
 
-  const renderTransactionItem = ({ item }: { item }) => (
+  const renderTransactionItem = ({ item }: { item: any }) => (
     <ReportCustomerTransaction item={item} />
   );
 
@@ -286,107 +295,131 @@ const ReportScreen = () => {
     }
   };
 
+  const closeStartDatePicker = () => {
+    console.log("Report: Closing start date picker");
+    setShowStartDatePicker(false);
+  };
+
+  const closeEndDatePicker = () => {
+    console.log("Report: Closing end date picker");
+    setShowEndDatePicker(false);
+  };
+
+  const openStartDatePicker = () => {
+    console.log("Report: Opening start date picker");
+    setShowStartDatePicker(true);
+  };
+
+  const openEndDatePicker = () => {
+    console.log("Report: Opening end date picker");
+    setShowEndDatePicker(true);
+  };
+
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaWrapper backgroundColor={colors.background}>
       <Stack.Screen
         options={{
+          title: "Report",
           headerStyle: {
             backgroundColor: colors.surface,
           },
           headerTintColor: colors.textPrimary,
-          title: "",
-          headerRight: () => (
-            <View style={styles.headerRight}>
-              <Text
-                style={[styles.headerName, { color: colors.textPrimary }]}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                Report
-              </Text>
-            </View>
-          ),
         }}
       />
 
-      <View
-        style={[styles.dateRangeContainer, { backgroundColor: colors.surface }]}
-      >
-        <TouchableOpacity
-          style={[styles.datePickerButton, { borderColor: colors.border }]}
-          onPress={() => setShowStartDatePicker(true)}
+      <View style={styles.mainContainer}>
+        <View
+          style={[
+            styles.dateRangeContainer,
+            { backgroundColor: colors.surface },
+          ]}
         >
-          <Text style={[styles.datePickerText, { color: colors.textPrimary }]}>
-            Start Date: {formatDateForDisplay(startDate)}
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.datePickerButton, { borderColor: colors.border }]}
+            onPress={openStartDatePicker}
+          >
+            <Text
+              style={[styles.datePickerText, { color: colors.textPrimary }]}
+            >
+              Start Date: {formatDateForDisplay(startDate)}
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.datePickerButton, { borderColor: colors.border }]}
-          onPress={() => setShowEndDatePicker(true)}
-        >
-          <Text style={[styles.datePickerText, { color: colors.textPrimary }]}>
-            End Date: {formatDateForDisplay(endDate)}
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.datePickerButton, { borderColor: colors.border }]}
+            onPress={openEndDatePicker}
+          >
+            <Text
+              style={[styles.datePickerText, { color: colors.textPrimary }]}
+            >
+              End Date: {formatDateForDisplay(endDate)}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <DatePickerModal
+          visible={showStartDatePicker}
+          onClose={closeStartDatePicker}
+          onConfirm={(date: Date) => {
+            if (date > endDate) {
+              Toast.show({
+                type: "error",
+                text1: "Invalid Date",
+                text2: "Start date cannot be after end date.",
+              });
+              return;
+            }
+            setStartDate(date);
+            closeStartDatePicker();
+          }}
+          initialDate={startDate}
+        />
+        <DatePickerModal
+          visible={showEndDatePicker}
+          onClose={closeEndDatePicker}
+          onConfirm={(date: Date) => {
+            if (date < startDate) {
+              Toast.show({
+                type: "error",
+                text1: "Invalid Date",
+                text2: "End date cannot be before start date.",
+              });
+              return;
+            }
+            setEndDate(date);
+            closeEndDatePicker();
+          }}
+          initialDate={endDate}
+        />
+
+        <View style={styles.contentContainer}>
+          {loading ? (
+            <ActivityIndicator
+              size="large"
+              color={colors.primary}
+              style={styles.loadingIndicator}
+            />
+          ) : error ? (
+            <Text style={[styles.errorText, { color: colors.error }]}>
+              {error}
+            </Text>
+          ) : filteredTransactions.length === 0 ? (
+            <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
+              No transactions found for this date range.
+            </Text>
+          ) : (
+            <FlatList
+              data={filteredTransactions}
+              renderItem={renderTransactionItem}
+              keyExtractor={(item, index) =>
+                item.id ? item.id.toString() : index.toString()
+              }
+              contentContainerStyle={styles.transactionList}
+              showsVerticalScrollIndicator={false}
+            />
+          )}
+        </View>
       </View>
-
-      <DatePickerModal
-        visible={showStartDatePicker}
-        onClose={() => setShowStartDatePicker(false)}
-        onConfirm={(date: Date) => {
-          if (date > endDate) {
-            Toast.show({
-              type: "error",
-              text1: "Invalid Date",
-              text2: "Start date cannot be after end date.",
-            });
-            return;
-          }
-          setStartDate(date);
-        }}
-        initialDate={startDate}
-      />
-      <DatePickerModal
-        visible={showEndDatePicker}
-        onClose={() => setShowEndDatePicker(false)}
-        onConfirm={(date: Date) => {
-          if (date < startDate) {
-            Toast.show({
-              type: "error",
-              text1: "Invalid Date",
-              text2: "End date cannot be before start date.",
-            });
-            return;
-          }
-          setEndDate(date);
-        }}
-        initialDate={endDate}
-      />
-
-      {loading ? (
-        <ActivityIndicator
-          size="large"
-          color={colors.primary}
-          style={styles.loadingIndicator}
-        />
-      ) : error ? (
-        <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
-      ) : filteredTransactions.length === 0 ? (
-        <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
-          No transactions found for this date range.
-        </Text>
-      ) : (
-        <FlatList
-          data={filteredTransactions}
-          renderItem={renderTransactionItem}
-          keyExtractor={(item, index) =>
-            item.id ? item.id.toString() : index.toString()
-          }
-          contentContainerStyle={styles.transactionList}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
 
       <View
         style={[
@@ -424,26 +457,18 @@ const ReportScreen = () => {
           )}
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaWrapper>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
     paddingHorizontal: 16,
     paddingTop: 8,
   },
-  headerRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginRight: 10,
-  },
-  headerName: {
-    fontSize: 17,
-    fontWeight: "600",
-    marginRight: 8,
-    maxWidth: 150,
+  contentContainer: {
+    flex: 1,
   },
   dateRangeContainer: {
     flexDirection: "row",
@@ -470,7 +495,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   transactionList: {
-    paddingBottom: 100,
+    paddingBottom: 20,
   },
   loadingIndicator: {
     flex: 1,
@@ -491,18 +516,11 @@ const styles = StyleSheet.create({
   pdfActionButtonsContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
+    paddingVertical: 15,
     paddingHorizontal: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 5,
+    borderTopWidth: 1,
+    paddingBottom: Platform.OS === "ios" ? 60 : 40,
+    minHeight: 100,
   },
   pdfActionButton: {
     flexDirection: "row",
@@ -513,6 +531,8 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     flex: 1,
     marginHorizontal: 5,
+    height: 55,
+    overflow: "visible",
   },
   pdfActionButtonText: {
     color: "#fff",

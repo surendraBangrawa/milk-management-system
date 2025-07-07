@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Linking,
+  Platform,
 } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import Toast from "react-native-toast-message";
@@ -20,6 +21,7 @@ import {
 } from "@/redux/slice/transactions/transactionsSlice";
 
 import useTheme from "@/context/theme/useTheme";
+import SafeAreaWrapper from "@/components/SafeAreaWrapper";
 import CustomerTransaction from "@/components/Transaction/CustomerTransaction";
 
 // Helper function to get initials for avatar
@@ -223,7 +225,7 @@ const TransactionScreen = () => {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaWrapper backgroundColor={colors.background}>
       <Stack.Screen
         options={{
           headerStyle: {
@@ -246,72 +248,81 @@ const TransactionScreen = () => {
         }}
       />
 
-      <View
-        style={[styles.customHeaderBar, { backgroundColor: colors.surface }]}
-      >
-        <TouchableOpacity
-          onPress={handleReport}
-          style={styles.customHeaderButton}
-          activeOpacity={0.7}
+      <View style={styles.mainContainer}>
+        <View
+          style={[styles.customHeaderBar, { backgroundColor: colors.surface }]}
         >
-          <FontAwesome
-            name="file-text-o"
-            size={20}
-            color={colors.textPrimary}
-          />
-          <Text
-            style={[
-              styles.customHeaderButtonText,
-              { color: colors.textPrimary },
-            ]}
+          <TouchableOpacity
+            onPress={handleReport}
+            style={styles.customHeaderButton}
+            activeOpacity={0.7}
           >
-            Report
-          </Text>
-        </TouchableOpacity>
+            <FontAwesome
+              name="file-text-o"
+              size={20}
+              color={colors.textPrimary}
+            />
+            <Text
+              style={[
+                styles.customHeaderButtonText,
+                { color: colors.textPrimary },
+              ]}
+            >
+              Report
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={handleReminder}
-          style={styles.customHeaderButton}
-          activeOpacity={0.7}
-        >
-          <FontAwesome name="bell-o" size={20} color={colors.textPrimary} />
-          <Text
-            style={[
-              styles.customHeaderButtonText,
-              { color: colors.textPrimary },
-            ]}
+          <TouchableOpacity
+            onPress={handleReminder}
+            style={styles.customHeaderButton}
+            activeOpacity={0.7}
           >
-            Reminder
-          </Text>
-        </TouchableOpacity>
+            <FontAwesome name="bell-o" size={20} color={colors.textPrimary} />
+            <Text
+              style={[
+                styles.customHeaderButtonText,
+                { color: colors.textPrimary },
+              ]}
+            >
+              Reminder
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.contentContainer}>
+          {loading ? (
+            <ActivityIndicator
+              size="large"
+              color={colors.primary}
+              style={styles.loadingIndicator}
+            />
+          ) : error ? (
+            <Text style={[styles.errorText, { color: colors.error }]}>
+              {error}
+            </Text>
+          ) : transactions.length === 0 ? (
+            <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
+              No transactions found for this customer.
+            </Text>
+          ) : (
+            <FlatList
+              data={transactions}
+              renderItem={renderTransaction}
+              keyExtractor={(item, index) => index.toString()}
+              contentContainerStyle={styles.transactionList}
+              showsVerticalScrollIndicator={false}
+            />
+          )}
+        </View>
       </View>
-
-      {loading ? (
-        <ActivityIndicator
-          size="large"
-          color={colors.primary}
-          style={styles.loadingIndicator}
-        />
-      ) : error ? (
-        <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
-      ) : transactions.length === 0 ? (
-        <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
-          No transactions found for this customer.
-        </Text>
-      ) : (
-        <FlatList
-          data={transactions}
-          renderItem={renderTransaction}
-          keyExtractor={(item, index) => index.toString()}
-          contentContainerStyle={styles.transactionList}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
 
       <View
         style={[
           styles.bottomActionBar,
-          { backgroundColor: colors.surface, borderTopColor: colors.border },
+          {
+            backgroundColor: colors.surface,
+            borderTopColor: colors.border,
+          },
         ]}
       >
         <TouchableOpacity
@@ -342,7 +353,7 @@ const TransactionScreen = () => {
           <Text style={styles.bottomActionButtonText}>Got</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaWrapper>
   );
 };
 
@@ -350,6 +361,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 16,
+  },
+  mainContainer: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  contentContainer: {
+    flex: 1,
   },
   headerRight: {
     flexDirection: "row",
@@ -388,7 +406,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderRadius: 8,
     marginHorizontal: 16,
-    marginTop: 8,
+    marginTop: 5,
   },
   customHeaderButton: {
     flexDirection: "row",
@@ -403,7 +421,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   transactionList: {
-    paddingBottom: 80,
+    paddingBottom: 20,
   },
   loadingIndicator: {
     flex: 1,
@@ -426,19 +444,19 @@ const styles = StyleSheet.create({
     justifyContent: "space-around",
     alignItems: "center",
     paddingVertical: 10,
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 16,
+    paddingHorizontal: 10,
+    borderTopWidth: 1,
+    paddingBottom: Platform.OS === "ios" ? 60 : 40,
+    minHeight: 100,
   },
   bottomActionButton: {
     flex: 1,
     borderRadius: 25,
-    height: 50,
+    height: 55,
     justifyContent: "center",
     alignItems: "center",
     marginHorizontal: 5,
+    overflow: "visible",
   },
   bottomActionButtonText: {
     fontSize: 16,

@@ -1,6 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
-  Modal,
   View,
   Text,
   TouchableOpacity,
@@ -10,103 +9,148 @@ import {
 import DateTimePicker from "@react-native-community/datetimepicker";
 import useTheme from "@/context/theme/useTheme";
 
-const DatePickerModal = ({ visible, onClose, onConfirm, initialDate }) => {
-  const { colors } = useTheme();
-  const [date, setDate] = useState(initialDate || new Date());
+interface DatePickerModalProps {
+  visible: boolean;
+  onClose: () => void;
+  onConfirm: (date: Date) => void;
+  initialDate?: Date;
+}
 
-  const onChange = (event, selectedDate) => {
+const DatePickerModal: React.FC<DatePickerModalProps> = ({
+  visible,
+  onClose,
+  onConfirm,
+  initialDate,
+}) => {
+  const { colors } = useTheme();
+  const [date, setDate] = useState<Date>(initialDate || new Date());
+
+  // Reset date when modal becomes visible or initialDate changes
+  useEffect(() => {
+    if (visible && initialDate) {
+      setDate(initialDate);
+    }
+  }, [visible, initialDate]);
+
+  const onChange = (event: any, selectedDate?: Date) => {
     const currentDate = selectedDate || date;
     setDate(currentDate);
 
-    if (Platform.OS === "android" && event.type === "set") {
-      onConfirm(currentDate);
-      onClose();
+    if (Platform.OS === "android") {
+      if (event.type === "set") {
+        onConfirm(currentDate);
+        onClose();
+      } else if (event.type === "dismissed") {
+        onClose();
+      }
     }
   };
 
   const handleConfirm = () => {
+    console.log("Confirm pressed, calling onConfirm with date:", date);
     onConfirm(date);
     onClose();
   };
 
-  return (
-    <Modal
-      animationType="fade"
-      transparent={true}
-      visible={visible}
-      onRequestClose={onClose}
-    >
-      <View style={styles.centeredView}>
-        <View style={[styles.modalView, { backgroundColor: colors.surface }]}>
-          <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
-            Select Date
-          </Text>
+  const handleCancel = () => {
+    console.log("Cancel pressed, calling onClose");
+    // Reset to initial date when canceling
+    if (initialDate) {
+      setDate(initialDate);
+    }
+    onClose();
+  };
+
+  // Don't render anything if not visible
+  if (!visible) {
+    return null;
+  }
+
+  // For iOS, show a simple picker without modal
+  if (Platform.OS === "ios") {
+    return (
+      <View style={styles.iosContainer}>
+        <View
+          style={[
+            styles.iosPickerContainer,
+            { backgroundColor: colors.surface },
+          ]}
+        >
+          <View style={styles.iosHeader}>
+            <TouchableOpacity onPress={handleCancel} style={styles.iosButton}>
+              <Text style={[styles.iosButtonText, { color: colors.error }]}>
+                Cancel
+              </Text>
+            </TouchableOpacity>
+            <Text style={[styles.iosTitle, { color: colors.textPrimary }]}>
+              Select Date
+            </Text>
+            <TouchableOpacity onPress={handleConfirm} style={styles.iosButton}>
+              <Text style={[styles.iosButtonText, { color: colors.primary }]}>
+                Done
+              </Text>
+            </TouchableOpacity>
+          </View>
           <DateTimePicker
             value={date}
             mode="date"
             display="spinner"
             onChange={onChange}
+            style={styles.iosPicker}
           />
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={[styles.modalButton, { backgroundColor: colors.error }]}
-              onPress={onClose}
-            >
-              <Text style={styles.buttonText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.modalButton, { backgroundColor: colors.primary }]}
-              onPress={handleConfirm}
-            >
-              <Text style={styles.buttonText}>Confirm</Text>
-            </TouchableOpacity>
-          </View>
         </View>
       </View>
-    </Modal>
+    );
+  }
+
+  // For Android, use the native picker directly
+  return (
+    <DateTimePicker
+      value={date}
+      mode="date"
+      display="default"
+      onChange={onChange}
+    />
   );
 };
 
 const styles = StyleSheet.create({
-  centeredView: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+  iosContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
   },
-  modalView: {
-    margin: 20,
-    borderRadius: 20,
-    padding: 35,
+  iosPickerContainer: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 20,
+  },
+  iosHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
   },
-  modalTitle: {
+  iosButton: {
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+  },
+  iosButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  iosTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    marginBottom: 15,
   },
-  buttonContainer: {
-    flexDirection: "row",
-    marginTop: 20,
-  },
-  modalButton: {
-    borderRadius: 10,
-    padding: 10,
-    elevation: 2,
-    marginHorizontal: 10,
-  },
-  buttonText: {
-    color: "white",
-    fontWeight: "bold",
-    textAlign: "center",
+  iosPicker: {
+    height: 200,
   },
 });
 

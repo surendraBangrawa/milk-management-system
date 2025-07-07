@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   Platform,
   ActivityIndicator,
+  ScrollView,
+  KeyboardAvoidingView,
 } from "react-native";
 import { useRouter, useLocalSearchParams, Stack } from "expo-router";
 import { format } from "date-fns";
@@ -15,6 +17,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import Toast from "react-native-toast-message";
 
 import useTheme from "@/context/theme/useTheme";
+import SafeAreaWrapper from "@/components/SafeAreaWrapper";
 import {
   addCustomerTransactionApi,
   editCustomerTransactionApi,
@@ -187,262 +190,269 @@ const AddTransactionScreen = () => {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaWrapper backgroundColor={colors.background}>
       <Stack.Screen
         options={{
-          title: effectiveType === "GAVE" ? "You Gave" : "You Got", // Dynamic title
+          title: effectiveType === "GAVE" ? "You Gave" : "You Got",
           headerStyle: {
-            backgroundColor: colors.surface, // Example header background
+            backgroundColor: colors.surface,
           },
-          headerTintColor: colors.textPrimary, // Example header text color
+          headerTintColor: colors.textPrimary,
         }}
       />
-      {isLoading && (
-        <View style={styles.overlayLoading}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      )}
-      <Controller
-        control={control}
-        name="amount"
-        rules={{
-          required: "Amount is required",
-          pattern: {
-            value: /^[0-9]+(\.[0-9]{1,2})?$/,
-            message: "Enter a valid amount (e.g., 100 or 100.50)",
-          },
-        }}
-        render={(
-          { field: { onChange, value, onBlur } } // Added onBlur
-        ) => (
-          <TextInput
-            style={[
-              styles.input,
-              {
-                borderColor: errors.amount ? colors.error : colors.border, // Highlight error
-                backgroundColor: colors.surface,
-                color: colors.textPrimary,
-              },
-            ]}
-            placeholder="Enter amount (INR)"
-            placeholderTextColor={colors.textSecondary}
-            value={value}
-            onChangeText={onChange}
-            keyboardType="numeric"
-            onBlur={onBlur} // Pass onBlur for validation
-            editable={!isLoading} // Disable input while loading
-          />
-        )}
-      />
-      {errors?.amount && (
-        <Text style={[styles.errorText, { color: colors.error }]}>
-          {errors?.amount?.message}
-        </Text>
-      )}
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+      >
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+        >
+          <View style={styles.container}>
+            {isLoading && (
+              <View style={styles.overlayLoading}>
+                <ActivityIndicator size="large" color={colors.primary} />
+              </View>
+            )}
+            <Controller
+              control={control}
+              name="amount"
+              rules={{
+                required: "Amount is required",
+                pattern: {
+                  value: /^[0-9]+(\.[0-9]{1,2})?$/,
+                  message: "Enter a valid amount (e.g., 100 or 100.50)",
+                },
+              }}
+              render={({ field: { onChange, value, onBlur } }) => (
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      borderColor: errors.amount ? colors.error : colors.border,
+                      backgroundColor: colors.surface,
+                      color: colors.textPrimary,
+                    },
+                  ]}
+                  placeholder="Enter amount (INR)"
+                  placeholderTextColor={colors.textSecondary}
+                  value={value}
+                  onChangeText={onChange}
+                  keyboardType="numeric"
+                  onBlur={onBlur}
+                  editable={!isLoading}
+                  returnKeyType="next"
+                />
+              )}
+            />
+            {errors?.amount && (
+              <Text style={[styles.errorText, { color: colors.error }]}>
+                {errors?.amount?.message}
+              </Text>
+            )}
 
-      <Controller
-        control={control}
-        name="description"
-        render={(
-          { field: { onChange, value, onBlur } } // Added onBlur
-        ) => (
-          <TextInput
-            style={[
-              styles.input,
-              styles.multilineInput,
-              {
-                // Added multilineInput style
-                borderColor: errors.description ? colors.error : colors.border,
-                backgroundColor: colors.surface,
-                color: colors.textPrimary,
-              },
-            ]}
-            placeholder="Enter description"
-            placeholderTextColor={colors.textSecondary}
-            value={value}
-            onChangeText={onChange}
-            onBlur={onBlur} // Pass onBlur for validation
-            multiline // Enable multiline
-            numberOfLines={4} // Suggest number of lines
-            editable={!isLoading} // Disable input while loading
-          />
-        )}
-      />
-      {errors?.description && (
-        <Text style={[styles.errorText, { color: colors.error }]}>
-          {errors?.description?.message}
-        </Text>
-      )}
+            <Controller
+              control={control}
+              name="description"
+              render={({ field: { onChange, value, onBlur } }) => (
+                <TextInput
+                  style={[
+                    styles.input,
+                    styles.multilineInput,
+                    {
+                      borderColor: errors.description
+                        ? colors.error
+                        : colors.border,
+                      backgroundColor: colors.surface,
+                      color: colors.textPrimary,
+                    },
+                  ]}
+                  placeholder="Enter description"
+                  placeholderTextColor={colors.textSecondary}
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  multiline
+                  numberOfLines={4}
+                  editable={!isLoading}
+                  returnKeyType="done"
+                />
+              )}
+            />
+            {errors?.description && (
+              <Text style={[styles.errorText, { color: colors.error }]}>
+                {errors?.description?.message}
+              </Text>
+            )}
 
-      <Controller
-        control={control}
-        name="date"
-        rules={{ required: "Date is required" }}
-        render={({ field: { onChange, value } }) => (
-          <>
+            <Controller
+              control={control}
+              name="date"
+              rules={{ required: "Date is required" }}
+              render={({ field: { onChange, value } }) => (
+                <>
+                  <TouchableOpacity
+                    style={[
+                      styles.datePicker,
+                      {
+                        borderColor: errors.date ? colors.error : colors.border,
+                        backgroundColor: colors.surface,
+                      },
+                    ]}
+                    onPress={() => setShowDatePicker(true)}
+                    disabled={isLoading}
+                  >
+                    <Text
+                      style={[
+                        styles.dateText,
+                        {
+                          color: value
+                            ? colors.textPrimary
+                            : colors.textSecondary,
+                        },
+                      ]}
+                    >
+                      Date:{" "}
+                      {value ? format(value, "yyyy-MM-dd") : "Select Date"}
+                    </Text>
+                  </TouchableOpacity>
+                  {showDatePicker && (
+                    <DateTimePicker
+                      value={value || new Date()}
+                      mode="date"
+                      display="default"
+                      onChange={(event, selectedDate) => {
+                        onChange(selectedDate || value);
+                        handleDateChange(event, selectedDate);
+                      }}
+                    />
+                  )}
+                </>
+              )}
+            />
+            {errors?.date && (
+              <Text style={[styles.errorText, { color: colors.error }]}>
+                {errors?.date?.message}
+              </Text>
+            )}
+
             <TouchableOpacity
               style={[
-                styles.datePicker,
+                styles.button,
                 {
-                  borderColor: errors.date ? colors.error : colors.border,
-                  backgroundColor: colors.surface,
+                  backgroundColor:
+                    Object.keys(errors).length > 0 || isLoading
+                      ? colors.textSecondary
+                      : colors.primary,
                 },
               ]}
-              onPress={() => setShowDatePicker(true)}
-              disabled={isLoading} // Disable date picker while loading
+              onPress={handleSubmit(onSubmit)}
+              disabled={Object.keys(errors).length > 0 || isLoading}
             >
-              <Text
-                style={[
-                  styles.dateText,
-                  { color: value ? colors.textPrimary : colors.textSecondary },
-                ]}
-              >
-                Date: {value ? format(value, "yyyy-MM-dd") : "Select Date"}
-              </Text>
+              {isLoading ? (
+                <ActivityIndicator size="small" color={colors.surface} />
+              ) : (
+                <Text style={[styles.buttonText, { color: colors.surface }]}>
+                  {effectiveId ? "Update Transaction" : "Add Transaction"}
+                </Text>
+              )}
             </TouchableOpacity>
-            {showDatePicker && (
-              <DateTimePicker
-                value={value || new Date()}
-                mode="date"
-                display="default"
-                onChange={(event, selectedDate) => {
-                  onChange(selectedDate || value); // Update form value
-                  handleDateChange(event, selectedDate); // Handle local state and error clearing
-                }}
-              />
-            )}
-          </>
-        )}
-      />
-      {errors?.date && (
-        <Text style={[styles.errorText, { color: colors.error }]}>
-          {errors?.date?.message}
-        </Text>
-      )}
-
-      <TouchableOpacity
-        style={[
-          styles.button,
-          {
-            backgroundColor:
-              Object.keys(errors).length > 0 || isLoading
-                ? colors.textSecondary
-                : colors.primary,
-          },
-        ]} // Grey out if errors or loading
-        onPress={handleSubmit(onSubmit)}
-        disabled={Object.keys(errors).length > 0 || isLoading} // Disable button if errors or loading
-      >
-        {isLoading ? (
-          <ActivityIndicator size="small" color={colors.surface} /> // White indicator
-        ) : (
-          <Text style={[styles.buttonText, { color: colors.surface }]}>
-            {effectiveId ? "Update Transaction" : "Add Transaction"}
-          </Text>
-        )}
-      </TouchableOpacity>
-    </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaWrapper>
   );
 };
 
 const styles = StyleSheet.create({
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    padding: 16,
+    paddingBottom: 100, // Extra padding to ensure button is visible
+  },
   container: {
     flex: 1,
-    // Background color now from theme
-    padding: 16, // Adjusted padding
+    padding: 16,
+    paddingBottom: 40, // Extra bottom padding
   },
   header: {
-    // This style is not used in the current component structure
     fontSize: 24,
     fontWeight: "600",
-    // Color from theme applied inline if used
     marginBottom: 20,
     textAlign: "center",
   },
   input: {
     borderWidth: 1,
-    // Colors from theme applied inline
-    padding: 12, // Adjusted padding
-    marginVertical: 8, // Adjusted margin
-    borderRadius: 8, // Adjusted border radius
+    padding: 12,
+    marginVertical: 8,
+    borderRadius: 8,
     fontSize: 16,
-    // Shadow (optional, add if desired, consistent with other screens)
-    // ...Platform.select({
-    //   ios: {
-    //     shadowColor: '#000',
-    //     shadowOffset: { width: 0, height: 1 },
-    //     shadowOpacity: 0.05,
-    //     shadowRadius: 2,
-    //   },
-    //   android: {
-    //     elevation: 2,
-    //   },
-    // }),
   },
   multilineInput: {
-    // Style for multiline description input
-    minHeight: 100, // Minimum height
-    textAlignVertical: "top", // Align text to the top on Android
+    minHeight: 100,
+    textAlignVertical: "top",
   },
   datePicker: {
     borderWidth: 1,
-    // Colors from theme applied inline
-    padding: 12, // Adjusted padding
-    marginVertical: 8, // Adjusted margin
-    borderRadius: 8, // Adjusted border radius
+    padding: 12,
+    marginVertical: 8,
+    borderRadius: 8,
     justifyContent: "center",
-    alignItems: "flex-start", // Align text to the left
+    alignItems: "flex-start",
   },
   dateText: {
     fontSize: 16,
-    // Color from theme applied inline
   },
   button: {
     padding: 15,
-    marginVertical: 16, // Adjusted margin
-    borderRadius: 8, // Adjusted border radius
+    marginVertical: 16,
+    marginBottom: 20, // Extra margin to prevent overlap
+    borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
-    elevation: 2, // Consider removing or styling shadows consistently via Platform
+    elevation: 2,
   },
   buttonText: {
     fontSize: 18,
     fontWeight: "600",
-    // Color from theme applied inline
   },
   errorText: {
     fontSize: 12,
-    // Color from theme applied inline
-    marginTop: -6, // Adjust margin to be closer to the input
-    marginBottom: 8, // Add bottom margin
+    marginTop: -6,
+    marginBottom: 8,
   },
   pickerContainer: {
-    // This style is not used in this component (no picker here)
     marginVertical: 10,
   },
   picker: {
-    // This style is not used in this component (no picker here)
     height: 55,
     backgroundColor: "#fff",
   },
   rowContainer: {
-    // This style is not used in this component
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
   inputContainer: {
-    // This style is not used in this component
     flex: 1,
     marginRight: 10,
   },
   overlayLoading: {
-    // Style for a full-screen overlay loading indicator
-    ...StyleSheet.absoluteFillObject, // Cover the entire screen
-    backgroundColor: "rgba(255, 255, 255, 0.7)", // Semi-transparent white background
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(255, 255, 255, 0.7)",
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 1, // Ensure it's above other content
+    zIndex: 1,
   },
 });
 
