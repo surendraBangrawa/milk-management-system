@@ -23,6 +23,7 @@ import {
 import useTheme from "@/context/theme/useTheme";
 import SafeAreaWrapper from "@/components/SafeAreaWrapper";
 import CustomerTransaction from "@/components/Transaction/CustomerTransaction";
+import { useTranslation } from "react-i18next";
 
 // Helper function to get initials for avatar
 const getInitials = (name: string | undefined | null): string => {
@@ -52,6 +53,7 @@ const TransactionScreen = () => {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   const params = useLocalSearchParams();
   const sellerId = Array.isArray(params.id) ? params.id[0] : params.id;
@@ -85,7 +87,7 @@ const TransactionScreen = () => {
     if (deleteTransactionError) {
       Toast.show({
         type: "error",
-        text1: "Deletion Failed",
+        text1: t("transactions.deletion_failed"),
         text2: deleteTransactionError,
       });
     }
@@ -240,7 +242,7 @@ const TransactionScreen = () => {
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
-                {customerName || "Customer"}
+                {customerName || t("transactions.customer")}
               </Text>
               <RandomAvatar name={customerName} />
             </View>
@@ -268,7 +270,7 @@ const TransactionScreen = () => {
                 { color: colors.textPrimary },
               ]}
             >
-              Report
+              {t("transactions.report")}
             </Text>
           </TouchableOpacity>
 
@@ -284,7 +286,7 @@ const TransactionScreen = () => {
                 { color: colors.textPrimary },
               ]}
             >
-              Reminder
+              {t("transactions.reminder")}
             </Text>
           </TouchableOpacity>
         </View>

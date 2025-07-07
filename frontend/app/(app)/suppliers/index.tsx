@@ -13,6 +13,7 @@ import { useRouter } from "expo-router";
 import Toast from "react-native-toast-message";
 import { formatDistanceToNow } from "date-fns";
 import { getSupplierSummaryApi } from "@/redux/slice/supplier/supplierApi";
+import { useTranslation } from "react-i18next";
 
 import useTheme from "@/context/theme/useTheme";
 import SafeAreaWrapper from "@/components/SafeAreaWrapper";
@@ -54,6 +55,7 @@ const SupplierScreen = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const { t } = useTranslation();
 
   // State for search query
   const [searchQuery, setSearchQuery] = useState("");
@@ -139,16 +141,16 @@ const SupplierScreen = () => {
   }, []);
 
   const formatDate = (dateString: string | undefined | null): string => {
-    if (!dateString) return "No date";
+    if (!dateString) return t("suppliers.no_date");
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) {
-        return "Invalid date";
+        return t("suppliers.invalid_date");
       }
       return formatDistanceToNow(date, { addSuffix: true });
     } catch (e) {
       console.error("Error formatting date:", dateString, e);
-      return "Invalid date format";
+      return t("suppliers.invalid_date_format");
     }
   };
 
@@ -196,10 +198,10 @@ const SupplierScreen = () => {
             numberOfLines={1}
             ellipsizeMode="tail"
           >
-            {item.name || "Unknown Supplier"}
+            {item.name || t("suppliers.unknown_supplier")}
           </Text>
           <Text style={[styles.personPhone, { color: colors.textSecondary }]}>
-            {item.mobile || "N/A"}
+            {item.mobile || t("suppliers.na")}
           </Text>
           {item.date &&
           typeof item.date === "string" &&

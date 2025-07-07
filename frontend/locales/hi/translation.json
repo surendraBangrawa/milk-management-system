@@ -105,7 +105,10 @@
   "home": {
     "title": "होम",
     "welcome_message": "हमारे ऐप में आपका स्वागत है!",
-    "greeting": "नमस्ते"
+    "greeting": "नमस्ते",
+    "logo": "लोगो",
+    "customer": "ग्राहक",
+    "supplier": "आपूर्तिकर्ता"
   },
   "language_screen": {
     "select_language": "अपनी भाषा चुनें",
@@ -136,14 +139,23 @@
     "customer_updated": "ग्राहक सफलतापूर्वक अपडेट किया गया!",
     "customer_deleted": "ग्राहक सफलतापूर्वक हटाया गया!",
     "customer_not_found": "ग्राहक नहीं मिला",
-    "customer_already_exists": "इस मोबाइल नंबर के साथ ग्राहक पहले से मौजूद है"
+    "customer_already_exists": "इस मोबाइल नंबर के साथ ग्राहक पहले से मौजूद है",
+    "unknown_customer": "अज्ञात ग्राहक",
+    "na": "एन/ए",
+    "no_date": "कोई तिथि नहीं",
+    "invalid_date": "अमान्य तिथि",
+    "invalid_date_format": "अमान्य तिथि प्रारूप"
   },
   "transactions": {
     "transaction_created": "लेन-देन सफलतापूर्वक बनाया गया!",
     "transaction_updated": "लेन-देन सफलतापूर्वक अपडेट किया गया!",
     "transaction_deleted": "लेन-देन सफलतापूर्वक हटाया गया!",
     "transaction_not_found": "लेन-देन नहीं मिला",
-    "invalid_amount": "अमान्य राशि प्रदान की गई"
+    "invalid_amount": "अमान्य राशि प्रदान की गई",
+    "customer": "ग्राहक",
+    "report": "रिपोर्ट",
+    "reminder": "रिमाइंडर",
+    "deletion_failed": "हटाना विफल रहा"
   },
   "profile": {
     "profile_updated": "प्रोफ़ाइल सफलतापूर्वक अपडेट किया गया!",
@@ -182,7 +194,9 @@
     "upload_new_rate_list": "नई रेट लिस्ट अपलोड करें",
     "processing": "प्रोसेसिंग...",
     "rate_list_actions": "रेट लिस्ट कार्य:",
-    "fetching_rate_list_status": "रेट लिस्ट स्थिति प्राप्त कर रहा है..."
+    "fetching_rate_list_status": "रेट लिस्ट स्थिति प्राप्त कर रहा है...",
+    "upload_limit_reached": "रेट लिस्ट अपलोड सीमा पूरी हुई",
+    "upload_limit_message": "आप अपनी वर्तमान योजना पर अधिकतम 3 रेट लिस्ट अपलोड कर सकते हैं। असीमित रेट लिस्ट अपलोड के लिए प्रीमियम में अपग्रेड करें।"
   },
   "more": {
     "information_and_support": "जानकारी और सहायता",
@@ -224,5 +238,21 @@
     "help_faq_a1": "आप होम स्क्रीन पर 'सारांश' टैब से अपनी दैनिक मात्रा अपडेट कर सकते हैं।",
     "help_faq_q2": "मैं अपने पिछले बिल कैसे देख सकता हूं?",
     "help_faq_a2": "सभी पिछले और वर्तमान बिल 'सदस्यता प्रबंधित करें' अनुभाग में उपलब्ध हैं।"
+  },
+  "add_transaction": {
+    "updated": "लेन-देन अपडेट किया गया",
+    "added": "लेन-देन जोड़ा गया",
+    "successfully_updated": "{{type}} सफलतापूर्वक अपडेट किया गया!",
+    "successfully_added": "{{type}} सफलतापूर्वक जोड़ा गया!",
+    "failed_to_update": "लेन-देन अपडेट करने में विफल।",
+    "failed_to_add": "लेन-देन जोड़ने में विफल।",
+    "error": "त्रुटि",
+    "something_went_wrong": "कुछ गलत हो गया।",
+    "transaction": "लेन-देन"
+  },
+  "supplier_transactions": {
+    "error": "त्रुटि",
+    "failed_to_load": "ग्राहक डेटा लोड करने में विफल।",
+    "transaction_detail": "लेन-देन विवरण"
   }
 }

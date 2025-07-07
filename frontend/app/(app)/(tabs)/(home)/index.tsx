@@ -3,12 +3,14 @@ import { Text, StyleSheet, Pressable, View, Platform } from "react-native";
 import CustomerScreen from "../../customers";
 import SupplierScreen from "../../suppliers";
 import SafeAreaWrapper from "@/components/SafeAreaWrapper";
+import { useTranslation } from "react-i18next";
 
 import useTheme from "@/context/theme/useTheme"; // Import useTheme
 
 const HomeScreen = () => {
   const [mode, setMode] = useState<"customer" | "supplier">("customer");
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   const handleModeChange = (newMode: "customer" | "supplier") => {
     setMode(newMode);
@@ -19,7 +21,9 @@ const HomeScreen = () => {
       <View
         style={[styles.headerContainer, { backgroundColor: colors.surface }]}
       >
-        <Text style={[styles.title, { color: colors.textPrimary }]}>Logo</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>
+          {t("home.logo")}
+        </Text>
         <View style={styles.navbar}>
           <Pressable
             style={[
@@ -38,7 +42,7 @@ const HomeScreen = () => {
                 mode === "customer" && { color: colors.primary },
               ]}
             >
-              Customer
+              {t("home.customer")}
             </Text>
           </Pressable>
           <Pressable
@@ -58,7 +62,7 @@ const HomeScreen = () => {
                 mode === "supplier" && { color: colors.primary },
               ]}
             >
-              Supplier
+              {t("home.supplier")}
             </Text>
           </Pressable>
         </View>

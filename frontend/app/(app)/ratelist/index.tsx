@@ -113,9 +113,8 @@ const RateListViewer = () => {
       if (!canUpload) {
         Toast.show({
           type: "error",
-          text1: "Rate List Upload Limit Reached",
-          text2:
-            "You can upload up to 3 rate lists on your current plan. Upgrade to Premium for unlimited rate list uploads.",
+          text1: t("ratelist.upload_limit_reached"),
+          text2: t("ratelist.upload_limit_message"),
         });
         return;
       }

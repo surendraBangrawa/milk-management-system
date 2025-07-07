@@ -12,6 +12,7 @@ import { formatDistanceToNow } from "date-fns";
 import Toast from "react-native-toast-message";
 import { getSupplierTransactionApi } from "@/redux/slice/supplier/supplierApi";
 import useTheme from "@/context/theme/useTheme";
+import { useTranslation } from "react-i18next";
 
 const getInitials = (name: string | undefined | null): string => {
   if (!name) return "";
@@ -40,12 +41,13 @@ const TransactionScreen = () => {
   const { id, name } = params as { id: string; name: string };
   const [transactions, setTransactions] = useState<any[]>([]);
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   const fetchCustomerData = async () => {
     try {
       const res = await getSupplierTransactionApi(id);
       if (res.status === 200) {
-        const sortedData = res?.data?.sort((a, b) => {
+        const sortedData = res?.data?.sort((a: any, b: any) => {
           const dateA = new Date(a.added_at); // Sort by 'added_at' for display purposes
           const dateB = new Date(b.added_at);
           return dateB.getTime() - dateA.getTime();
@@ -55,8 +57,8 @@ const TransactionScreen = () => {
     } catch (err: any) {
       Toast.show({
         type: "error",
-        text1: "Error",
-        text2: "Failed to load customer data.",
+        text1: t("supplier_transactions.error"),
+        text2: t("supplier_transactions.failed_to_load"),
       });
     } finally {
     }
@@ -71,10 +73,10 @@ const TransactionScreen = () => {
   };
 
   const handleReadMore = (detail: string) => {
-    Alert.alert("Transaction Detail", detail);
+    Alert.alert(t("supplier_transactions.transaction_detail"), detail);
   };
 
-  const renderTransaction = ({ item }) => {
+  const renderTransaction = ({ item }: { item: any }) => {
     const truncatedDetail =
       item.expense_detail?.length > 50
         ? item.expense_detail.slice(0, 50) + "..."

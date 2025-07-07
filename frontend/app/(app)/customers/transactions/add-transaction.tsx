@@ -15,6 +15,7 @@ import { format } from "date-fns";
 import { useForm, Controller } from "react-hook-form";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import Toast from "react-native-toast-message";
+import { useTranslation } from "react-i18next";
 
 import useTheme from "@/context/theme/useTheme";
 import SafeAreaWrapper from "@/components/SafeAreaWrapper";
@@ -30,6 +31,7 @@ const AddTransactionScreen = () => {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   const params = useLocalSearchParams();
   const { type, id, desc, seller_mobile, amount, date, name } = params as {
@@ -149,10 +151,16 @@ const AddTransactionScreen = () => {
       if (res?.status === 200) {
         Toast.show({
           type: "success",
-          text1: effectiveId ? "Transaction Updated" : "Transaction Added", // Dynamic toast title
-          text2: `Successfully ${effectiveId ? "updated" : "added"} ${
-            effectiveType || "transaction"
-          }!`, // Dynamic toast text
+          text1: effectiveId
+            ? t("add_transaction.updated")
+            : t("add_transaction.added"), // Dynamic toast title
+          text2: effectiveId
+            ? t("add_transaction.successfully_updated", {
+                type: effectiveType || t("add_transaction.transaction"),
+              })
+            : t("add_transaction.successfully_added", {
+                type: effectiveType || t("add_transaction.transaction"),
+              }), // Dynamic toast text
         });
         dispatch(fetchSellerSummaries());
         // FIX: Use router.replace instead of router.push
@@ -166,15 +174,15 @@ const AddTransactionScreen = () => {
         const errorMsg =
           res?.data?.detail ||
           (effectiveId
-            ? "Failed to update transaction."
-            : "Failed to add transaction.");
+            ? t("add_transaction.failed_to_update")
+            : t("add_transaction.failed_to_add"));
         throw new Error(errorMsg);
       }
     } catch (error: any) {
       Toast.show({
         type: "error",
-        text1: "Error",
-        text2: error?.message || "Something went wrong.",
+        text1: t("add_transaction.error"),
+        text2: error?.message || t("add_transaction.something_went_wrong"),
       });
       console.error("Submit form error:", error);
     } finally {

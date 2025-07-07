@@ -105,7 +105,10 @@
   "home": {
     "title": "Home",
     "welcome_message": "Welcome to our app!",
-    "greeting": "Hello"
+    "greeting": "Hello",
+    "logo": "Logo",
+    "customer": "Customer",
+    "supplier": "Supplier"
   },
   "language_screen": {
     "select_language": "Select Your Language",
@@ -136,14 +139,23 @@
     "customer_updated": "Customer updated successfully!",
     "customer_deleted": "Customer deleted successfully!",
     "customer_not_found": "Customer not found",
-    "customer_already_exists": "Customer with this mobile number already exists"
+    "customer_already_exists": "Customer with this mobile number already exists",
+    "unknown_customer": "Unknown Customer",
+    "na": "N/A",
+    "no_date": "No date",
+    "invalid_date": "Invalid date",
+    "invalid_date_format": "Invalid date format"
   },
   "transactions": {
     "transaction_created": "Transaction created successfully!",
     "transaction_updated": "Transaction updated successfully!",
     "transaction_deleted": "Transaction deleted successfully!",
     "transaction_not_found": "Transaction not found",
-    "invalid_amount": "Invalid amount provided"
+    "invalid_amount": "Invalid amount provided",
+    "customer": "Customer",
+    "report": "Report",
+    "reminder": "Reminder",
+    "deletion_failed": "Deletion Failed"
   },
   "profile": {
     "profile_updated": "Profile updated successfully!",
@@ -182,7 +194,9 @@
     "upload_new_rate_list": "Upload New Rate List",
     "processing": "Processing...",
     "rate_list_actions": "Rate List Actions:",
-    "fetching_rate_list_status": "Fetching rate list status..."
+    "fetching_rate_list_status": "Fetching rate list status...",
+    "upload_limit_reached": "Rate List Upload Limit Reached",
+    "upload_limit_message": "You can upload up to 3 rate lists on your current plan. Upgrade to Premium for unlimited rate list uploads."
   },
   "more": {
     "information_and_support": "Information & Support",
@@ -224,5 +238,21 @@
     "help_faq_a1": "You can update your daily quantity from the 'Summary' tab on the home screen.",
     "help_faq_q2": "How can I view my past bills?",
     "help_faq_a2": "All past and current bills are available in the 'Manage Subscription' section."
+  },
+  "add_transaction": {
+    "updated": "Transaction Updated",
+    "added": "Transaction Added",
+    "successfully_updated": "Successfully updated {{type}}!",
+    "successfully_added": "Successfully added {{type}}!",
+    "failed_to_update": "Failed to update transaction.",
+    "failed_to_add": "Failed to add transaction.",
+    "error": "Error",
+    "something_went_wrong": "Something went wrong.",
+    "transaction": "transaction"
+  },
+  "supplier_transactions": {
+    "error": "Error",
+    "failed_to_load": "Failed to load customer data.",
+    "transaction_detail": "Transaction Detail"
   }
 }
