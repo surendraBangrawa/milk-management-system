@@ -39,6 +39,50 @@ export default function Subscription() {
       ]);
       setPlans(plansRes.data || []);
       setCurrent(statusRes.data);
+
+      // Fetch usage data with individual error handling
+      const usageData = {
+        customers: 0,
+        dailyTransactions: 0,
+        ratelistUploads: 0,
+      };
+
+      try {
+        // Fetch customers count - using the correct endpoint
+        const customersRes = await axios.get(
+          "/transactions/get_customer_summary"
+        );
+        usageData.customers = customersRes.data?.total_sellers_count || 0;
+      } catch (error) {
+        console.error("Error fetching customers count:", error);
+        // Continue with default value
+      }
+
+      try {
+        // Fetch daily transactions count
+        const today = new Date().toISOString().split("T")[0];
+        const transactionsRes = await axios.get(
+          `/transactions/total_record_date_range?start_date=${today}&end_date=${today}`
+        );
+        usageData.dailyTransactions =
+          transactionsRes.data?.total_entries_count || 0;
+      } catch (error) {
+        console.error("Error fetching daily transactions:", error);
+        // Continue with default value
+      }
+
+      try {
+        // Fetch ratelist status
+        const ratelistRes = await axios.get("/ratelist/get_list");
+        const hasRatelist =
+          ratelistRes.data?.rates && ratelistRes.data.rates.length > 0;
+        usageData.ratelistUploads = hasRatelist ? 1 : 0;
+      } catch (error) {
+        console.error("Error fetching ratelist status:", error);
+        // Continue with default value
+      }
+
+      setUsage(usageData);
     } catch (e: any) {
       console.error("Error fetching subscription data:", e);
       Toast.show({
@@ -49,6 +93,7 @@ export default function Subscription() {
       });
       setPlans([]);
       setCurrent(null);
+      setUsage(null);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -228,8 +273,8 @@ export default function Subscription() {
                         { color: colors.textSecondary },
                       ]}
                     >
-                      Suppliers:{" "}
-                      {currentPlanDetails.supplier_limit ?? "Unlimited"}
+                      Daily Transactions:{" "}
+                      {currentPlanDetails.transaction_limit ?? "Unlimited"}
                     </Text>
                     <Text
                       style={[
@@ -237,8 +282,8 @@ export default function Subscription() {
                         { color: colors.textSecondary },
                       ]}
                     >
-                      Daily Transactions:{" "}
-                      {currentPlanDetails.transaction_limit ?? "Unlimited"}
+                      Rate List Uploads:{" "}
+                      {currentPlanDetails.ratelist_upload_limit ?? "Unlimited"}
                     </Text>
                   </View>
                 )}
@@ -262,6 +307,11 @@ export default function Subscription() {
                   style={[styles.usageItem, { color: colors.textSecondary }]}
                 >
                   Today's Transactions: {usage.dailyTransactions}/3
+                </Text>
+                <Text
+                  style={[styles.usageItem, { color: colors.textSecondary }]}
+                >
+                  Rate List Uploads: {usage.ratelistUploads}/3
                 </Text>
               </View>
             )}
@@ -313,6 +363,15 @@ export default function Subscription() {
                   >
                     Daily Transactions:{" "}
                     {premiumPlan.transaction_limit ?? "Unlimited"}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.featureItem,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Rate List Uploads:{" "}
+                    {premiumPlan.ratelist_upload_limit ?? "Unlimited"}
                   </Text>
                   <Text
                     style={[

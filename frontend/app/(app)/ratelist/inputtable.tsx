@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react"; // Import useRef
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   View,
   Text,
@@ -11,35 +11,68 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage"; // Import AsyncStorage
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import {
+  saveRatelist,
+  RateListRequest,
+  RateData,
+} from "@/redux/slice/ratelist/rateListApi";
+import useTheme from "@/context/theme/useTheme";
+import Toast from "react-native-toast-message";
 
-// Base URL for your backend API
-const API_BASE_URL = "YOUR_BACKEND_API_BASE_URL"; // ** IMPORTANT: Replace with your actual backend URL **
+interface TableItem {
+  fat: number;
+  snf: number;
+  key: string;
+}
+
+interface RateTableRowProps {
+  item: TableItem;
+  value: string;
+  onChangeText: (value: string) => void;
+  columnWidths: {
+    fat: number;
+    snf: number;
+    rate: number;
+  };
+  colors: any;
+}
 
 // --- Memoized Component for a Single Table Row ---
-const RateTableRow = React.memo(
-  ({ item, value, onChangeText, columnWidths }) => {
+const RateTableRow = React.memo<RateTableRowProps>(
+  ({ item, value, onChangeText, columnWidths, colors }) => {
     return (
-      <View style={styles.tableRow}>
+      <View style={[styles.tableRow, { borderBottomColor: colors.border }]}>
         <View style={[styles.cell, { width: columnWidths.fat }]}>
-          <Text style={styles.cellText}>{item.fat.toFixed(1)}</Text>
+          <Text style={[styles.cellText, { color: colors.textPrimary }]}>
+            {item.fat.toFixed(1)}
+          </Text>
         </View>
         <View style={[styles.cell, { width: columnWidths.snf }]}>
-          <Text style={styles.cellText}>{item.snf.toFixed(1)}</Text>
+          <Text style={[styles.cellText, { color: colors.textPrimary }]}>
+            {item.snf.toFixed(1)}
+          </Text>
         </View>
         <View
           style={[styles.cell, styles.rateCell, { width: columnWidths.rate }]}
         >
           <TextInput
-            style={styles.rateInput}
+            style={[
+              styles.rateInput,
+              {
+                borderColor: colors.border,
+                backgroundColor: colors.surface,
+                color: colors.textPrimary,
+              },
+            ]}
             keyboardType="numeric"
             value={value}
             onChangeText={onChangeText}
             placeholder="0.00"
+            placeholderTextColor={colors.textSecondary}
             textAlign="center"
-            returnKeyType="done" // Or 'next'
-            // autoFocus={...} // Consider autofocus for the first cell
+            returnKeyType="done"
           />
         </View>
       </View>
@@ -48,11 +81,16 @@ const RateTableRow = React.memo(
 );
 
 const InputTable = () => {
-  const { sf, ef, ss, es } = useLocalSearchParams();
+  const params = useLocalSearchParams();
+  const sf = params.sf as string;
+  const ef = params.ef as string;
+  const ss = params.ss as string;
+  const es = params.es as string;
   const router = useRouter();
+  const { colors } = useTheme();
 
-  const [tableData, setTableData] = useState([]);
-  const [rates, setRates] = useState({});
+  const [tableData, setTableData] = useState<TableItem[]>([]);
+  const [rates, setRates] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [generatingTable, setGeneratingTable] = useState(true);
 
@@ -60,19 +98,16 @@ const InputTable = () => {
   const latestRatesRef = useRef(rates);
 
   // Function to generate a unique storage key based on ranges
-  // Use params directly as they come from the URL and define this table instance
   const getStorageKey = () => `rate_list_draft_${sf}_${ef}_${ss}_${es}`;
 
   // Function to save the current rates state to AsyncStorage
   const saveDraft = async () => {
-    // Ensure ranges are available before trying to save
     if (!(sf && ef && ss && es)) {
       console.warn("Cannot save draft: Ranges not available.");
       return;
     }
     const key = getStorageKey();
     try {
-      // Use the value from the ref to get the latest state
       await AsyncStorage.setItem(key, JSON.stringify(latestRatesRef.current));
       console.log(`Draft saved for key: ${key}`);
     } catch (error) {
@@ -81,15 +116,13 @@ const InputTable = () => {
   };
 
   // Effect to generate table data and load draft when parameters are available
-  // FIX: Added sf, ef, ss, es to dependency array
   useEffect(() => {
-    let isMounted = true; // Flag to prevent state updates on unmounted component
+    let isMounted = true;
 
     const loadAndGenerate = async () => {
       if (!(sf && ef && ss && es)) {
-        // This case is unlikely with the dependency array, but good defensive check
         console.log("Ranges not available for generation/load.");
-        setGeneratingTable(false); // Ensure loading stops
+        setGeneratingTable(false);
         return;
       }
 
@@ -109,10 +142,10 @@ const InputTable = () => {
         return;
       }
 
-      const generatedTableData = [];
-      const initialRates = {}; // Structure from ranges
+      const generatedTableData: TableItem[] = [];
+      const initialRates: Record<string, string> = {};
 
-      const fatValues = [];
+      const fatValues: number[] = [];
       const epsilon = 0.0001;
       for (
         let f = startFat;
@@ -122,7 +155,7 @@ const InputTable = () => {
         fatValues.push(f);
       }
 
-      const snfValues = [];
+      const snfValues: number[] = [];
       for (
         let s = startSnf;
         s <= endSnf + epsilon;
@@ -147,15 +180,15 @@ const InputTable = () => {
           generatedTableData.push({
             fat: fat,
             snf: snf,
-            key: key, // Use key for FlatList and state lookup
+            key: key,
           });
-          initialRates[key] = ""; // Default empty rate
+          initialRates[key] = "";
         });
       });
 
       // Attempt to load draft from AsyncStorage
-      const key = getStorageKey(); // Use the key function here
-      let loadedRates = null;
+      const key = getStorageKey();
+      let loadedRates: Record<string, string> | null = null;
       try {
         const draft = await AsyncStorage.getItem(key);
         if (draft !== null) {
@@ -169,21 +202,17 @@ const InputTable = () => {
       }
 
       // Merge loaded rates with the initial structure
-      const mergedRates = { ...initialRates }; // Start with the structure from ranges
+      const mergedRates = { ...initialRates };
       if (loadedRates) {
-        // Iterate through the keys from the *generated structure* (tableData)
-        // This ensures we only apply rates that match the current ranges
         generatedTableData.forEach((item) => {
-          // Use generatedTableData here
           const key = item.key;
-          if (loadedRates.hasOwnProperty(key)) {
-            // Basic validation for loaded value before applying
-            const loadedValue = loadedRates[key];
+          if (loadedRates!.hasOwnProperty(key)) {
+            const loadedValue = loadedRates![key];
             if (
               typeof loadedValue === "string" ||
               typeof loadedValue === "number"
             ) {
-              mergedRates[key] = String(loadedValue).replace(/[^0-9.]/g, ""); // Clean loaded value
+              mergedRates[key] = String(loadedValue).replace(/[^0-9.]/g, "");
             } else {
               console.warn(
                 `Skipping invalid loaded value for key ${key}:`,
@@ -194,10 +223,9 @@ const InputTable = () => {
         });
       }
 
-      // Only update state if the component is still mounted
       if (isMounted) {
         setTableData(generatedTableData);
-        setRates(mergedRates); // Set merged rates
+        setRates(mergedRates);
         setGeneratingTable(false);
         console.log("Table data generated and draft loaded/merged.");
       }
@@ -205,87 +233,76 @@ const InputTable = () => {
 
     loadAndGenerate();
 
-    // Cleanup function for the effect (runs on unmount or dependency change)
     return () => {
-      isMounted = false; // Prevent state updates if component unmounts during async operation
+      isMounted = false;
     };
-
-    // Dependency array includes sf, ef, ss, es
-    // This ensures the effect runs when these route params are available or change
-  }, [sf, ef, ss, es]); // FIX: Correct Dependency Array
+  }, [sf, ef, ss, es]);
 
   // Effect to keep the ref updated with the latest rates state
-  // This ref is used by the periodic save interval
   useEffect(() => {
     latestRatesRef.current = rates;
-    // console.log("Rates ref updated."); // Uncomment to see ref updates
-  }, [rates]); // Update ref whenever rates state changes
+  }, [rates]);
 
   // Effect to set up the periodic auto-save interval
   useEffect(() => {
-    let intervalId = null;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
 
-    // Only start the interval if the table data has been generated successfully
     if (!generatingTable && tableData.length > 0) {
       console.log("Starting auto-save interval...");
-      // Save every 15 seconds (adjust interval duration as needed, in milliseconds)
       intervalId = setInterval(saveDraft, 15000);
     }
 
-    // Cleanup function to clear the interval when the component unmounts
-    // or when the dependencies change (e.g., generatingTable becomes true again, or tableData becomes empty)
     return () => {
       if (intervalId !== null) {
         console.log("Clearing auto-save interval.");
         clearInterval(intervalId);
       }
     };
-
-    // This effect depends on generatingTable and tableData.length
-    // It starts the interval when generatingTable is false and tableData is populated.
-    // It doesn't need 'rates' as it uses the ref, and the ranges are stable.
   }, [generatingTable, tableData.length]);
 
-  // ... handleRateInputChange (remains the same, updates 'rates' state) ...
-  const handleRateInputChange = (key, value) => {
-    // Basic validation: Allow only digits, one decimal point, and empty string
+  const handleRateInputChange = (key: string, value: string) => {
     const numericValue = value.replace(/[^0-9.]/g, "");
-    // Ensure no multiple decimal points
     const parts = numericValue.split(".");
     if (parts.length > 2) {
-      return; // Don't update if more than one decimal point
+      return;
     }
 
     setRates((prevRates) => ({
       ...prevRates,
-      [key]: numericValue, // Store as string initially, keyed by fat_snf string
+      [key]: numericValue,
     }));
   };
 
   // Function to save the rate list to the backend and clear draft
   const saveRateList = async () => {
     setLoading(true);
-    const rateListToSend = [];
+    const rateListToSend: RateData[] = [];
     let validationError = false;
+
+    // Calculate min/max values for the backend
+    const fatValues = tableData.map((item) => item.fat);
+    const snfValues = tableData.map((item) => item.snf);
+    const minFat = Math.min(...fatValues);
+    const maxFat = Math.max(...fatValues);
+    const minSnf = Math.min(...snfValues);
+    const maxSnf = Math.max(...snfValues);
 
     // Iterate through the flattened table data to build the list to send
     for (const row of tableData) {
       const key = row.key;
-      const rateString = rates[key]; // Get rate using the key
+      const rateString = rates[key];
       const numericRate = parseFloat(rateString);
 
-      // Check if the input is empty or not a valid non-negative number
       if (rateString === "" || isNaN(numericRate) || numericRate < 0) {
         validationError = true;
         console.warn(`Invalid or empty rate for row ${key}: "${rateString}"`);
-        // Continue loop to potentially find more errors before showing alert
       }
-      // Only push valid rates to the list to send
+
       if (!isNaN(numericRate) && numericRate >= 0) {
         rateListToSend.push({
-          fat: parseFloat(row.fat.toFixed(1)), // Use fat from the row item
-          snf: parseFloat(row.snf.toFixed(1)), // Use snf from the row item
-          rate: parseFloat(numericRate.toFixed(2)), // Save rate with 2 decimal places
+          fat: parseFloat(row.fat.toFixed(1)),
+          snf: parseFloat(row.snf.toFixed(1)),
+          rate: parseFloat(numericRate.toFixed(2)),
         });
       }
     }
@@ -308,121 +325,142 @@ const InputTable = () => {
     console.log("Saving rate list:", rateListToSend.length, "items");
 
     try {
-      // ** NOTE: You need to implement an API endpoint to save the rate list **
-      // Assuming an endpoint like /save_rate_list exists and accepts POST with JSON body
-      const response = await fetch(`${API_BASE_URL}/save_rate_list`, {
-        method: "POST", // Or PUT if updating
-        headers: {
-          "Content-Type": "application/json",
-          // Add any necessary authentication headers
-          // 'Authorization': `Bearer ${yourAuthToken}`,
-        },
-        body: JSON.stringify(rateListToSend),
+      const rateListRequest: RateListRequest = {
+        min_fat: minFat,
+        max_fat: maxFat,
+        min_snf: minSnf,
+        max_snf: maxSnf,
+        rates: rateListToSend,
+      };
+
+      const result = await saveRatelist(rateListRequest);
+
+      Toast.show({
+        type: "success",
+        text1: "Success",
+        text2: "Rate list saved successfully!",
       });
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        // Handle non-200 responses
-        console.error("Save API Error Response:", result);
-        throw new Error(
-          result.detail ||
-            `Failed to save rate list (Status: ${response.status})`
-        );
-      } else {
-        Alert.alert(
-          "Success",
-          result.message || "Rate list saved successfully!"
-        );
-        // --- Clear the draft from local storage on successful save ---
-        // Ensure ranges are available before trying to clear
-        if (sf && ef && ss && es) {
-          const key = getStorageKey(); // Use the key function here
-          try {
-            await AsyncStorage.removeItem(key);
-            console.log(`Draft cleared for key: ${key}`);
-          } catch (removeError) {
-            console.error(`Failed to clear draft for key ${key}:`, removeError);
-          }
-        } else {
-          console.warn("Cannot clear draft: Ranges not available.");
+      // Clear the draft from local storage on successful save
+      if (sf && ef && ss && es) {
+        const key = getStorageKey();
+        try {
+          await AsyncStorage.removeItem(key);
+          console.log(`Draft cleared for key: ${key}`);
+        } catch (removeError) {
+          console.error(`Failed to clear draft for key ${key}:`, removeError);
         }
-        // --- End Clear Draft ---
-
-        // Navigate back to the main RateListViewer screen
-        // Use replace to clear the rangeinput and inputtable screens from the stack
-        router.replace("/(app)/ratelist");
       }
-    } catch (error) {
+
+      // Navigate back to the main RateListViewer screen
+      router.replace("/(app)/ratelist");
+    } catch (error: any) {
       console.error("Error saving rate list:", error);
-      Alert.alert("Error", `Failed to save rate list: ${error.message}`);
+      const errorMessage =
+        error.response?.data?.detail ||
+        error.message ||
+        "Failed to save rate list";
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: errorMessage,
+      });
     } finally {
       setLoading(false);
     }
   };
 
   // Define column widths using useMemo for performance and consistency
-  // Adjust widths based on your design needs
   const columnWidths = useMemo(
     () => ({
       fat: 80,
       snf: 80,
-      rate: 100, // Give rate input column more space
+      rate: 100,
     }),
     []
-  ); // Depend on nothing, these widths are fixed
+  );
 
   if (generatingTable) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007BFF" />
-        <Text style={styles.loadingText}>Generating Table Data...</Text>
+      <View
+        style={[
+          styles.loadingContainer,
+          { backgroundColor: colors.background },
+        ]}
+      >
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+          Generating Table Data...
+        </Text>
       </View>
     );
   }
 
-  // Handle case where parameters led to no Fat or SNF values (after generation attempt)
   if (tableData.length === 0) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.title}>Error Generating Table</Text>
-        <Text style={styles.errorText}>
+      <View
+        style={[
+          styles.loadingContainer,
+          { backgroundColor: colors.background },
+        ]}
+      >
+        <Text style={[styles.title, { color: colors.textPrimary }]}>
+          Error Generating Table
+        </Text>
+        <Text style={[styles.errorText, { color: colors.error }]}>
           Could not generate any table data with the provided ranges. Please go
           back and check the values entered.
         </Text>
         <TouchableOpacity
-          style={styles.backButton}
+          style={[styles.backButton, { backgroundColor: colors.primary }]}
           onPress={() => router.back()}
         >
-          <Text style={styles.backButtonText}>Go Back</Text>
+          <Text style={[styles.backButtonText, { color: colors.surface }]}>
+            Go Back
+          </Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  // Render the table headers and the FlatList
   return (
-    // KeyboardAvoidingView helps prevent the keyboard from hiding inputs
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0} // Adjust offset as needed
+      keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
     >
-      <View style={styles.container}>
-        <Text style={styles.title}>Define Rates Table</Text>
-        <Text style={styles.infoText}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>
+          Define Rates Table
+        </Text>
+        <Text style={[styles.infoText, { color: colors.textSecondary }]}>
           Enter the rate (₹) for each Fat and SNF combination.
         </Text>
 
-        <View style={[styles.tableRow, styles.headerRow]}>
+        <View
+          style={[
+            styles.tableRow,
+            styles.headerRow,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            },
+          ]}
+        >
           <View style={[styles.headerCell, { width: columnWidths.fat }]}>
-            <Text style={styles.headerText}>Fat (%)</Text>
+            <Text style={[styles.headerText, { color: colors.textPrimary }]}>
+              Fat (%)
+            </Text>
           </View>
           <View style={[styles.headerCell, { width: columnWidths.snf }]}>
-            <Text style={styles.headerText}>SNF (%)</Text>
+            <Text style={[styles.headerText, { color: colors.textPrimary }]}>
+              SNF (%)
+            </Text>
           </View>
           <View style={[styles.headerCell, { width: columnWidths.rate }]}>
-            <Text style={styles.headerText}>Rate (₹)</Text>
+            <Text style={[styles.headerText, { color: colors.textPrimary }]}>
+              Rate (₹)
+            </Text>
           </View>
         </View>
 
@@ -431,29 +469,31 @@ const InputTable = () => {
           renderItem={({ item }) => (
             <RateTableRow
               item={item}
-              value={rates[item.key]} // Pass the specific rate value for this row
-              onChangeText={(value) => handleRateInputChange(item.key, value)} // Pass handler with key
-              columnWidths={columnWidths} // Pass widths
+              value={rates[item.key]}
+              onChangeText={(value) => handleRateInputChange(item.key, value)}
+              columnWidths={columnWidths}
+              colors={colors}
             />
           )}
           keyExtractor={(item, index) => index.toString()}
-          initialNumToRender={20} // Optimize initial rendering
-          maxToRenderPerBatch={10} // Optimize rendering during scroll
-          windowSize={15} // Optimize rendering window
-          removeClippedSubviews={true} // Good for performance with lists
-          // Add keyboardShouldPersistTaps to handle taps within the list
+          initialNumToRender={20}
+          maxToRenderPerBatch={10}
+          windowSize={15}
+          removeClippedSubviews={true}
           keyboardShouldPersistTaps="handled"
         />
 
         <TouchableOpacity
-          style={styles.saveButton}
+          style={[styles.saveButton, { backgroundColor: colors.primary }]}
           onPress={saveRateList}
-          disabled={loading} // Disable button while saving
+          disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" size="small" />
+            <ActivityIndicator color={colors.surface} size="small" />
           ) : (
-            <Text style={styles.saveButtonText}>Save Rate List</Text>
+            <Text style={[styles.saveButtonText, { color: colors.surface }]}>
+              Save Rate List
+            </Text>
           )}
         </TouchableOpacity>
       </View>
@@ -465,35 +505,29 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 10,
-    backgroundColor: "#f8f8f8",
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f8f8f8",
     padding: 20,
   },
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: "#555",
   },
   errorText: {
-    color: "red",
     textAlign: "center",
     fontSize: 16,
     marginBottom: 20,
     paddingHorizontal: 20,
   },
   backButton: {
-    backgroundColor: "#007BFF",
     padding: 10,
     borderRadius: 5,
     marginTop: 10,
   },
   backButtonText: {
-    color: "#fff",
     fontSize: 16,
   },
   title: {
@@ -501,27 +535,19 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 15,
     textAlign: "center",
-    color: "#333",
   },
   infoText: {
     fontSize: 15,
-    color: "#666",
     marginBottom: 10,
     textAlign: "center",
     paddingHorizontal: 5,
   },
-
-  // Table styles
   tableRow: {
     flexDirection: "row",
     borderBottomWidth: 1,
-    borderBottomColor: "#ddd",
-    // No paddingVertical here, padding is on cells
   },
   headerRow: {
-    backgroundColor: "#e9e9e9",
-    borderTopWidth: 1, // Add top border to header
-    borderColor: "#ddd",
+    borderTopWidth: 1,
   },
   headerCell: {
     paddingVertical: 10,
@@ -529,65 +555,46 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRightWidth: 1,
-    borderRightColor: "#ddd",
-    // width is set dynamically via style prop
   },
   headerText: {
     fontWeight: "bold",
     fontSize: 14,
     textAlign: "center",
-    color: "#333",
   },
   cell: {
-    paddingVertical: 8, // Vertical padding for cell content
-    paddingHorizontal: 5, // Horizontal padding
+    paddingVertical: 8,
+    paddingHorizontal: 5,
     alignItems: "center",
     justifyContent: "center",
     borderRightWidth: 1,
-    borderRightColor: "#eee", // Lighter border for data cells
-    // width is set dynamically via style prop
   },
   cellText: {
     fontSize: 15,
-    color: "#555",
     textAlign: "center",
   },
   rateCell: {
-    // Specific styles for the rate input cell container
     justifyContent: "center",
-    paddingVertical: 5, // Less vertical padding to fit input better
+    paddingVertical: 5,
   },
   rateInput: {
     borderWidth: 1,
-    borderColor: "#ccc",
     borderRadius: 4,
     padding: 5,
     fontSize: 15,
-    backgroundColor: "#fff",
     textAlign: "center",
     minWidth: 50,
-    height: 35, // Fixed height
+    height: 35,
   },
-
   saveButton: {
-    backgroundColor: "#28a745", // Green color
     padding: 15,
     borderRadius: 8,
     alignItems: "center",
     marginTop: 20,
-    marginBottom: 10, // Less space at the bottom, FlatList handles scrolling
+    marginBottom: 10,
   },
   saveButtonText: {
-    color: "#fff",
     fontSize: 18,
     fontWeight: "bold",
-  },
-  infoTextSmall: {
-    fontSize: 13,
-    color: "#888",
-    marginTop: 5,
-    marginBottom: 10, // Space below FlatList
-    textAlign: "center",
   },
 });
 

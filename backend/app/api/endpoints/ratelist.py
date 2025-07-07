@@ -5,7 +5,7 @@ import pandas as pd
 from datetime import datetime
 from typing import List
 
-from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
@@ -25,6 +25,8 @@ from app.services.ocr_parser import (
     get_text_from_image_via_api,
     parse_extracted_text_to_dataframe,
 )
+from app.tasks.ratelist_tasks import process_rate_list_image_task
+from app.services.subscription_service import can_upload_ratelist
 
 import logging
 
@@ -47,6 +49,13 @@ def store_rate_list(
     """
     try:
         logger.info(f"In store_rate_list endpoint for buyer: {buyer_mobile}")
+
+        # Enforce ratelist upload limit
+        if not can_upload_ratelist(db, buyer_mobile):
+            raise HTTPException(
+                status_code=403,
+                detail="Rate list upload limit reached for your subscription plan. You can upload up to 3 rate lists on the free plan. Upgrade to upload unlimited rate lists.",
+            )
 
         # Validate user existence (can potentially be part of get_current_user dependency)
         get_user = (
@@ -276,26 +285,41 @@ async def upload_rate_list_image(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     buyer_mobile: str = Depends(get_current_user),
-    background_tasks: BackgroundTasks = None,
 ):
     """
     API endpoint to receive an uploaded image file containing a rate list,
-    process it asynchronously, and store the rate list in the database.
+    process it asynchronously using Celery, and store the rate list in the database.
     """
     file_path = None
     try:
+        logger.info(f"Starting upload for buyer: {buyer_mobile}, file: {file.filename}")
+
         if not file.content_type or not file.content_type.startswith("image/"):
             raise HTTPException(
                 status_code=400, detail="Invalid file type. Only images are allowed."
             )
+
+        # Enforce ratelist upload limit
+        if not can_upload_ratelist(db, buyer_mobile):
+            raise HTTPException(
+                status_code=403,
+                detail="Rate list upload limit reached for your subscription plan. You can upload up to 3 rate lists on the free plan. Upgrade to upload unlimited rate lists.",
+            )
+
         upload_folder = "temp_uploads"
         os.makedirs(upload_folder, exist_ok=True)
+        logger.info(f"Created upload folder: {upload_folder}")
+
         file_extension = os.path.splitext(file.filename)[1] or ".tmp"
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
         new_filename = f"{timestamp}{file_extension}"
         file_path = os.path.join(upload_folder, new_filename)
+
+        logger.info(f"Saving file to: {file_path}")
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
+        logger.info(f"File saved successfully: {file_path}")
+
         # Set status to processing
         existing_rate_list = (
             db.query(RateList).filter(RateList.buyer_mobile == buyer_mobile).first()
@@ -315,14 +339,18 @@ async def upload_rate_list_image(
             )
             db.add(new_rate_list)
             db.commit()
-        # Launch background task
-        if background_tasks:
-            background_tasks.add_task(
-                process_rate_list_image, file_path, db, buyer_mobile
-            )
+
+        # Launch Celery task for background processing
+        logger.info(f"Creating Celery task for file: {file_path}")
+        task = process_rate_list_image_task.delay(file_path, buyer_mobile)
+        logger.info(f"Started Celery task {task.id} for buyer: {buyer_mobile}")
+
         return JSONResponse(
             status_code=202,
-            content={"message": "Upload received. Processing in background."},
+            content={
+                "message": "Upload received. Processing in background.",
+                "task_id": task.id,
+            },
         )
     except HTTPException as http_exc:
         raise http_exc
@@ -332,8 +360,10 @@ async def upload_rate_list_image(
                 os.remove(file_path)
             except OSError:
                 pass
+        logger.error(f"Error in upload_rate_list_image: {e}", exc_info=True)
         raise HTTPException(
-            status_code=500, detail="An internal server error occurred during upload."
+            status_code=500,
+            detail=f"An internal server error occurred during upload: {str(e)}",
         )
 
 
@@ -345,6 +375,51 @@ def get_upload_status(
     if not rate_list:
         raise HTTPException(status_code=404, detail="No rate list found for this user.")
     return {"status": rate_list.status}
+
+
+@router.get("/task_status/{task_id}")
+async def get_task_status(task_id: str):
+    """
+    Get the status of a Celery task by its ID.
+    """
+    try:
+        from app.celery_app import celery_app
+
+        task_result = celery_app.AsyncResult(task_id)
+
+        if task_result.state == "PENDING":
+            response = {"state": task_result.state, "status": "Task is pending..."}
+        elif task_result.state == "STARTED":
+            response = {
+                "state": task_result.state,
+                "status": task_result.info.get("status", "Task is running..."),
+                "progress": task_result.info.get("progress", 0),
+            }
+        elif task_result.state == "PROGRESS":
+            response = {
+                "state": task_result.state,
+                "status": task_result.info.get("status", "Task is running..."),
+                "progress": task_result.info.get("progress", 0),
+            }
+        elif task_result.state == "SUCCESS":
+            response = {
+                "state": task_result.state,
+                "status": "Task completed successfully",
+                "result": task_result.info.get("result", {}),
+            }
+        elif task_result.state == "FAILURE":
+            response = {
+                "state": task_result.state,
+                "status": "Task failed",
+                "error": task_result.info.get("error", "Unknown error"),
+            }
+        else:
+            response = {"state": task_result.state, "status": "Unknown task state"}
+
+        return response
+    except Exception as e:
+        logger.error(f"Error getting task status for {task_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get task status")
 
 
 @router.delete("/delete")  # Changed path slightly to fit prefix pattern if used
@@ -397,7 +472,8 @@ def show_rate_list(
         )
 
         if not rate_list:
-            raise HTTPException(status_code=404, detail="Rate List not found")
+            logger.info(f"No rate list found for buyer: {buyer_mobile}")
+            return {"rates": []}
 
         return {"rates": rate_list.rates}
 

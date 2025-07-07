@@ -33,6 +33,9 @@ class SubscriptionPlan(models.Model):
     customer_limit = models.IntegerField(null=True, blank=True)  # Null means unlimited
     supplier_limit = models.IntegerField(null=True, blank=True)
     transaction_limit = models.IntegerField(null=True, blank=True)
+    ratelist_upload_limit = models.IntegerField(
+        null=True, blank=True
+    )  # Null means unlimited
     description = models.CharField(max_length=255, null=True, blank=True)
     is_deleted = models.BooleanField(default=False)
     created_at = models.DateTimeField(null=True, blank=True)

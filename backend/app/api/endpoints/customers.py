@@ -68,7 +68,9 @@ def add_customer(
         return {"message": "Customer added successfully!", "added_by": current_mobile}
     except Exception as e:
         logger.error(f"Error: {e}")
-        raise HTTPException(status_code=404, detail="Something went wrong")
+        raise HTTPException(
+            status_code=500, detail="Unable to add customer. Please try again."
+        )
 
 
 @router.delete("/delete")

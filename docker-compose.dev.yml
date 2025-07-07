@@ -15,6 +15,13 @@ services:
       retries: 5
     restart: always
 
+  redis:
+    image: redis:7-alpine
+    container_name: milk_redis_dev
+    ports:
+      - "6379:6379"
+    restart: always
+
   backend:
     build:
       context: ./backend
@@ -27,9 +34,28 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
     volumes:
       - ./backend:/app
     restart: always
+
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: milk_celery_worker_dev
+    env_file:
+      - ./.env.dev
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./backend:/app
+    restart: always
+    command: celery -A app.celery_app worker --loglevel=info --queues=ratelist
 
   admin:
     build:

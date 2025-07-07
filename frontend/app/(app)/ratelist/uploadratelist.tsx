@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,449 +7,139 @@ import {
   Image,
   Alert,
   ActivityIndicator,
-  Platform,
-  Linking,
-  AppState,
-  AppStateStatus,
+  ScrollView,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import * as SecureStore from "expo-secure-store";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, useRouter } from "expo-router";
+import { useSelector, useDispatch } from "react-redux";
+import { RootState } from "@/redux/store";
+import { uploadRatelist } from "@/redux/slice/ratelist/rateListApi";
+import {
+  startUpload,
+  uploadComplete,
+  resetUploadStatus,
+} from "@/redux/slice/ratelist/uploadStatusSlice";
+import { uploadStatusService } from "@/services/uploadStatusService";
 import useTheme from "@/context/theme/useTheme";
-import Constants from "expo-constants";
 import Toast from "react-native-toast-message";
-
-const { API_BASE_URL } = Constants.expoConfig?.extra || {};
-
-const UPLOAD_RATE_LIST_ENDPOINT = "/ratelist/upload_image";
-const UPLOAD_STATUS_ENDPOINT = "/ratelist/upload_status";
-const PERMISSION_DENIED_MESSAGE =
-  "Sorry, we need camera roll permissions to make this work! Please enable them in your device settings.";
-const NO_PHOTO_SELECTED_MESSAGE =
-  "Please select a photo of the rate list to upload.";
-const UPLOAD_SUCCESS_MESSAGE = "Rate list photo uploaded successfully!";
-const UPLOAD_FAILED_MESSAGE = "An error occurred during upload.";
-
-// --- Helper to get file type from URI ---
-const getFileType = (uri: string): string => {
-  const fileExtension = uri.split(".").pop()?.toLowerCase();
-  switch (fileExtension) {
-    case "png":
-      return "image/png";
-    case "jpg":
-    case "jpeg":
-      return "image/jpeg";
-    case "heic":
-      return "image/heic";
-    default:
-      return "image/jpeg"; // Default to jpeg
-  }
-};
+import { Ionicons } from "@expo/vector-icons";
 
 const UploadRateListScreen = () => {
   const router = useRouter();
-  // Access the theme colors
+  const dispatch = useDispatch();
   const { colors } = useTheme();
+  const uploadStatus = useSelector((state: RootState) => state.uploadStatus);
+
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [processing, setProcessing] = useState(false);
-  const [processingMessage, setProcessingMessage] = useState("");
-  const [permissionStatus, requestPermission] =
-    ImagePicker.useMediaLibraryPermissions();
+  const [isUploading, setIsUploading] = useState(false);
 
-  // Polling refs
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const pollCountRef = useRef(0);
-  const maxPollCount = 60; // Maximum 5 minutes (60 * 5 seconds)
-
-  // Track if component is mounted and app state
-  const isMountedRef = useRef(true);
-  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
-
-  // Check for pending upload notifications on mount
   useEffect(() => {
-    checkPendingUploadNotifications();
-  }, []);
-
-  // Function to check for pending upload notifications
-  const checkPendingUploadNotifications = async () => {
-    try {
-      const pendingUpload = await AsyncStorage.getItem(
-        "pendingUploadNotification"
-      );
-      if (pendingUpload) {
-        const { status, message, timestamp } = JSON.parse(pendingUpload);
-        const now = Date.now();
-        const fiveMinutesAgo = now - 5 * 60 * 1000; // 5 minutes ago
-
-        // Only show notification if it's recent (within 5 minutes)
-        if (timestamp > fiveMinutesAgo) {
-          if (status === "complete") {
-            Toast.show({
-              type: "success",
-              text1: "Upload Complete",
-              text2:
-                "Your rate list has been processed and uploaded successfully!",
-            });
-          } else if (status === "failed") {
-            Toast.show({
-              type: "error",
-              text1: "Upload Failed",
-              text2:
-                "Failed to process your rate list. Please try uploading a clearer image.",
-            });
-          }
-        }
-
-        // Clear the pending notification
-        await AsyncStorage.removeItem("pendingUploadNotification");
-      }
-    } catch (error) {
-      console.error("Error checking pending upload notifications:", error);
-    }
-  };
-
-  // Function to save upload notification for later
-  const saveUploadNotification = async (
-    status: "complete" | "failed",
-    message: string
-  ) => {
-    try {
-      const notification = {
-        status,
-        message,
-        timestamp: Date.now(),
-      };
-      await AsyncStorage.setItem(
-        "pendingUploadNotification",
-        JSON.stringify(notification)
-      );
-    } catch (error) {
-      console.error("Error saving upload notification:", error);
-    }
-  };
-
-  // Cleanup polling on unmount and handle app state changes
-  useEffect(() => {
-    // Track component mount state
-    isMountedRef.current = true;
-
-    // Handle app state changes (foreground/background)
-    const handleAppStateChange = (nextAppState: AppStateStatus) => {
-      if (
-        appStateRef.current.match(/inactive|background/) &&
-        nextAppState === "active"
-      ) {
-        // App came to foreground, check for pending notifications
-        checkPendingUploadNotifications();
-
-        // Resume polling if needed
-        if (processing && isMountedRef.current) {
-          console.log("App resumed, continuing polling");
-        }
-      } else if (nextAppState.match(/inactive|background/)) {
-        // App going to background, pause polling
-        console.log("App going to background, pausing polling");
-      }
-      appStateRef.current = nextAppState;
-    };
-
-    const subscription = AppState.addEventListener(
-      "change",
-      handleAppStateChange
-    );
-
+    // Reset upload status when component unmounts
     return () => {
-      // Cleanup on unmount
-      isMountedRef.current = false;
-      subscription?.remove();
-
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-        pollingIntervalRef.current = null;
+      if (
+        uploadStatus.status === "complete" ||
+        uploadStatus.status === "failed" ||
+        uploadStatus.status === "cancelled"
+      ) {
+        dispatch(resetUploadStatus());
       }
     };
-  }, [processing]);
+  }, [dispatch, uploadStatus.status]);
 
-  // Function to check upload status
-  const checkUploadStatus = async (): Promise<{
-    status: string;
-    message: string;
-  }> => {
-    // Check if component is still mounted
-    if (!isMountedRef.current) {
-      throw new Error("Component unmounted");
+  // Reset local upload state when Redux state changes
+  useEffect(() => {
+    if (!uploadStatus.isUploading && !uploadStatus.isProcessing) {
+      setIsUploading(false);
     }
+  }, [uploadStatus.isUploading, uploadStatus.isProcessing]);
 
-    let token = null;
-    try {
-      token = await SecureStore.getItemAsync("accessToken");
-      if (!token) {
-        throw new Error("Authentication token not found");
-      }
-    } catch (error) {
-      throw new Error("Could not retrieve authentication token");
-    }
-
-    const statusUrl = `${API_BASE_URL}${UPLOAD_STATUS_ENDPOINT}`;
-    const response = await fetch(statusUrl, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Status check failed with status ${response.status}`);
-    }
-
-    const data = await response.json();
-    return { status: data.status, message: "" };
-  };
-
-  // Function to start polling
-  const startPolling = () => {
-    if (!isMountedRef.current) return;
-
-    setProcessing(true);
-    setProcessingMessage("Processing your upload...");
-    pollCountRef.current = 0;
-
-    const pollStatus = async () => {
-      // Check if component is still mounted before proceeding
-      if (!isMountedRef.current) {
-        return;
-      }
-
-      try {
-        pollCountRef.current++;
-
-        if (pollCountRef.current > maxPollCount) {
-          // Stop polling after max attempts
-          if (isMountedRef.current) {
-            setProcessing(false);
-            setProcessingMessage("");
-            Alert.alert(
-              "Processing Timeout",
-              "The upload is taking longer than expected. Please check back later or try uploading again."
-            );
-          }
-          return;
-        }
-
-        const { status } = await checkUploadStatus();
-
-        // Check if component is still mounted before updating state
-        if (!isMountedRef.current) return;
-
-        if (status === "complete") {
-          // Success
-          setProcessing(false);
-          setProcessingMessage("");
-
-          // Save notification for later (in case user navigated away)
-          await saveUploadNotification(
-            "complete",
-            "Rate list processed and uploaded successfully!"
-          );
-
-          // Only show toast and navigate if component is still mounted
-          if (isMountedRef.current) {
-            Toast.show({
-              type: "success",
-              text1: "Success",
-              text2: "Rate list processed and uploaded successfully!",
-            });
-            setSelectedImageUri(null);
-            router.back();
-          }
-        } else if (status === "failed") {
-          // Failed
-          if (isMountedRef.current) {
-            setProcessing(false);
-            setProcessingMessage("");
-
-            // Save notification for later
-            await saveUploadNotification(
-              "failed",
-              "Failed to process the uploaded image. Please try uploading a clearer image."
-            );
-
-            Alert.alert(
-              "Processing Failed",
-              "Failed to process the uploaded image. Please try uploading a clearer image."
-            );
-          }
-        } else if (status === "processing") {
-          // Still processing, continue polling
-          if (isMountedRef.current) {
-            setProcessingMessage(
-              `Processing your upload... (${pollCountRef.current * 5}s)`
-            );
-          }
-        }
-      } catch (error: any) {
-        console.error("Status check error:", error);
-        // Continue polling on error, but log it
-        // Only if component is still mounted
-        if (!isMountedRef.current) return;
-      }
-    };
-
-    // Poll every 5 seconds
-    pollingIntervalRef.current = setInterval(pollStatus, 5000);
-
-    // Initial check
-    pollStatus();
-  };
-
-  // Function to stop polling
-  const stopPolling = () => {
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
-    }
-    if (isMountedRef.current) {
-      setProcessing(false);
-      setProcessingMessage("");
-    }
-  };
-
-  const requestMediaLibraryPermission = useCallback(async () => {
-    if (permissionStatus?.status === "granted") {
-      return true;
-    }
-    if (permissionStatus?.canAskAgain) {
-      const response = await requestPermission();
-      if (response.granted) {
-        return true;
-      } else {
-        Alert.alert("Permission Denied", PERMISSION_DENIED_MESSAGE);
-        return false;
-      }
-    } else {
-      // Permission permanently denied
-      Alert.alert("Permission Required", PERMISSION_DENIED_MESSAGE);
-      // Optionally guide user to settings - requires linking
-      Linking.openSettings();
-      return false;
-    }
-  }, [
-    permissionStatus?.status,
-    permissionStatus?.canAskAgain,
-    requestPermission,
-  ]);
-
-  // Function to pick an image from the device's library
   const pickImage = async () => {
-    const hasPermission = await requestMediaLibraryPermission();
-    if (!hasPermission) return;
-
     try {
-      let result = await ImagePicker.launchImageLibraryAsync({
+      const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsMultipleSelection: false, // Assuming only one image is allowed
-        selectionLimit: 1,
+        allowsEditing: false,
+        quality: 0.8,
       });
 
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const selectedAsset = result.assets[0];
-
-        setSelectedImageUri(selectedAsset.uri);
+      if (!result.canceled && result.assets && result.assets[0]) {
+        setSelectedImageUri(result.assets[0].uri);
       }
     } catch (error) {
       console.error("Error picking image:", error);
-      Alert.alert("Error", "Failed to pick image. Please try again.");
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Failed to pick image. Please try again.",
+      });
     }
   };
 
-  // Function to handle the upload process using Fetch API
-  const handleUpload = async () => {
+  const uploadImage = async () => {
+    console.log("Upload button clicked, current status:", uploadStatus);
+
     if (!selectedImageUri) {
-      Alert.alert("No Photo Selected", NO_PHOTO_SELECTED_MESSAGE);
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Please select an image first.",
+      });
       return;
     }
 
-    setUploading(true);
-
-    const formData = new FormData();
-
-    // Append the photo file
-    const fileUri = selectedImageUri;
-    const fileName = fileUri.split("/").pop() || `upload_${Date.now()}.jpg`;
-    const fileType = getFileType(fileUri);
-
-    const uri =
-      Platform.OS === "ios" ? fileUri.replace("file://", "") : fileUri;
-
-    formData.append("file", {
-      uri: uri,
-      name: fileName,
-      type: fileType,
-    } as any);
-
-    const uploadUrl = `${API_BASE_URL}${UPLOAD_RATE_LIST_ENDPOINT}`;
-    let token = null;
-    try {
-      token = await SecureStore.getItemAsync("accessToken");
-      if (!token) {
-        Alert.alert(
-          "Authentication Error",
-          "Your session has expired. Please log in again."
-        );
-        setUploading(false);
-        return;
-      }
-    } catch (error) {
-      console.error("Error retrieving token:", error);
-      Alert.alert(
-        "Authentication Error",
-        "Could not retrieve authentication token."
-      );
-      setUploading(false);
+    // Prevent multiple clicks
+    if (uploadStatus.isUploading || uploadStatus.isProcessing || isUploading) {
+      console.log("Upload already in progress, ignoring click");
       return;
     }
 
+    console.log("Starting upload...");
+    setIsUploading(true);
+    dispatch(startUpload());
+
     try {
-      const response = await fetch(uploadUrl, {
-        method: "POST",
-        body: formData,
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const formData = new FormData();
+      formData.append("file", {
+        uri: selectedImageUri,
+        type: "image/jpeg",
+        name: "rate_list_image.jpg",
+      } as any);
+
+      const response = await uploadRatelist(formData);
+      const taskId = response.data.task_id;
+
+      // Update Redux state with task ID and start processing
+      dispatch(uploadComplete({ taskId }));
+
+      // Start background polling
+      uploadStatusService.startPolling(taskId);
+
+      Toast.show({
+        type: "success",
+        text1: "Upload Successful",
+        text2: "Image uploaded successfully. Processing in background...",
       });
 
-      if (!response.ok) {
-        let errorDetail = "Unknown server error.";
-        try {
-          const errorBody = await response.json();
-          errorDetail =
-            errorBody.message || errorBody.error || JSON.stringify(errorBody);
-        } catch (e) {
-          errorDetail = await response.text();
-        }
-        throw new Error(
-          `Upload failed with status ${response.status}: ${errorDetail}`
-        );
-      }
-
-      // Upload successful, start polling for processing status
-      setUploading(false);
-      startPolling();
+      // Navigate back to rate list screen
+      router.back();
     } catch (error: any) {
-      console.error("Upload Error:", error);
-      Alert.alert(
-        "Upload Failed",
-        `${UPLOAD_FAILED_MESSAGE}\n${error.message || error}`
-      );
-      setUploading(false);
+      console.error("Error uploading image:", error);
+      const errorMessage =
+        error.response?.data?.detail ||
+        error.message ||
+        "Failed to upload image";
+      Toast.show({
+        type: "error",
+        text1: "Upload Failed",
+        text2: errorMessage,
+      });
+      dispatch(resetUploadStatus());
     }
   };
 
-  // Function to remove selected image
-  const clearSelectedImage = () => {
+  const resetSelection = () => {
     setSelectedImageUri(null);
+    setIsUploading(false);
+    dispatch(resetUploadStatus());
   };
 
   return (
@@ -458,46 +148,38 @@ const UploadRateListScreen = () => {
         options={{
           title: "Upload Ratelist",
           headerStyle: {
-            backgroundColor: colors.surface, // Use surface color for header background
+            backgroundColor: colors.surface,
           },
-          headerTintColor: colors.textPrimary, // Use primary text color for title and icons
+          headerTintColor: colors.textPrimary,
           headerTitleStyle: {
-            color: colors.textPrimary, // Ensure title color is also themed
+            color: colors.textPrimary,
           },
+          headerBackVisible: true,
+          headerLeft: () => (
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={{ marginLeft: 16 }}
+            >
+              <Ionicons
+                name="arrow-back"
+                size={24}
+                color={colors.textPrimary}
+              />
+            </TouchableOpacity>
+          ),
         }}
       />
 
-      {/* Processing Status Display */}
-      {processing && (
-        <View
-          style={[
-            styles.processingContainer,
-            { backgroundColor: colors.surface },
-          ]}
-        >
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.processingText, { color: colors.textPrimary }]}>
-            {processingMessage}
-          </Text>
-          <TouchableOpacity
-            style={[styles.cancelButton, { backgroundColor: colors.error }]}
-            onPress={stopPolling}
-          >
-            <Text style={[styles.cancelButtonText, { color: colors.surface }]}>
-              Cancel Processing
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {!selectedImageUri && !processing && (
+      {!selectedImageUri && (
         <TouchableOpacity
           style={[
             styles.selectPhotoButton,
             { backgroundColor: colors.primary },
           ]}
           onPress={pickImage}
-          disabled={uploading || processing}
+          disabled={
+            uploadStatus.isUploading || uploadStatus.isProcessing || isUploading
+          }
         >
           <Text
             style={[styles.selectPhotoButtonText, { color: colors.surface }]}
@@ -507,60 +189,101 @@ const UploadRateListScreen = () => {
         </TouchableOpacity>
       )}
 
-      {selectedImageUri && !processing && (
-        <View
-          style={[
-            styles.imagePreviewContainer,
-            { backgroundColor: colors.surface, borderColor: colors.border },
-          ]}
-        >
+      {selectedImageUri && (
+        <ScrollView style={styles.imageContainer}>
+          <Text
+            style={[styles.instructionText, { color: colors.textSecondary }]}
+          >
+            Selected Image:
+          </Text>
           <Image
             source={{ uri: selectedImageUri }}
-            style={styles.imagePreview}
+            style={styles.selectedImage}
           />
-          <Text style={[styles.imageUriText, { color: colors.textSecondary }]}>
-            Selected: {selectedImageUri.split("/").pop()}
-          </Text>
-          <TouchableOpacity
-            onPress={clearSelectedImage}
-            style={[
-              styles.removeImageButton,
-              {
-                backgroundColor: uploading ? colors.border : colors.error,
-                opacity: uploading ? 0.5 : 1,
-              },
-            ]}
-            disabled={uploading}
-          >
-            <Text
-              style={[styles.removeImageButtonText, { color: colors.surface }]}
-            >
-              Remove Photo
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
 
-      {!processing && (
-        <TouchableOpacity
-          style={[
-            styles.uploadButton,
-            {
-              backgroundColor:
-                uploading || !selectedImageUri ? colors.border : colors.success,
-            },
-          ]}
-          onPress={handleUpload}
-          disabled={uploading || !selectedImageUri}
-        >
-          {uploading ? (
-            <ActivityIndicator color={colors.surface} />
-          ) : (
-            <Text style={[styles.uploadButtonText, { color: colors.surface }]}>
-              Upload Rate List
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={[
+                styles.uploadButton,
+                {
+                  backgroundColor:
+                    uploadStatus.isUploading ||
+                    uploadStatus.isProcessing ||
+                    isUploading
+                      ? colors.border
+                      : colors.primary,
+                },
+              ]}
+              onPress={uploadImage}
+              disabled={
+                uploadStatus.isUploading ||
+                uploadStatus.isProcessing ||
+                isUploading
+              }
+              activeOpacity={
+                uploadStatus.isUploading ||
+                uploadStatus.isProcessing ||
+                isUploading
+                  ? 1
+                  : 0.7
+              }
+            >
+              {uploadStatus.isUploading || isUploading ? (
+                <ActivityIndicator color={colors.surface} size="small" />
+              ) : (
+                <Text
+                  style={[styles.uploadButtonText, { color: colors.surface }]}
+                >
+                  Upload & Process
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.resetButton, { backgroundColor: colors.border }]}
+              onPress={resetSelection}
+              disabled={
+                uploadStatus.isUploading ||
+                uploadStatus.isProcessing ||
+                isUploading
+              }
+            >
+              <Text
+                style={[styles.resetButtonText, { color: colors.textPrimary }]}
+              >
+                Select Different Image
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.instructionsContainer}>
+            <Text
+              style={[styles.instructionsTitle, { color: colors.textPrimary }]}
+            >
+              Instructions:
             </Text>
-          )}
-        </TouchableOpacity>
+            <Text
+              style={[styles.instructionsText, { color: colors.textSecondary }]}
+            >
+              • Ensure the rate list image is clear and well-lit
+            </Text>
+            <Text
+              style={[styles.instructionsText, { color: colors.textSecondary }]}
+            >
+              • The image should contain a table with Fat, SNF, and Rate columns
+            </Text>
+            <Text
+              style={[styles.instructionsText, { color: colors.textSecondary }]}
+            >
+              • Processing may take a few moments depending on image quality
+            </Text>
+            <Text
+              style={[styles.instructionsText, { color: colors.textSecondary }]}
+            >
+              • You can check processing status from the main rate list screen
+            </Text>
+          </View>
+        </ScrollView>
       )}
     </View>
   );
@@ -570,103 +293,70 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    // backgroundColor handled by theme inline
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 30,
-    textAlign: "center",
-    // color handled by theme inline
   },
   selectPhotoButton: {
-    // backgroundColor handled by theme inline
-    padding: 15,
+    paddingVertical: 15,
+    paddingHorizontal: 20,
     borderRadius: 8,
     alignItems: "center",
-    marginBottom: 20,
+    marginVertical: 20,
   },
   selectPhotoButtonText: {
     fontSize: 18,
     fontWeight: "bold",
-    // color handled by theme inline
   },
-  imagePreviewContainer: {
-    alignItems: "center",
-    marginBottom: 20,
-    padding: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    // backgroundColor and borderColor handled by theme inline
+  imageContainer: {
+    flex: 1,
   },
-  imagePreview: {
-    width: 200,
-    height: 150,
-    resizeMode: "contain",
-    borderRadius: 8,
-    // borderWidth and borderColor handled by container
-  },
-  imageUriText: {
-    marginTop: 10,
-    fontSize: 14,
-    textAlign: "center",
-    fontStyle: "italic",
-    // color handled by theme inline
-  },
-  removeImageButton: {
-    marginTop: 10,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 5,
-    // backgroundColor handled by theme inline (based on state)
-    // opacity handled by theme inline (based on state)
-  },
-  removeImageButtonText: {
-    fontSize: 14,
-    // color handled by theme inline
-  },
-  input: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 15,
+  instructionText: {
     fontSize: 16,
-    // borderColor, color, backgroundColor handled by theme inline
+    marginBottom: 10,
+    fontWeight: "bold",
+  },
+  selectedImage: {
+    width: "100%",
+    height: 300,
+    borderRadius: 8,
+    marginBottom: 20,
+  },
+  buttonContainer: {
+    marginBottom: 20,
   },
   uploadButton: {
-    // backgroundColor handled by theme inline (based on state)
-    padding: 15,
+    paddingVertical: 15,
+    paddingHorizontal: 20,
     borderRadius: 8,
     alignItems: "center",
-    marginTop: 20,
+    marginBottom: 10,
   },
   uploadButtonText: {
     fontSize: 18,
     fontWeight: "bold",
-    // color handled by theme inline
   },
-  processingContainer: {
-    alignItems: "center",
-    padding: 20,
-    marginBottom: 20,
+  resetButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ddd",
+    alignItems: "center",
   },
-  processingText: {
+  resetButtonText: {
     fontSize: 16,
-    marginTop: 10,
-    textAlign: "center",
-    marginBottom: 15,
+    fontWeight: "600",
   },
-  cancelButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 5,
+  instructionsContainer: {
+    marginTop: 20,
+    padding: 15,
+    borderRadius: 8,
   },
-  cancelButtonText: {
-    fontSize: 14,
+  instructionsTitle: {
+    fontSize: 18,
     fontWeight: "bold",
+    marginBottom: 10,
+  },
+  instructionsText: {
+    fontSize: 14,
+    marginBottom: 5,
+    lineHeight: 20,
   },
 });
 

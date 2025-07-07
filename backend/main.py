@@ -1,4 +1,5 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 from app.middleware.jwt_middleware import JWTMiddleware
@@ -42,6 +43,21 @@ app = FastAPI(
         {"name": "subscriptions", "description": "Subscription management"},
     ],
 )
+
+
+# Custom exception handler for structured errors
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    # Check if the detail is a structured error (dict with error_code)
+    if isinstance(exc.detail, dict) and "error_code" in exc.detail:
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+    else:
+        # Handle regular HTTPExceptions
+        return JSONResponse(
+            status_code=exc.status_code, content={"detail": str(exc.detail)}
+        )
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

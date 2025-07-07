@@ -11,6 +11,7 @@ import * as Localization from "expo-localization";
 import { useFonts } from "expo-font";
 import Toast from "react-native-toast-message";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { loadPersistedUploadStatus } from "@/redux/slice/ratelist/uploadStatusSlice";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -91,10 +92,11 @@ export default function Root() {
     }
   }, [i18n]);
 
-  // Check for pending notifications on initial mount
+  // Check for pending notifications and load upload status on initial mount
   useEffect(() => {
     if (fontsLoaded) {
       checkPendingUploadNotifications();
+      store.dispatch(loadPersistedUploadStatus());
     }
   }, [fontsLoaded]);
 

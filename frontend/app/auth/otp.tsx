@@ -7,6 +7,10 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StatusBar,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  SafeAreaView,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
@@ -35,7 +39,7 @@ const OTP = () => {
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm();
+  } = useForm<{ otp: string }>();
 
   useEffect(() => {
     // Only start the timer if canResend is false (i.e., after initial send or a successful resend)
@@ -84,7 +88,7 @@ const OTP = () => {
           });
         }
       } else {
-        const errorData = await response.json();
+        const errorData = response.data;
         const errorMessage =
           errorData?.message || t("otp.invalid_otp_fallback"); // Translated fallback
         Toast.show({ type: "error", text1: errorMessage });
@@ -121,7 +125,7 @@ const OTP = () => {
         setTimer(180); // Reset timer
         setCanResend(false); // Disable resend until timer runs out
       } else {
-        const errorData = await resendOtpResponse.json();
+        const errorData = resendOtpResponse.data;
         const errorMessage =
           errorData?.message || t("otp.failed_to_send_otp_fallback"); // Translated fallback
         Toast.show({ type: "error", text1: errorMessage });
@@ -139,104 +143,153 @@ const OTP = () => {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle={statusBarStyle} backgroundColor={colors.surface} />
-      <Text style={[styles.title, { color: colors.textPrimary }]}>
-        {t("otp.enter_otp_title")} {/* Translated title */}
-      </Text>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: colors.background }]}
+    >
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+      >
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+        >
+          <View
+            style={[styles.container, { backgroundColor: colors.background }]}
+          >
+            <StatusBar
+              barStyle={statusBarStyle}
+              backgroundColor={colors.surface}
+            />
+            <Text style={[styles.title, { color: colors.textPrimary }]}>
+              {t("otp.enter_otp_title")} {/* Translated title */}
+            </Text>
 
-      <View style={styles.inputContainer}>
-        <Controller
-          control={control}
-          render={({ field: { onChange, value } }) => (
-            <TextInput
+            <View style={styles.inputContainer}>
+              <Controller
+                control={control}
+                render={({ field: { onChange, value } }) => (
+                  <TextInput
+                    style={[
+                      styles.input,
+                      {
+                        borderColor: errors.otp ? colors.error : colors.border,
+                        backgroundColor: colors.surface,
+                        color: colors.textPrimary,
+                      },
+                    ]}
+                    placeholder={t("otp.otp_placeholder")} // Translated placeholder
+                    placeholderTextColor={colors.textSecondary}
+                    value={value}
+                    onChangeText={onChange}
+                    keyboardType="number-pad"
+                    maxLength={6}
+                  />
+                )}
+                name="otp"
+                rules={{
+                  required: t("otp.otp_required"), // Translated validation message
+                  minLength: { value: 6, message: t("otp.otp_length_invalid") }, // Translated validation message
+                  maxLength: { value: 6, message: t("otp.otp_length_invalid") }, // Translated validation message
+                }}
+              />
+              <Text
+                style={[
+                  styles.errorText,
+                  {
+                    color: colors.error,
+                    opacity: errors.otp ? 1 : 0,
+                  },
+                ]}
+              >
+                {errors?.otp?.message as string}
+              </Text>
+            </View>
+
+            <TouchableOpacity
               style={[
-                styles.input,
+                styles.button,
                 {
-                  borderColor: errors.otp ? colors.error : colors.border,
-                  backgroundColor: colors.surface,
-                  color: colors.textPrimary,
+                  backgroundColor: isVerifying ? colors.border : colors.primary,
                 },
               ]}
-              placeholder={t("otp.otp_placeholder")} // Translated placeholder
-              placeholderTextColor={colors.textSecondary}
-              value={value}
-              onChangeText={onChange}
-              keyboardType="number-pad"
-              maxLength={6}
-            />
-          )}
-          name="otp"
-          rules={{
-            required: t("otp.otp_required"), // Translated validation message
-            minLength: { value: 6, message: t("otp.otp_length_invalid") }, // Translated validation message
-            maxLength: { value: 6, message: t("otp.otp_length_invalid") }, // Translated validation message
-          }}
-        />
-        <Text
-          style={[
-            styles.errorText,
-            {
-              color: colors.error,
-              opacity: errors.otp ? 1 : 0,
-            },
-          ]}
-        >
-          {errors?.otp?.message as string}
-        </Text>
-      </View>
+              onPress={handleSubmit(handleVerifyOTP)}
+              disabled={isVerifying}
+            >
+              {isVerifying ? (
+                <ActivityIndicator color={colors.surface} />
+              ) : (
+                <Text style={[styles.buttonText, { color: colors.surface }]}>
+                  {t("otp.verify_button")} {/* Translated button text */}
+                </Text>
+              )}
+            </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[
-          styles.button,
-          { backgroundColor: isVerifying ? colors.border : colors.primary },
-        ]}
-        onPress={handleSubmit(handleVerifyOTP)}
-        disabled={isVerifying}
-      >
-        {isVerifying ? (
-          <ActivityIndicator color={colors.surface} />
-        ) : (
-          <Text style={[styles.buttonText, { color: colors.surface }]}>
-            {t("otp.verify_button")} {/* Translated button text */}
-          </Text>
-        )}
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.resendButton}
-        onPress={handleResendOTP}
-        disabled={!canResend || isResending}
-      >
-        {isResending ? (
-          <ActivityIndicator color={colors.primary} />
-        ) : (
-          <Text
-            style={[
-              styles.resendButtonText,
-              { color: canResend ? colors.primary : colors.textSecondary },
-            ]}
-          >
-            {canResend
-              ? t("otp.resend_button") // Translated resend text
-              : t("otp.resend_timer", {
-                  // Translated timer text with interpolation
-                  minutes: Math.floor(timer / 60),
-                  seconds: String(timer % 60).padStart(2, "0"),
-                })}
-          </Text>
-        )}
-      </TouchableOpacity>
-    </View>
+            <View style={styles.resendContainer}>
+              <Text
+                style={[styles.resendText, { color: colors.textSecondary }]}
+              >
+                {t("otp.didnt_receive_otp")} {/* Translated text */}
+              </Text>
+              <TouchableOpacity
+                onPress={handleResendOTP}
+                disabled={!canResend || isResending}
+                style={[
+                  styles.resendButton,
+                  {
+                    opacity: canResend && !isResending ? 1 : 0.5,
+                  },
+                ]}
+              >
+                <Text
+                  style={[styles.resendButtonText, { color: colors.primary }]}
+                >
+                  {isResending
+                    ? t("otp.resending") // Translated loading text
+                    : canResend
+                    ? t("otp.resend") // Translated resend text
+                    : `${t("otp.resend_in")} ${Math.floor(timer / 60)}:${(
+                        timer % 60
+                      )
+                        .toString()
+                        .padStart(2, "0")}`}{" "}
+                  {/* Translated timer text */}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+    paddingBottom: 20,
+  },
   container: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 20,
   },
   title: {
     fontSize: 32,
@@ -265,8 +318,17 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "500",
   },
-  resendButton: {
+  resendContainer: {
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 20,
+  },
+  resendText: {
+    fontSize: 16,
+  },
+  resendButton: {
+    padding: 10,
+    borderRadius: 8,
   },
   resendButtonText: {
     fontSize: 16,

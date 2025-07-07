@@ -1,8 +1,9 @@
 from fastapi import Request, HTTPException
+from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy.orm import Session
 from jose import jwt, JWTError, ExpiredSignatureError
-from typing import Callable
+from typing import Callable, Optional
 from app.db.session import get_db
 from app.db.models import User
 from app.core.security import SECRET_KEY, ALGORITHM
@@ -39,41 +40,99 @@ class JWTMiddleware(BaseHTTPMiddleware):
         token_header = request.headers.get("Authorization")
         if not token_header:
             logger.warning("Authorization header missing for a protected path.")
-            raise HTTPException(status_code=401, detail="Authorization header missing")
+            return JSONResponse(
+                status_code=401,
+                content={
+                    "detail": {
+                        "message": "Please log in to access this feature",
+                        "error_code": "AUTH_HEADER_MISSING",
+                        "requires_logout": False,
+                    }
+                },
+            )
 
         token_list = token_header.split(" ")
         if len(token_list) != 2 or token_list[0].lower() != "bearer":
             logger.warning("Invalid token format.")
-            raise HTTPException(
+            return JSONResponse(
                 status_code=401,
-                detail="Invalid token format. Expected 'Bearer <token>'",
+                content={
+                    "detail": {
+                        "message": "Invalid login session. Please sign in again",
+                        "error_code": "INVALID_TOKEN_FORMAT",
+                        "requires_logout": False,
+                    }
+                },
             )
 
         token = token_list[1]
+        db: Optional[Session] = None
 
         try:
+            # First decode the JWT token
             payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-            mobile: str = payload.get("sub")  # Extract user mobile from token
+            mobile: Optional[str] = payload.get("sub")  # Extract user mobile from token
 
             if not mobile:
                 logger.warning("Invalid token: 'sub' field missing.")
-                raise HTTPException(
-                    status_code=401, detail="Invalid token, no user information"
+                return JSONResponse(
+                    status_code=401,
+                    content={
+                        "detail": {
+                            "message": "Invalid login session. Please sign in again",
+                            "error_code": "INVALID_TOKEN_CONTENT",
+                            "requires_logout": True,
+                        }
+                    },
                 )
 
-            db: Session = next(get_db())
+            # Get database session
+            try:
+                db = next(get_db())
+            except Exception as db_error:
+                logger.error(f"Database session error: {db_error}")
+                return JSONResponse(
+                    status_code=500,
+                    content={
+                        "detail": {
+                            "message": "Server connection error. Please try again in a moment",
+                            "error_code": "DB_CONNECTION_ERROR",
+                            "requires_logout": False,
+                        }
+                    },
+                )
 
-            user = (
-                db.query(User)
-                .filter(User.mobile == mobile, User.is_deleted == 0)
-                .first()
-            )
-            db.close()
+            # Query for user
+            try:
+                user = (
+                    db.query(User)
+                    .filter(User.mobile == mobile, User.is_deleted == 0)
+                    .first()
+                )
+            except Exception as query_error:
+                logger.error(f"Database query error: {query_error}")
+                return JSONResponse(
+                    status_code=500,
+                    content={
+                        "detail": {
+                            "message": "Server error. Please try again in a moment",
+                            "error_code": "DB_QUERY_ERROR",
+                            "requires_logout": False,
+                        }
+                    },
+                )
 
             if not user:
                 logger.warning(f"User {mobile} not found or inactive in DB.")
-                raise HTTPException(
-                    status_code=401, detail="User not found or inactive"
+                return JSONResponse(
+                    status_code=401,
+                    content={
+                        "detail": {
+                            "message": "Your account is not active or has been removed. Please contact support",
+                            "error_code": "USER_NOT_FOUND_OR_INACTIVE",
+                            "requires_logout": True,
+                        }
+                    },
                 )
 
             request.state.user = user
@@ -81,17 +140,47 @@ class JWTMiddleware(BaseHTTPMiddleware):
 
         except ExpiredSignatureError:
             logger.warning("Token has expired.")
-            raise HTTPException(status_code=401, detail="Token has expired")
+            return JSONResponse(
+                status_code=401,
+                content={
+                    "detail": {
+                        "message": "Your session has expired. Please sign in again",
+                        "error_code": "TOKEN_EXPIRED",
+                        "requires_logout": True,
+                    }
+                },
+            )
         except JWTError:
             logger.warning("Invalid token.")
-            raise HTTPException(status_code=401, detail="Invalid token")
+            return JSONResponse(
+                status_code=401,
+                content={
+                    "detail": {
+                        "message": "Invalid login session. Please sign in again",
+                        "error_code": "INVALID_TOKEN",
+                        "requires_logout": True,
+                    }
+                },
+            )
         except Exception as e:
             logger.error(f"Unexpected error in JWTMiddleware: {e}", exc_info=True)
-            if "db" in locals() and not db.closed:
-                db.close()
-            raise HTTPException(
-                status_code=500, detail="Internal server error during authentication"
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "detail": {
+                        "message": "An unexpected error occurred. Please try again",
+                        "error_code": "AUTH_INTERNAL_ERROR",
+                        "requires_logout": False,
+                    }
+                },
             )
+        finally:
+            # Always close the database session
+            if db is not None:
+                try:
+                    db.close()
+                except Exception as close_error:
+                    logger.error(f"Error closing database session: {close_error}")
 
         response = await call_next(request)
         return response

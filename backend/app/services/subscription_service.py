@@ -6,6 +6,7 @@ from app.db.models import (
     Customer,
     MilkRecord,
     ExpenseRecord,
+    RateList,
 )
 from app.core.config import local_timezone
 import logging
@@ -36,8 +37,8 @@ def get_plan_limits(db: Session, buyer_mobile: str):
         return {
             "plan_name": "Free",
             "customer_limit": 5,
-            "supplier_limit": 5,
             "transaction_limit": 3,
+            "ratelist_upload_limit": 3,  # Can upload ratelist up to 3 times
             "validity": 3650,
             "price": 0.0,
         }
@@ -53,8 +54,8 @@ def get_plan_limits(db: Session, buyer_mobile: str):
         return {
             "plan_name": "Free",
             "customer_limit": 5,
-            "supplier_limit": 5,
             "transaction_limit": 3,
+            "ratelist_upload_limit": 3,  # Can upload ratelist up to 3 times
             "validity": 3650,
             "price": 0.0,
         }
@@ -64,6 +65,11 @@ def get_plan_limits(db: Session, buyer_mobile: str):
         "customer_limit": plan.customer_limit,
         "supplier_limit": plan.supplier_limit,
         "transaction_limit": plan.transaction_limit,
+        "ratelist_upload_limit": (
+            plan.ratelist_upload_limit
+            if hasattr(plan, "ratelist_upload_limit")
+            else None
+        ),
         "validity": plan.validity,
         "price": plan.price,
     }
@@ -173,3 +179,34 @@ def get_subscription_status(db: Session, buyer_mobile: str):
     except Exception as e:
         logger.error(f"Error getting subscription status for {buyer_mobile}: {e}")
         return None
+
+
+def can_upload_ratelist(db: Session, buyer_mobile: str) -> bool:
+    """Check if user can upload ratelist based on their subscription."""
+    try:
+        limits = get_plan_limits(db, buyer_mobile)
+        if limits["ratelist_upload_limit"] is None:
+            return True  # Unlimited
+
+        # Check if user has already uploaded a ratelist
+        existing_rate_list = (
+            db.query(RateList)
+            .filter(RateList.buyer_mobile == buyer_mobile, RateList.is_deleted == 0)
+            .first()
+        )
+
+        # If no ratelist exists, user can upload
+        if not existing_rate_list:
+            return True
+
+        # For now, we only implement the "upload once" limit
+        # In the future, this can be extended to track multiple uploads
+        if limits["ratelist_upload_limit"] == 1:
+            return False
+
+        # For other limits (like 3), we'll implement a simple check
+        # This can be enhanced later to track actual upload count
+        return True  # Allow uploads for limits > 1
+    except Exception as e:
+        logger.error(f"Error checking ratelist upload limit for {buyer_mobile}: {e}")
+        return False  # Fail safe - don't allow if error

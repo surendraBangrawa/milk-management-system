@@ -1,5 +1,14 @@
 import { useStorageState } from "@/hooks/useStorageState";
-import { useContext, createContext, type PropsWithChildren } from "react";
+import {
+  useContext,
+  createContext,
+  type PropsWithChildren,
+  useEffect,
+} from "react";
+import { setGlobalSignOut } from "@/lib/axiosIntance";
+import * as SecureStore from "expo-secure-store";
+import { router } from "expo-router";
+import Toast from "react-native-toast-message";
 
 const AuthContext = createContext<{
   signIn: (token: string) => void;
@@ -26,15 +35,59 @@ export function useSession() {
 export function SessionProvider({ children }: PropsWithChildren) {
   const [[isLoading, session], setSession] = useStorageState("accessToken");
 
+  const signOut = () => {
+    try {
+      console.log("AuthProvider: Starting signOut process...");
+
+      // Clear token from storage
+      setSession(null);
+      console.log("AuthProvider: Token cleared from storage");
+
+      // Clear user data from SecureStore (async but we don't wait)
+      SecureStore.deleteItemAsync("user")
+        .then(() => {
+          console.log("AuthProvider: User data cleared from SecureStore");
+        })
+        .catch((error) => {
+          console.error("AuthProvider: Error clearing user data:", error);
+        });
+
+      // Show logout message
+      Toast.show({
+        type: "info",
+        text1: "Session Expired",
+        text2: "You have been logged out. Please sign in again.",
+      });
+      console.log("AuthProvider: Toast message shown");
+
+      // Navigate to login screen
+      try {
+        router.replace("/auth/signin");
+        console.log("AuthProvider: Navigated to login screen");
+      } catch (navError) {
+        console.error("AuthProvider: Navigation error:", navError);
+        // Fallback navigation
+        router.push("/auth/signin");
+      }
+
+      console.log("AuthProvider: SignOut process completed");
+    } catch (error) {
+      console.error("AuthProvider: Error during signOut:", error);
+    }
+  };
+
+  // Set up the global signOut function for axios interceptor
+  useEffect(() => {
+    setGlobalSignOut(signOut);
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
         signIn: (token: string) => {
           setSession(token); // Save token to storage
         },
-        signOut: () => {
-          setSession(null); // Remove token from storage
-        },
+        signOut,
         session,
         isLoading,
       }}
