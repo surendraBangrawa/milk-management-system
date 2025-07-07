@@ -12,6 +12,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import useTheme from "@/context/theme/useTheme"; // Assuming this hook provides theme colors
 import { Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useBackendTranslations } from "@/hooks/useBackendTranslations";
 
 // A more flexible and customizable button component
 interface LanguageOptionButtonProps {
@@ -68,6 +69,7 @@ const LanguageOptionButton: React.FC<LanguageOptionButtonProps> = ({
 function LanguageSettingsScreen() {
   const { i18n, t } = useTranslation(); // Destructure 't' for translations
   const { colors } = useTheme(); // Your custom theme hook
+  const { updateLanguage, isLoading } = useBackendTranslations();
 
   // Correctly reference translation keys for language names
   const languages = [
@@ -86,7 +88,8 @@ function LanguageSettingsScreen() {
       return;
     }
     try {
-      await i18n.changeLanguage(lng);
+      // Update language with backend translations
+      await updateLanguage(lng);
       await AsyncStorage.setItem("user-language", lng);
       // Optional: Show a toast/snackbar confirmation
       // Toast.show({ text: t("language_screen.change_success"), type: "success" });
@@ -133,7 +136,7 @@ function LanguageSettingsScreen() {
             onPress={() => changeLanguage(lang.code)}
             isSelected={i18n.language === lang.code}
             color={colors.primary}
-            textColor={colors.onPrimary} // Text color for primary background
+            textColor={colors.textPrimary} // Text color for primary background
             borderColor={colors.border} // Neutral border for unselected
           />
         ))}

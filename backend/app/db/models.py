@@ -11,12 +11,10 @@ from sqlalchemy import (
     JSON,
     BigInteger,
 )
-from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
 import enum
 from app.core.config import local_timezone
-
-Base = declarative_base()
+from app.db.session import Base
 
 
 def local_now():
@@ -116,6 +114,9 @@ class RateList(Base):
     is_deleted = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=local_now)  # Use local_now
     updated_at = Column(DateTime, nullable=True, onupdate=local_now)  # Use local_now
+    status = Column(
+        String(20), nullable=False, default="processing"
+    )  # processing, complete, failed
 
 
 class Subscription(Base):
@@ -146,6 +147,7 @@ class SubscriptionPlan(Base):
     customer_limit = Column(Integer, nullable=True)  # Null means unlimited
     supplier_limit = Column(Integer, nullable=True)
     transaction_limit = Column(Integer, nullable=True)
+    ratelist_upload_limit = Column(Integer, nullable=True)  # Null means unlimited
     description = Column(String(255), nullable=True)
     is_deleted = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=local_now)  # Use local_now
@@ -162,7 +164,8 @@ class SubscriptionPlan(Base):
                 "customer_limit": 5,
                 "supplier_limit": 5,
                 "transaction_limit": 3,
-                "description": "Free plan: 5 customers, 5 suppliers, 3 daily transactions.",
+                "ratelist_upload_limit": 3,  # Can upload ratelist up to 3 times
+                "description": "Free plan: 5 customers, 5 suppliers, 3 daily transactions, 3 rate list uploads.",
             },
             {
                 "plan_name": "Trial",
@@ -172,7 +175,8 @@ class SubscriptionPlan(Base):
                 "customer_limit": 5,
                 "supplier_limit": 5,
                 "transaction_limit": 3,
-                "description": "Trial plan: 15 days, 5 customers, 5 suppliers, 3 daily transactions.",
+                "ratelist_upload_limit": 3,  # Can upload ratelist up to 3 times
+                "description": "Trial plan: 15 days, 5 customers, 5 suppliers, 3 daily transactions, 3 rate list uploads.",
             },
             {
                 "plan_name": "Premium",
@@ -182,7 +186,8 @@ class SubscriptionPlan(Base):
                 "customer_limit": None,
                 "supplier_limit": None,
                 "transaction_limit": None,
-                "description": "Premium plan: 30 days, unlimited customers, suppliers, and transactions.",
+                "ratelist_upload_limit": None,  # Unlimited
+                "description": "Premium plan: 30 days, unlimited customers, suppliers, transactions, and rate list uploads.",
             },
         ]
         for plan in plans:

@@ -15,6 +15,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchSellerSummaries } from "@/redux/slice/transactions/transactionsSlice";
 import { AppDispatch, RootState } from "@/redux/store";
 import useTheme from "@/context/theme/useTheme";
+import SafeAreaWrapper from "@/components/SafeAreaWrapper";
+import { useTranslation } from "react-i18next";
 
 interface Customer {
   mobile: string;
@@ -51,6 +53,7 @@ const CustomerScreen = () => {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   const people = useSelector(
     (state: RootState) => state.transactions.sellerSummaries
@@ -83,16 +86,16 @@ const CustomerScreen = () => {
   }, [dispatch]);
 
   const formatDate = (dateString: string | undefined | null): string => {
-    if (!dateString) return "No date";
+    if (!dateString) return t("customers.no_date");
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) {
-        return "Invalid date";
+        return t("customers.invalid_date");
       }
       return formatDistanceToNow(date, { addSuffix: true });
     } catch (e) {
       console.error("Error formatting date:", dateString, e);
-      return "Invalid date format";
+      return t("customers.invalid_date_format");
     }
   };
 
@@ -132,10 +135,10 @@ const CustomerScreen = () => {
             numberOfLines={1}
             ellipsizeMode="tail"
           >
-            {item.name || "Unknown Customer"}
+            {item.name || t("customers.unknown_customer")}
           </Text>
           <Text style={[styles.personPhone, { color: colors.textSecondary }]}>
-            {item.mobile || "N/A"}
+            {item.mobile || t("customers.na")}
           </Text>
           {item.date && (
             <Text style={[styles.personDate, { color: colors.textSecondary }]}>
@@ -168,55 +171,59 @@ const CustomerScreen = () => {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <TextInput
-        style={[
-          styles.searchInput,
-          {
-            borderColor: colors.border,
-            backgroundColor: colors.surface,
-            color: colors.textPrimary,
-          },
-        ]}
-        placeholder="Search by name or mobile"
-        placeholderTextColor={colors.textSecondary}
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-        clearButtonMode="while-editing"
-      />
-      {loading ? (
-        <ActivityIndicator
-          size="large"
-          color={colors.primary}
-          style={styles.loadingIndicator}
+    <SafeAreaWrapper backgroundColor={colors.background}>
+      <View style={styles.container}>
+        <TextInput
+          style={[
+            styles.searchInput,
+            {
+              borderColor: colors.border,
+              backgroundColor: colors.surface,
+              color: colors.textPrimary,
+            },
+          ]}
+          placeholder="Search by name or mobile"
+          placeholderTextColor={colors.textSecondary}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          clearButtonMode="while-editing"
         />
-      ) : error ? (
-        <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
-      ) : filteredPeople.length === 0 && searchQuery !== "" ? (
-        <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
-          No customers found matching your search.
-        </Text>
-      ) : people.length === 0 && searchQuery === "" ? (
-        <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
-          No customer data available.
-        </Text>
-      ) : (
-        <FlatList
-          data={filteredPeople}
-          renderItem={renderPerson}
-          keyExtractor={(item, index) => index.toString()}
-          contentContainerStyle={styles.listContainer}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
-      <TouchableOpacity
-        style={[styles.floatingButton, { backgroundColor: colors.primary }]}
-        onPress={() => router.push("/customers/contacts/contact")}
-        activeOpacity={0.85}
-      >
-        <Text style={[styles.buttonText, { color: colors.surface }]}>+</Text>
-      </TouchableOpacity>
-    </View>
+        {loading ? (
+          <ActivityIndicator
+            size="large"
+            color={colors.primary}
+            style={styles.loadingIndicator}
+          />
+        ) : error ? (
+          <Text style={[styles.errorText, { color: colors.error }]}>
+            {error}
+          </Text>
+        ) : filteredPeople.length === 0 && searchQuery !== "" ? (
+          <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
+            No customers found matching your search.
+          </Text>
+        ) : people.length === 0 && searchQuery === "" ? (
+          <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
+            No customer data available.
+          </Text>
+        ) : (
+          <FlatList
+            data={filteredPeople}
+            renderItem={renderPerson}
+            keyExtractor={(item, index) => index.toString()}
+            contentContainerStyle={styles.listContainer}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
+        <TouchableOpacity
+          style={[styles.floatingButton, { backgroundColor: colors.primary }]}
+          onPress={() => router.push("/customers/contacts/contact")}
+          activeOpacity={0.85}
+        >
+          <Text style={[styles.buttonText, { color: colors.surface }]}>+</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaWrapper>
   );
 };
 
@@ -224,7 +231,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 16,
   },
   searchInput: {
     height: 48,

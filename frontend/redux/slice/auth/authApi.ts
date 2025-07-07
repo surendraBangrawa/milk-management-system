@@ -6,7 +6,7 @@ export interface Signup {
   referral_code: string | undefined;
 }
 export interface Otp {
-  mobile: string;
+  mobile_number: string;
 }
 export interface Login {
   mobile: string;

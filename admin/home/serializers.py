@@ -32,6 +32,7 @@ class SubscriptionPlanSerializer(serializers.ModelSerializer):
             "customer_limit",
             "supplier_limit",
             "transaction_limit",
+            "ratelist_upload_limit",
             "description",
             "is_deleted",
             "created_at",

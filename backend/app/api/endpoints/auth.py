@@ -1,13 +1,14 @@
 import random
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.db.models import User, Otp_Table #, Authuser
+from app.db.models import User, Otp_Table  # , Authuser
 from app.schemas.user import SignupRequest, OtpRequest, LoginRequest
 from app.core.config import local_timezone
 from app.core.security import create_access_token, get_current_user
 from app.core.config import ACCESS_TOKEN_EXPIRE_MINUTES
+from app.core.i18n import t
 from datetime import datetime, timedelta
 from fastapi.responses import JSONResponse
 import logging
@@ -22,6 +23,7 @@ router = APIRouter(
     prefix="/auth",
     tags=["auth"],
 )
+
 
 # API_KEY = os.getenv("API_KEY")
 def call_otp_api(mobile, message):
@@ -38,8 +40,9 @@ def call_otp_api(mobile, message):
     print(f"response : {response}")
     return response.json()
 
+
 @router.post("/signup")
-def signup(user: SignupRequest, db: Session = Depends(get_db)):
+def signup(user: SignupRequest, request: Request, db: Session = Depends(get_db)):
     try:
         logger.info(f"In signup")
         existing_user = db.query(User).filter(User.mobile == user.mobile).first()
@@ -53,13 +56,19 @@ def signup(user: SignupRequest, db: Session = Depends(get_db)):
                 db.commit()
                 db.refresh(existing_user)
                 return {
-                    "message": "User reactivated successfully!",
+                    "message": t(
+                        "auth.user_reactivated",
+                        lang=getattr(request.state, "language", "en"),
+                    ),
                     "mobile": existing_user.mobile,
                 }
             else:
                 raise HTTPException(
                     status_code=400,
-                    detail="User with this mobile number already exists",
+                    detail=t(
+                        "auth.user_already_exists",
+                        lang=getattr(request.state, "language", "en"),
+                    ),
                 )
 
         new_user = User(
@@ -72,10 +81,21 @@ def signup(user: SignupRequest, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(new_user)
 
-        return {"message": "User registered successfully!", "mobile": new_user.mobile}
+        return {
+            "message": t(
+                "auth.user_registered", lang=getattr(request.state, "language", "en")
+            ),
+            "mobile": new_user.mobile,
+        }
     except Exception as e:
         logger.error(f"Error: {e}")
-        raise HTTPException(status_code=404, detail="Something went wrong")
+        raise HTTPException(
+            status_code=404,
+            detail=t(
+                "auth.something_went_wrong",
+                lang=getattr(request.state, "language", "en"),
+            ),
+        )
 
 
 @router.post("/send_login_otp")
@@ -83,39 +103,57 @@ def send_login_otp(user: OtpRequest, db: Session = Depends(get_db)):
     try:
         logger.info(f"In send_login_otp")
         local_time = datetime.now(local_timezone)
-        print('Hello_pre')
+        print("Hello_pre")
         existing_user = (
             db.query(User)
             .filter(User.mobile == user.mobile_number, User.is_deleted == 0)
             .first()
         )
-        print('Hello')
+        print("Hello")
         if not existing_user:
             raise HTTPException(
                 status_code=404,
-                detail="User not found, Please check your mobile number or sign up if you don't have an account.",
+                detail=t(
+                    "auth.mobile_not_registered",
+                    lang=getattr(request.state, "language", "en"),
+                ),
             )
-        print('Hello2')
-        new_otp = random.randint(123456, 123456)
+        print("Hello2")
+        new_otp = 123456
         expire_time = local_time + timedelta(minutes=5)
-        print('Hello3')
+        print("Hello3")
         # login_entry = db.query(otp_Table).filter(otp_Table.mobile == user.mobile).first()
         # print(OtpRequest.mobile_number)
-        otp_found = db.query(Otp_Table).filter(Otp_Table.mobile_number == user.mobile_number).first()
-        print('Hello4')
+        otp_found = (
+            db.query(Otp_Table)
+            .filter(Otp_Table.mobile_number == user.mobile_number)
+            .first()
+        )
+        print("Hello4")
         if otp_found:
-        # Convert otp_found.time to a timezone-aware datetime if it's naive
+            # Convert otp_found.time to a timezone-aware datetime if it's naive
             if otp_found.time.tzinfo is None:
                 otp_found.time = local_timezone.localize(otp_found.time)
-        print('Hello5')
+        print("Hello5")
         if otp_found:
             if otp_found.time >= (datetime.now(local_timezone) - timedelta(minutes=5)):
-                if otp_found.time > (datetime.now(local_timezone) - timedelta(minutes=3)):
-                    raise HTTPException(status_code=400, detail = "Try after 3 minutes")
+                if otp_found.time > (
+                    datetime.now(local_timezone) - timedelta(minutes=3)
+                ):
+                    raise HTTPException(
+                        status_code=400,
+                        detail=t(
+                            "auth.otp_wait_message",
+                            lang=getattr(request.state, "language", "en"),
+                        ),
+                    )
                 if otp_found.count >= 3:
                     raise HTTPException(
                         status_code=400,
-                        detail="Otp limit exceeded. Please try again after 60 minutes.",
+                        detail=t(
+                            "auth.too_many_otp_attempts",
+                            lang=getattr(request.state, "language", "en"),
+                        ),
                     )
 
                 otp_found.count = otp_found.count + 1
@@ -129,10 +167,10 @@ def send_login_otp(user: OtpRequest, db: Session = Depends(get_db)):
                 db.commit()
         else:
             new_otp_log = Otp_Table(
-                mobile_number = user.mobile_number,
-                time = datetime.now(local_timezone),
+                mobile_number=user.mobile_number,
+                time=datetime.now(local_timezone),
                 count=1,
-                otp=new_otp
+                otp=new_otp,
             )
 
             db.add(new_otp_log)
@@ -144,7 +182,14 @@ def send_login_otp(user: OtpRequest, db: Session = Depends(get_db)):
         # response = call_otp_api(number,message)
         # if response.get("status_code") != 200:
         #     raise HTTPException(status_code=400, detail = "Try Again after 30 minutes")
-        return {"status_code":200, "message": "Otp sent successfully.","otp":new_otp}
+        return {
+            "status_code": 200,
+            "message": t(
+                "auth.otp_sent_success",
+                lang=getattr(request.state, "language", "en"),
+            ),
+            "otp": new_otp,
+        }
         # if login_entry:
         #     login_entry.otp = new_otp
         #     login_entry.expire_at = expire_time
@@ -167,12 +212,17 @@ def send_login_otp(user: OtpRequest, db: Session = Depends(get_db)):
         logger.error(str(e))
         return JSONResponse(
             status_code=500,
-            content={"detail": "Internal Server Error", "error":str(e)}
+            content={
+                "detail": t(
+                    "auth.unable_to_send_otp",
+                    lang=getattr(request.state, "language", "en"),
+                )
+            },
         )
 
 
 @router.post("/login")
-def login(user: LoginRequest, db: Session = Depends(get_db)):
+def login(user: LoginRequest, request: Request, db: Session = Depends(get_db)):
     try:
         logger.info(f"In login")
         local_time = datetime.now(local_timezone).replace(tzinfo=None)
@@ -182,30 +232,36 @@ def login(user: LoginRequest, db: Session = Depends(get_db)):
         if not requested_otp:
             raise HTTPException(
                 status_code=404,
-                detail="User not found, Please request OTP from registered mobile number.",
+                detail="Please request an OTP first before logging in.",
             )
 
         # print(requested_otp.expire_at)
         # print(local_time)
 
-        if requested_otp.otp == user.otp and (requested_otp.time + timedelta(minutes=5)) >= local_time:
+        if (
+            requested_otp.otp == user.otp
+            and (requested_otp.time + timedelta(minutes=5)) >= local_time
+        ):
             access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
             access_token = create_access_token(
                 data={"sub": user.mobile}, expires_delta=access_token_expires
             )
 
             return {
-                "message": "User logged in successfully",
+                "message": "Login successful!",
                 "mobile": user.mobile,
                 "access_token": access_token,
             }
         else:
             raise HTTPException(
-                status_code=401, detail="Entered OTP is wrong or expired."
+                status_code=401,
+                detail="Incorrect OTP or OTP has expired. Please try again.",
             )
     except Exception as e:
         logger.error(f"Error: {e}")
-        raise HTTPException(status_code=404, detail="Something went wrong")
+        raise HTTPException(
+            status_code=500, detail="Unable to process login. Please try again."
+        )
 
 
 @router.post("/logout")

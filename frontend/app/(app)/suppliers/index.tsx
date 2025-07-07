@@ -12,12 +12,11 @@ import {
 import { useRouter } from "expo-router";
 import Toast from "react-native-toast-message";
 import { formatDistanceToNow } from "date-fns";
-import {
-  getBuyerSummaryApi,
-  getSupplierSummaryApi,
-} from "@/redux/slice/supplier/supplierApi";
+import { getSupplierSummaryApi } from "@/redux/slice/supplier/supplierApi";
+import { useTranslation } from "react-i18next";
 
 import useTheme from "@/context/theme/useTheme";
+import SafeAreaWrapper from "@/components/SafeAreaWrapper";
 
 interface SupplierSummary {
   mobile: string;
@@ -56,6 +55,7 @@ const SupplierScreen = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const { t } = useTranslation();
 
   // State for search query
   const [searchQuery, setSearchQuery] = useState("");
@@ -141,16 +141,16 @@ const SupplierScreen = () => {
   }, []);
 
   const formatDate = (dateString: string | undefined | null): string => {
-    if (!dateString) return "No date";
+    if (!dateString) return t("suppliers.no_date");
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) {
-        return "Invalid date";
+        return t("suppliers.invalid_date");
       }
       return formatDistanceToNow(date, { addSuffix: true });
     } catch (e) {
       console.error("Error formatting date:", dateString, e);
-      return "Invalid date format";
+      return t("suppliers.invalid_date_format");
     }
   };
 
@@ -198,10 +198,10 @@ const SupplierScreen = () => {
             numberOfLines={1}
             ellipsizeMode="tail"
           >
-            {item.name || "Unknown Supplier"}
+            {item.name || t("suppliers.unknown_supplier")}
           </Text>
           <Text style={[styles.personPhone, { color: colors.textSecondary }]}>
-            {item.mobile || "N/A"}
+            {item.mobile || t("suppliers.na")}
           </Text>
           {item.date &&
           typeof item.date === "string" &&
@@ -240,57 +240,60 @@ const SupplierScreen = () => {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <TextInput
-        style={[
-          styles.searchInput,
-          {
-            borderColor: colors.border,
-            backgroundColor: colors.surface,
-            color: colors.textPrimary,
-          },
-        ]}
-        placeholder="Search suppliers by name or mobile"
-        placeholderTextColor={colors.textSecondary}
-        value={searchQuery}
-        onChangeText={handleSearch} // Use the handleSearch function
-        clearButtonMode="while-editing"
-      />
+    <SafeAreaWrapper backgroundColor={colors.background}>
+      <View style={styles.container}>
+        <TextInput
+          style={[
+            styles.searchInput,
+            {
+              borderColor: colors.border,
+              backgroundColor: colors.surface,
+              color: colors.textPrimary,
+            },
+          ]}
+          placeholder="Search suppliers by name or mobile"
+          placeholderTextColor={colors.textSecondary}
+          value={searchQuery}
+          onChangeText={handleSearch} // Use the handleSearch function
+          clearButtonMode="while-editing"
+        />
 
-      {loading ? (
-        <ActivityIndicator
-          size="large"
-          color={colors.primary}
-          style={styles.loadingIndicator}
-        />
-      ) : error ? (
-        <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
-      ) : filteredPeople.length === 0 && searchQuery !== "" ? ( // No results for the search query
-        <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
-          No suppliers found matching your search.
-        </Text>
-      ) : people.length === 0 && searchQuery === "" ? ( // No data fetched initially
-        <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
-          No supplier data available.
-        </Text>
-      ) : (
-        <FlatList
-          data={filteredPeople} // Use the filtered list
-          renderItem={renderPerson}
-          keyExtractor={(item, index) => index.toString()}
-          contentContainerStyle={styles.listContainer}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
-    </View>
+        {loading ? (
+          <ActivityIndicator
+            size="large"
+            color={colors.primary}
+            style={styles.loadingIndicator}
+          />
+        ) : error ? (
+          <Text style={[styles.errorText, { color: colors.error }]}>
+            {error}
+          </Text>
+        ) : filteredPeople.length === 0 && searchQuery !== "" ? ( // No results for the search query
+          <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
+            No suppliers found matching your search.
+          </Text>
+        ) : people.length === 0 && searchQuery === "" ? ( // No data fetched initially
+          <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
+            No supplier data available.
+          </Text>
+        ) : (
+          <FlatList
+            data={filteredPeople} // Use the filtered list
+            renderItem={renderPerson}
+            keyExtractor={(item, index) => index.toString()}
+            contentContainerStyle={styles.listContainer}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
+      </View>
+    </SafeAreaWrapper>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5", // Fallback background
-    padding: 16,
+    paddingHorizontal: 16,
   },
   searchInput: {
     height: 48,

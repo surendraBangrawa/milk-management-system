@@ -1,4 +1,5 @@
 from fastapi import Depends, HTTPException, Security
+from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError, ExpiredSignatureError
 from sqlalchemy.orm import Session
@@ -23,33 +24,69 @@ def get_current_user(
     token = credentials.credentials
     credentials_exception = HTTPException(
         status_code=401,
-        detail="Invalid authentication credentials",
+        detail={
+            "message": "Invalid login session. Please sign in again",
+            "error_code": "INVALID_AUTH_CREDENTIALS",
+            "requires_logout": True,
+        },
         headers={"WWW-Authenticate": "Bearer"},
     )
 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
 
-        mobile: str = payload.get("sub")
-
-        if not mobile:
-            raise credentials_exception
+        mobile = payload.get("sub")
+        if not mobile or not isinstance(mobile, str):
+            raise HTTPException(
+                status_code=401,
+                detail={
+                    "message": "Invalid login session. Please sign in again",
+                    "error_code": "INVALID_TOKEN_CONTENT",
+                    "requires_logout": True,
+                },
+            )
 
         user = (
             db.query(User).filter(User.mobile == mobile, User.is_deleted == 0).first()
         )
         if not user:
-            raise credentials_exception
+            raise HTTPException(
+                status_code=401,
+                detail={
+                    "message": "Your account is not active or has been removed. Please contact support",
+                    "error_code": "USER_NOT_FOUND_OR_INACTIVE",
+                    "requires_logout": True,
+                },
+            )
 
         return mobile
 
     except ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token has expired")
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "message": "Your session has expired. Please sign in again",
+                "error_code": "TOKEN_EXPIRED",
+                "requires_logout": True,
+            },
+        )
     except JWTError as e:
-        raise credentials_exception
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "message": "Invalid login session. Please sign in again",
+                "error_code": "INVALID_TOKEN",
+                "requires_logout": True,
+            },
+        )
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail="Internal server error during authentication"
+            status_code=500,
+            detail={
+                "message": "An unexpected error occurred. Please try again",
+                "error_code": "AUTH_INTERNAL_ERROR",
+                "requires_logout": False,
+            },
         )
 
 

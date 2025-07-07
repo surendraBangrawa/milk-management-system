@@ -15,6 +15,13 @@ services:
       retries: 5
     restart: always
 
+  redis:
+    image: redis:7-alpine
+    container_name: milk_redis_prod
+    ports:
+      - "6379:6379"
+    restart: always
+
   backend:
     build:
       context: ./backend
@@ -27,7 +34,24 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
     restart: always
+
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    container_name: milk_celery_worker_prod
+    env_file:
+      - ./.env.prod
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: always
+    command: celery -A app.celery_app worker --loglevel=info --queues=ratelist
 
   admin:
     build:
@@ -62,15 +86,11 @@ services:
     ports:
       - "80:80" # Map host port 80 to Nginx's port 80 (standard HTTP)
     volumes:
-      # Mount the Nginx config file
-      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      # Mount the static and media volumes (read-only for Nginx)
-      # Ensure Nginx accesses static files from /home/static
-      - static_volume_prod:/home/static:ro
-      - media_volume_prod:/home/media:ro
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro # Mount the Nginx configuration
+      - static_volume_prod:/home/static:ro # Mount static files for serving
+      - media_volume_prod:/home/media:ro # Mount media files for serving
     depends_on:
-      admin:
-        condition: service_started # Ensure admin app is running before Nginx starts
+      - admin # Nginx depends on the admin app being ready
     restart: always
 
 volumes:

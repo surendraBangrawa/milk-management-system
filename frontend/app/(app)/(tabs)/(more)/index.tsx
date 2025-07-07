@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 
 import useTheme from "@/context/theme/useTheme";
+import SafeAreaWrapper from "@/components/SafeAreaWrapper";
 
 interface Option {
   labelKey: string;
@@ -115,78 +116,80 @@ export default function TabTwoScreen() {
     if (option.type === "logout") {
       signOut();
     } else if (option.path) {
-      router.push(option.path);
+      router.push(option.path as any);
     }
   };
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-    >
-      {sections.map((section, sectionIndex) => (
-        <View key={`section-${sectionIndex}`} style={styles.sectionContainer}>
-          {section.titleKey && ( // Check if titleKey exists
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-              {t(section.titleKey)} {/* Use t() for section title */}
-            </Text>
-          )}
-          <View
-            style={[styles.optionsList, { backgroundColor: colors.surface }]}
-          >
-            {section.data.map((option, optionIndex) => (
-              <Pressable
-                key={option.labelKey} // Use labelKey as key for stability
-                style={({ pressed }) => [
-                  styles.optionButton,
-                  {
-                    backgroundColor: colors.surface,
-                    borderBottomWidth:
-                      optionIndex === section.data.length - 1
-                        ? 0
-                        : StyleSheet.hairlineWidth,
-                    borderBottomColor: colors.border,
-                  },
-                ]}
-                onPress={() => handleOptionPress(option)}
-                accessibilityRole="button"
-                accessibilityLabel={`${t(option.labelKey)} option`} // Translate accessibility label
+    <SafeAreaWrapper backgroundColor={colors.background}>
+      <ScrollView style={styles.container}>
+        {sections.map((section, sectionIndex) => (
+          <View key={`section-${sectionIndex}`} style={styles.sectionContainer}>
+            {section.titleKey && (
+              <Text
+                style={[styles.sectionTitle, { color: colors.textPrimary }]}
               >
-                <View style={styles.optionContent}>
-                  <Ionicons
-                    name={option.icon}
-                    size={24}
-                    color={option.iconColor || colors.textPrimary}
-                    style={styles.optionIcon}
-                  />
-                  <Text
-                    style={[
-                      styles.optionText,
-                      {
-                        color:
-                          option.type === "logout"
-                            ? colors.error
-                            : colors.textPrimary,
-                      },
-                    ]}
-                  >
-                    {t(option.labelKey)} {/* Use t() for option label */}
-                  </Text>
-
-                  {option.path && !option.hideChevron && (
+                {t(section.titleKey)}
+              </Text>
+            )}
+            <View
+              style={[styles.optionsList, { backgroundColor: colors.surface }]}
+            >
+              {section.data.map((option, optionIndex) => (
+                <Pressable
+                  key={option.labelKey} // Use labelKey as key for stability
+                  style={({ pressed }) => [
+                    styles.optionButton,
+                    {
+                      backgroundColor: colors.surface,
+                      borderBottomWidth:
+                        optionIndex === section.data.length - 1
+                          ? 0
+                          : StyleSheet.hairlineWidth,
+                      borderBottomColor: colors.border,
+                    },
+                  ]}
+                  onPress={() => handleOptionPress(option)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${t(option.labelKey)} option`} // Translate accessibility label
+                >
+                  <View style={styles.optionContent}>
                     <Ionicons
-                      name="chevron-forward-outline"
-                      size={20}
-                      color={colors.textSecondary}
-                      style={styles.chevronIcon}
+                      name={option.icon}
+                      size={24}
+                      color={option.iconColor || colors.textPrimary}
+                      style={styles.optionIcon}
                     />
-                  )}
-                </View>
-              </Pressable>
-            ))}
+                    <Text
+                      style={[
+                        styles.optionText,
+                        {
+                          color:
+                            option.type === "logout"
+                              ? colors.error
+                              : colors.textPrimary,
+                        },
+                      ]}
+                    >
+                      {t(option.labelKey)}
+                    </Text>
+
+                    {option.path && !option.hideChevron && (
+                      <Ionicons
+                        name="chevron-forward-outline"
+                        size={20}
+                        color={colors.textSecondary}
+                        style={styles.chevronIcon}
+                      />
+                    )}
+                  </View>
+                </Pressable>
+              ))}
+            </View>
           </View>
-        </View>
-      ))}
-    </ScrollView>
+        ))}
+      </ScrollView>
+    </SafeAreaWrapper>
   );
 }
 

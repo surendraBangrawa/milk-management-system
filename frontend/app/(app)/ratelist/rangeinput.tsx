@@ -11,9 +11,11 @@ import {
   Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
+import useTheme from "@/context/theme/useTheme";
 
 const RangeInputScreen = () => {
   const router = useRouter();
+  const { colors } = useTheme();
 
   const [startFat, setStartFat] = useState("2.0");
   const [endFat, setEndFat] = useState("12.0");
@@ -56,7 +58,6 @@ const RangeInputScreen = () => {
           {
             text: "Proceed",
             onPress: () => {
-              // Navigate anyway if user confirms
               router.push(
                 `/(app)/ratelist/inputtable?sf=${sFat}&ef=${eFat}&ss=${sSnf}&es=${eSnf}`
               );
@@ -64,7 +65,7 @@ const RangeInputScreen = () => {
           },
         ]
       );
-      return; // Stop here and wait for user confirmation
+      return;
     }
 
     router.push(
@@ -78,30 +79,56 @@ const RangeInputScreen = () => {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
     >
-      <ScrollView style={styles.container}>
-        <Text style={styles.title}>Define Rate Ranges</Text>
-        <Text style={styles.infoText}>
+      <ScrollView
+        style={[styles.container, { backgroundColor: colors.background }]}
+      >
+        <Text style={[styles.title, { color: colors.textPrimary }]}>
+          Define Rate Ranges
+        </Text>
+        <Text style={[styles.infoText, { color: colors.textSecondary }]}>
           Enter the starting and ending values for Fat and SNF. Rates will be
           generated for every 0.1 increment within these ranges.
         </Text>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Fat Range (%):</Text>
+          <Text style={[styles.label, { color: colors.textPrimary }]}>
+            Fat Range (%):
+          </Text>
           <View style={styles.inputRow}>
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                {
+                  borderColor: colors.border,
+                  backgroundColor: colors.surface,
+                  color: colors.textPrimary,
+                },
+              ]}
               keyboardType="numeric"
               placeholder="Start Fat (e.g., 2.0)"
+              placeholderTextColor={colors.textSecondary}
               value={startFat}
               onChangeText={setStartFat}
               autoCapitalize="none"
               autoCorrect={false}
             />
-            <Text style={styles.rangeSeparator}>to</Text>
+            <Text
+              style={[styles.rangeSeparator, { color: colors.textSecondary }]}
+            >
+              to
+            </Text>
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                {
+                  borderColor: colors.border,
+                  backgroundColor: colors.surface,
+                  color: colors.textPrimary,
+                },
+              ]}
               keyboardType="numeric"
               placeholder="End Fat (e.g., 12.0)"
+              placeholderTextColor={colors.textSecondary}
               value={endFat}
               onChangeText={setEndFat}
               autoCapitalize="none"
@@ -111,22 +138,44 @@ const RangeInputScreen = () => {
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>SNF Range (%):</Text>
+          <Text style={[styles.label, { color: colors.textPrimary }]}>
+            SNF Range (%):
+          </Text>
           <View style={styles.inputRow}>
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                {
+                  borderColor: colors.border,
+                  backgroundColor: colors.surface,
+                  color: colors.textPrimary,
+                },
+              ]}
               keyboardType="numeric"
               placeholder="Start SNF (e.g., 6.0)"
+              placeholderTextColor={colors.textSecondary}
               value={startSnf}
               onChangeText={setStartSnf}
               autoCapitalize="none"
               autoCorrect={false}
             />
-            <Text style={styles.rangeSeparator}>to</Text>
+            <Text
+              style={[styles.rangeSeparator, { color: colors.textSecondary }]}
+            >
+              to
+            </Text>
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                {
+                  borderColor: colors.border,
+                  backgroundColor: colors.surface,
+                  color: colors.textPrimary,
+                },
+              ]}
               keyboardType="numeric"
               placeholder="End SNF (e.g., 11.0)"
+              placeholderTextColor={colors.textSecondary}
               value={endSnf}
               onChangeText={setEndSnf}
               autoCapitalize="none"
@@ -136,12 +185,15 @@ const RangeInputScreen = () => {
         </View>
 
         <TouchableOpacity
-          style={styles.generateButton} // New button style
+          style={[styles.generateButton, { backgroundColor: colors.primary }]}
           onPress={handleGenerateTable}
         >
-          <Text style={styles.generateButtonText}>Generate Rates Table</Text>
+          <Text style={[styles.generateButtonText, { color: colors.surface }]}>
+            Generate Rates Table
+          </Text>
         </TouchableOpacity>
-        <Text style={styles.infoTextSmall}>
+
+        <Text style={[styles.infoTextSmall, { color: colors.textSecondary }]}>
           On the next screen, you will enter the rate for each Fat/SNF
           combination.
         </Text>
@@ -154,25 +206,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: "#f8f8f8",
   },
   title: {
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 20,
     textAlign: "center",
-    color: "#333",
   },
   infoText: {
     fontSize: 16,
-    color: "#666",
     marginBottom: 20,
     textAlign: "center",
     paddingHorizontal: 10,
   },
   infoTextSmall: {
     fontSize: 14,
-    color: "#888",
     marginTop: 10,
     textAlign: "center",
     paddingHorizontal: 10,
@@ -183,7 +231,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     marginBottom: 5,
-    color: "#555",
     fontWeight: "bold",
   },
   inputRow: {
@@ -193,19 +240,15 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#ccc",
     borderRadius: 5,
     padding: 10,
     fontSize: 16,
-    backgroundColor: "#fff",
   },
   rangeSeparator: {
     marginHorizontal: 10,
     fontSize: 16,
-    color: "#555",
   },
   generateButton: {
-    backgroundColor: "#007BFF", // Blue color
     padding: 15,
     borderRadius: 8,
     alignItems: "center",
@@ -213,7 +256,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   generateButtonText: {
-    color: "#fff",
     fontSize: 18,
     fontWeight: "bold",
   },

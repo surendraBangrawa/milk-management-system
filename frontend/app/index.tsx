@@ -129,7 +129,6 @@ const HeroScreen = () => {
             {t("app_name")}
           </Text>
 
-          {/* Marketing Carousel */}
           <ScrollView
             ref={carouselScrollViewRef}
             horizontal

@@ -3,9 +3,9 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// Import your translation files (adjust paths as necessary based on your project structure)
-import enTranslation from "./locales/en/translation"; // Note: Renamed import to avoid conflict
-import hiTranslation from "./locales/hi/translation"; // Note: Renamed import to avoid conflict
+// Import shared translation files
+import enTranslation from "./locales/en/translation.json";
+import hiTranslation from "./locales/hi/translation.json";
 
 // Define your resources
 const resources = {
@@ -15,6 +15,18 @@ const resources = {
   hi: {
     translation: hiTranslation, // Assign the imported object here
   },
+};
+
+// Function to fetch translations from backend
+const fetchBackendTranslations = async (language: string) => {
+  try {
+    const { i18nApi } = await import("./lib/api");
+    const response = await i18nApi.getTranslations(language);
+    return response.translations;
+  } catch (error) {
+    console.error("Failed to fetch translations from backend:", error);
+    return null;
+  }
 };
 
 // AsyncStorage detector for react-i18next
@@ -51,7 +63,7 @@ i18n
     },
     // Set debug to true temporarily to see more i18next logs, then set to false for production
     debug: __DEV__, // Use __DEV__ for React Native to enable debug only in development
-    compatibilityJSON: "v3", // Required for some older i18next versions with certain JSON structures
+    compatibilityJSON: "v4", // Updated to v4 for newer i18next versions
   });
 
 export default i18n;

@@ -1,36 +1,30 @@
 import React, { useState } from "react";
-import {
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  Pressable,
-  View,
-  StatusBar,
-} from "react-native";
+import { Text, StyleSheet, Pressable, View, Platform } from "react-native";
 import CustomerScreen from "../../customers";
 import SupplierScreen from "../../suppliers";
+import SafeAreaWrapper from "@/components/SafeAreaWrapper";
+import { useTranslation } from "react-i18next";
 
 import useTheme from "@/context/theme/useTheme"; // Import useTheme
+import Logo from "@/components/Logo";
 
 const HomeScreen = () => {
   const [mode, setMode] = useState<"customer" | "supplier">("customer");
-  const { colors, themeMode } = useTheme();
-  const statusBarStyle =
-    themeMode === "dark" ? "light-content" : "dark-content";
+  const { colors } = useTheme();
+  const { t } = useTranslation();
 
   const handleModeChange = (newMode: "customer" | "supplier") => {
     setMode(newMode);
   };
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-    >
-      <StatusBar barStyle={statusBarStyle} backgroundColor={colors.surface} />
+    <SafeAreaWrapper backgroundColor={colors.background}>
       <View
         style={[styles.headerContainer, { backgroundColor: colors.surface }]}
       >
-        <Text style={[styles.title, { color: colors.textPrimary }]}>Logo</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>
+          <Logo />
+        </Text>
         <View style={styles.navbar}>
           <Pressable
             style={[
@@ -49,7 +43,7 @@ const HomeScreen = () => {
                 mode === "customer" && { color: colors.primary },
               ]}
             >
-              Customer
+              {t("home.customer")}
             </Text>
           </Pressable>
           <Pressable
@@ -69,7 +63,7 @@ const HomeScreen = () => {
                 mode === "supplier" && { color: colors.primary },
               ]}
             >
-              Supplier
+              {t("home.supplier")}
             </Text>
           </Pressable>
         </View>
@@ -77,15 +71,11 @@ const HomeScreen = () => {
       <View style={styles.screenContainer}>
         {mode === "customer" ? <CustomerScreen /> : <SupplierScreen />}
       </View>
-    </SafeAreaView>
+    </SafeAreaWrapper>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    // Background color from theme applied inline
-  },
   headerContainer: {
     paddingVertical: 10,
     paddingHorizontal: 16, // Adjusted padding

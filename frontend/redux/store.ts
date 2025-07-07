@@ -1,12 +1,14 @@
 import { configureStore } from "@reduxjs/toolkit";
 // Import the reducer from your transactions slice
 import transactionsReducer from "./slice/transactions/transactionsSlice";
+import uploadStatusReducer from "./slice/ratelist/uploadStatusSlice";
 // Assuming your slice file is in a 'slices' directory within your redux folder
 
 export const store = configureStore({
   reducer: {
     // Add your reducers here
     transactions: transactionsReducer,
+    uploadStatus: uploadStatusReducer,
     // If you have other slices, add their reducers here as well:
     // users: usersReducer,
     // products: productsReducer,

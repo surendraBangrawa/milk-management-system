@@ -42,7 +42,7 @@ export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
     slug: originalConfig.slug || "frontend",
     version: originalConfig.version || "1.0.0",
     orientation: originalConfig.orientation || "portrait",
-    icon: originalConfig.icon || "./assets/images/icon.png",
+    icon: originalConfig.icon || "./assets/images/logo.png",
     scheme: originalConfig.scheme || "myapp",
     userInterfaceStyle: originalConfig.userInterfaceStyle || "automatic",
 
@@ -58,7 +58,7 @@ export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
       adaptiveIcon: {
         foregroundImage:
           originalConfig.android?.adaptiveIcon?.foregroundImage ||
-          "./assets/images/adaptive-icon.png",
+          "./assets/images/logo.png",
         backgroundColor:
           originalConfig.android?.adaptiveIcon?.backgroundColor || "#ffffff",
       },
@@ -68,7 +68,7 @@ export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
       [
         "expo-splash-screen",
         {
-          image: "./assets/images/splash-icon.png",
+          image: "./assets/images/logo.png",
           imageWidth: 200,
           resizeMode: "contain",
           backgroundColor: "#ffffff",

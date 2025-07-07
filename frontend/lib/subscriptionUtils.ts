@@ -50,6 +50,7 @@ export const getPlanLimits = async () => {
     customers: 5,
     suppliers: 5,
     dailyTransactions: 3,
+    ratelistUploads: 3, // Can upload ratelist up to 3 times
   };
 
   // If Premium, return unlimited
@@ -58,6 +59,7 @@ export const getPlanLimits = async () => {
       customers: null,
       suppliers: null,
       dailyTransactions: null,
+      ratelistUploads: null,
     };
   }
 
@@ -66,7 +68,9 @@ export const getPlanLimits = async () => {
 
 export const checkCustomerLimit = async () => {
   try {
-    const response = await axiosInstance.get("/customers/get_customer_summary");
+    const response = await axiosInstance.get(
+      "/transactions/get_customer_summary"
+    );
     const currentCount = response.data?.total_sellers_count || 0;
     const limits = await getPlanLimits();
 
@@ -91,6 +95,21 @@ export const checkTransactionLimit = async () => {
     return todayCount < (limits?.dailyTransactions || 3);
   } catch (error) {
     console.error("Error checking transaction limit:", error);
+    return true; // Allow if can't check
+  }
+};
+
+export const checkRatelistUploadLimit = async () => {
+  try {
+    const response = await axiosInstance.get("/ratelist/get_list");
+    const hasExistingRatelist =
+      response.data?.rates && response.data.rates.length > 0;
+    const limits = await getPlanLimits();
+
+    if (limits?.ratelistUploads === null) return true; // Unlimited
+    return !hasExistingRatelist; // Can upload if no existing ratelist
+  } catch (error) {
+    console.error("Error checking ratelist upload limit:", error);
     return true; // Allow if can't check
   }
 };

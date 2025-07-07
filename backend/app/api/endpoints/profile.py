@@ -158,4 +158,6 @@ def get_profile(
         return user_dict
     except Exception as e:
         logger.error(f"Error: {e}")
-        raise HTTPException(status_code=404, detail="Something went wrong")
+        raise HTTPException(
+            status_code=500, detail="Unable to fetch profile. Please try again."
+        )
