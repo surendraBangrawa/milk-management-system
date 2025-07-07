@@ -42,7 +42,7 @@ export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
     slug: originalConfig.slug || "frontend",
     version: originalConfig.version || "1.0.0",
     orientation: originalConfig.orientation || "portrait",
-    icon: originalConfig.icon || "./assets/images/icon.png",
+    icon: originalConfig.icon || "./assets/images/logo.png",
     scheme: originalConfig.scheme || "myapp",
     userInterfaceStyle: originalConfig.userInterfaceStyle || "automatic",
 

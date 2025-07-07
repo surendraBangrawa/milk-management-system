@@ -258,8 +258,8 @@
   },
   "summary": {
     "title": "Summary",
-    "select_start_date": "Select Start Date",
-    "select_end_date": "Select End Date",
+    "select_start_date": "Start Date",
+    "select_end_date": "End Date",
     "fetch_summary": "Fetch Summary",
     "loading": "Loading...",
     "error_loading": "Failed to load summary.",
@@ -268,6 +268,11 @@
     "total_expense_amount": "Total Expense Amount",
     "total_entries": "Total Entries",
     "no_data": "No summary data found.",
-    "select_date_range": "Select Date Range"
+    "select_date_range": "Select Date Range",
+    "all_shifts": "All Shifts",
+    "morning": "Morning",
+    "evening": "Evening",
+    "download": "Download",
+    "share": "Share"
   }
 }
