@@ -5,6 +5,7 @@
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
+    "sync-translations": "node ../scripts/sync-translations.js",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",

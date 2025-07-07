@@ -28,7 +28,18 @@
     "forbidden": "Forbidden",
     "bad_request": "Bad request",
     "internal_server_error": "Internal server error",
-    "validation_error": "Validation error"
+    "validation_error": "Validation error",
+    "unlimited": "Unlimited",
+    "connection_error": "Connection Error",
+    "could_not_load_subscription": "Could not load subscription data. Please check your connection and try again.",
+    "error": "Error",
+    "could_not_create_payment_order": "Could not create payment order.",
+    "payment_error": "Payment Error",
+    "payment_failed_try_again": "Payment failed. Please try again.",
+    "payment_successful": "Payment Successful!",
+    "premium_activated": "Your Premium subscription has been activated.",
+    "payment_failed": "Payment Failed",
+    "payment_could_not_complete": "Payment could not be completed. Please try again."
   },
   "signup": {
     "title": "Sign Up",
@@ -146,7 +157,20 @@
     "subscription_not_found": "Subscription not found",
     "payment_success": "Payment successful!",
     "payment_failed": "Payment failed",
-    "invalid_subscription": "Invalid subscription plan"
+    "invalid_subscription": "Invalid subscription plan",
+    "upgrade_to_premium": "Upgrade to Premium",
+    "subscription_plans": "Subscription Plans",
+    "current_plan": "Current Plan:",
+    "valid_till": "Valid till: {{date}}",
+    "your_current_limits": "Your Current Limits:",
+    "customers": "Customers",
+    "daily_transactions": "Daily Transactions",
+    "rate_list_uploads": "Rate List Uploads",
+    "current_usage": "Current Usage:",
+    "todays_transactions": "Today's Transactions",
+    "premium_features": "Premium Features:",
+    "suppliers": "Suppliers",
+    "description": "Description"
   },
   "ratelist": {
     "rate_created": "Rate list created successfully!",
@@ -154,7 +178,11 @@
     "rate_deleted": "Rate list deleted successfully!",
     "rate_not_found": "Rate list not found",
     "upload_success": "Rate list uploaded successfully!",
-    "upload_failed": "Failed to upload rate list"
+    "upload_failed": "Failed to upload rate list",
+    "upload_new_rate_list": "Upload New Rate List",
+    "processing": "Processing...",
+    "rate_list_actions": "Rate List Actions:",
+    "fetching_rate_list_status": "Fetching rate list status..."
   },
   "more": {
     "information_and_support": "Information & Support",

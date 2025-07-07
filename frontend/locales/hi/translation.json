@@ -28,7 +28,18 @@
     "forbidden": "निषिद्ध",
     "bad_request": "खराब अनुरोध",
     "internal_server_error": "आंतरिक सर्वर त्रुटि",
-    "validation_error": "सत्यापन त्रुटि"
+    "validation_error": "सत्यापन त्रुटि",
+    "unlimited": "असीमित",
+    "connection_error": "कनेक्शन त्रुटि",
+    "could_not_load_subscription": "सदस्यता डेटा लोड नहीं हो सका। कृपया अपना कनेक्शन जांचें और पुनः प्रयास करें।",
+    "error": "त्रुटि",
+    "could_not_create_payment_order": "भुगतान आदेश नहीं बना सका।",
+    "payment_error": "भुगतान त्रुटि",
+    "payment_failed_try_again": "भुगतान विफल। कृपया पुनः प्रयास करें।",
+    "payment_successful": "भुगतान सफल!",
+    "premium_activated": "आपकी प्रीमियम सदस्यता सक्रिय हो गई है।",
+    "payment_failed": "भुगतान विफल",
+    "payment_could_not_complete": "भुगतान पूरा नहीं हो सका। कृपया पुनः प्रयास करें।"
   },
   "signup": {
     "title": "साइन अप करें",
@@ -146,7 +157,20 @@
     "subscription_not_found": "सदस्यता नहीं मिली",
     "payment_success": "भुगतान सफल!",
     "payment_failed": "भुगतान विफल",
-    "invalid_subscription": "अमान्य सदस्यता योजना"
+    "invalid_subscription": "अमान्य सदस्यता योजना",
+    "upgrade_to_premium": "प्रीमियम में अपग्रेड करें",
+    "subscription_plans": "सदस्यता योजनाएँ",
+    "current_plan": "वर्तमान योजना:",
+    "valid_till": "मान्य तिथि: {{date}}",
+    "your_current_limits": "आपकी वर्तमान सीमाएँ:",
+    "customers": "ग्राहक",
+    "daily_transactions": "दैनिक लेन-देन",
+    "rate_list_uploads": "रेट लिस्ट अपलोड",
+    "current_usage": "वर्तमान उपयोग:",
+    "todays_transactions": "आज के लेन-देन",
+    "premium_features": "प्रीमियम सुविधाएँ:",
+    "suppliers": "आपूर्तिकर्ता",
+    "description": "विवरण"
   },
   "ratelist": {
     "rate_created": "रेट लिस्ट सफलतापूर्वक बनाई गई!",
@@ -154,7 +178,11 @@
     "rate_deleted": "रेट लिस्ट सफलतापूर्वक हटाई गई!",
     "rate_not_found": "रेट लिस्ट नहीं मिली",
     "upload_success": "रेट लिस्ट सफलतापूर्वक अपलोड की गई!",
-    "upload_failed": "रेट लिस्ट अपलोड करने में विफल"
+    "upload_failed": "रेट लिस्ट अपलोड करने में विफल",
+    "upload_new_rate_list": "नई रेट लिस्ट अपलोड करें",
+    "processing": "प्रोसेसिंग...",
+    "rate_list_actions": "रेट लिस्ट कार्य:",
+    "fetching_rate_list_status": "रेट लिस्ट स्थिति प्राप्त कर रहा है..."
   },
   "more": {
     "information_and_support": "जानकारी और सहायता",

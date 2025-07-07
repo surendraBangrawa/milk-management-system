@@ -21,11 +21,13 @@ import UploadStatusBanner from "@/components/UploadStatusBanner";
 import ThemedAlert from "@/components/ThemedAlert";
 import Toast from "react-native-toast-message";
 import { checkRatelistUploadLimit } from "@/lib/subscriptionUtils";
+import { useTranslation } from "react-i18next";
 
 const RateListViewer = () => {
   const router = useRouter();
   const isFocused = useIsFocused();
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const uploadStatus = useSelector((state: RootState) => state.uploadStatus);
 
   const [existingRateList, setExistingRateList] = useState([]);
@@ -233,7 +235,7 @@ const RateListViewer = () => {
         <View style={themedStyles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={themedStyles.loadingText}>
-            Fetching rate list status...
+            {t("ratelist.fetching_rate_list_status")}
           </Text>
         </View>
       );
@@ -275,8 +277,8 @@ const RateListViewer = () => {
             style={[themedStyles.buttonText, themedStyles.primaryButtonText]}
           >
             {uploadStatus.isUploading || uploadStatus.isProcessing
-              ? "Processing..."
-              : "Upload New Rate List"}
+              ? t("ratelist.processing")
+              : t("ratelist.upload_new_rate_list")}
           </Text>
         </Pressable>
 
@@ -293,7 +295,7 @@ const RateListViewer = () => {
                   marginTop: 10,
                 }}
               >
-                Rate List Actions:
+                {t("ratelist.rate_list_actions")}
               </Text>
 
               <Pressable

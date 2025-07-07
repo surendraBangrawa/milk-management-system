@@ -18,9 +18,12 @@ import {
   checkTransactionLimit,
 } from "@/lib/subscriptionUtils";
 import PaymentWebView from "@/components/PaymentWebView";
+import { useTranslation } from "react-i18next";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Subscription() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const [plans, setPlans] = useState<any[]>([]);
   const [current, setCurrent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -206,7 +209,7 @@ export default function Subscription() {
   const premiumPlan = getPremiumPlan();
 
   return (
-    <>
+    <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
       <ScrollView
         style={[styles.container, { backgroundColor: colors.background }]}
         keyboardShouldPersistTaps="handled"
@@ -216,7 +219,7 @@ export default function Subscription() {
       >
         <Stack.Screen
           options={{
-            title: "Subscription Plans",
+            title: t("subscriptions.subscription_plans"),
             headerStyle: { backgroundColor: colors.surface },
             headerTintColor: colors.textPrimary,
           }}
@@ -236,16 +239,16 @@ export default function Subscription() {
                 <Text
                   style={[styles.statusTitle, { color: colors.textPrimary }]}
                 >
-                  Current Plan:
+                  {t("subscriptions.current_plan")}
                 </Text>
                 <Text style={[styles.statusValue, { color: colors.primary }]}>
                   {current.subsription_type === "Full"
-                    ? "Premium"
+                    ? t("subscriptions.upgrade_to_premium")
                     : current.subsription_type || current.message}
                 </Text>
                 {current.end_date && (
                   <Text style={{ color: colors.textSecondary }}>
-                    Valid till: {current.end_date}
+                    {t("subscriptions.valid_till", { date: current.end_date })}
                   </Text>
                 )}
                 {currentPlanDetails && (
@@ -256,7 +259,7 @@ export default function Subscription() {
                         { color: colors.textPrimary },
                       ]}
                     >
-                      Your Current Limits:
+                      {t("subscriptions.your_current_limits")}
                     </Text>
                     <Text
                       style={[
@@ -264,8 +267,9 @@ export default function Subscription() {
                         { color: colors.textSecondary },
                       ]}
                     >
-                      Customers:{" "}
-                      {currentPlanDetails.customer_limit ?? "Unlimited"}
+                      {t("subscriptions.customers")}:{" "}
+                      {currentPlanDetails.customer_limit ??
+                        t("common.unlimited")}
                     </Text>
                     <Text
                       style={[
@@ -273,8 +277,9 @@ export default function Subscription() {
                         { color: colors.textSecondary },
                       ]}
                     >
-                      Daily Transactions:{" "}
-                      {currentPlanDetails.transaction_limit ?? "Unlimited"}
+                      {t("subscriptions.daily_transactions")}:{" "}
+                      {currentPlanDetails.transaction_limit ??
+                        t("common.unlimited")}
                     </Text>
                     <Text
                       style={[
@@ -282,8 +287,9 @@ export default function Subscription() {
                         { color: colors.textSecondary },
                       ]}
                     >
-                      Rate List Uploads:{" "}
-                      {currentPlanDetails.ratelist_upload_limit ?? "Unlimited"}
+                      {t("subscriptions.rate_list_uploads")}:{" "}
+                      {currentPlanDetails.ratelist_upload_limit ??
+                        t("common.unlimited")}
                     </Text>
                   </View>
                 )}
@@ -296,22 +302,24 @@ export default function Subscription() {
                 <Text
                   style={[styles.usageTitle, { color: colors.textPrimary }]}
                 >
-                  Current Usage:
+                  {t("subscriptions.current_usage")}
                 </Text>
                 <Text
                   style={[styles.usageItem, { color: colors.textSecondary }]}
                 >
-                  Customers: {usage.customers}/5
+                  {t("subscriptions.customers")}: {usage.customers}/5
                 </Text>
                 <Text
                   style={[styles.usageItem, { color: colors.textSecondary }]}
                 >
-                  Today's Transactions: {usage.dailyTransactions}/3
+                  {t("subscriptions.todays_transactions")}:{" "}
+                  {usage.dailyTransactions}/3
                 </Text>
                 <Text
                   style={[styles.usageItem, { color: colors.textSecondary }]}
                 >
-                  Rate List Uploads: {usage.ratelistUploads}/3
+                  {t("subscriptions.rate_list_uploads")}:{" "}
+                  {usage.ratelistUploads}/3
                 </Text>
               </View>
             )}
@@ -337,7 +345,7 @@ export default function Subscription() {
                       { color: colors.textPrimary },
                     ]}
                   >
-                    Premium Features:
+                    {t("subscriptions.premium_features")}
                   </Text>
                   <Text
                     style={[
@@ -345,7 +353,8 @@ export default function Subscription() {
                       { color: colors.textSecondary },
                     ]}
                   >
-                    Customers: {premiumPlan.customer_limit ?? "Unlimited"}
+                    {t("subscriptions.customers")}:{" "}
+                    {premiumPlan.customer_limit ?? t("common.unlimited")}
                   </Text>
                   <Text
                     style={[
@@ -353,7 +362,8 @@ export default function Subscription() {
                       { color: colors.textSecondary },
                     ]}
                   >
-                    Suppliers: {premiumPlan.supplier_limit ?? "Unlimited"}
+                    {t("subscriptions.daily_transactions")}:{" "}
+                    {premiumPlan.transaction_limit ?? t("common.unlimited")}
                   </Text>
                   <Text
                     style={[
@@ -361,26 +371,10 @@ export default function Subscription() {
                       { color: colors.textSecondary },
                     ]}
                   >
-                    Daily Transactions:{" "}
-                    {premiumPlan.transaction_limit ?? "Unlimited"}
+                    {t("subscriptions.rate_list_uploads")}:{" "}
+                    {premiumPlan.ratelist_upload_limit ?? t("common.unlimited")}
                   </Text>
-                  <Text
-                    style={[
-                      styles.featureItem,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    Rate List Uploads:{" "}
-                    {premiumPlan.ratelist_upload_limit ?? "Unlimited"}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.featureItem,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    Description: {premiumPlan.description}
-                  </Text>
+
                   <Pressable
                     style={({ pressed }) => [
                       styles.subscribeButton,
@@ -400,7 +394,9 @@ export default function Subscription() {
                         { color: colors.surface },
                       ]}
                     >
-                      {paying ? "Processing..." : "Upgrade to Premium"}
+                      {paying
+                        ? t("ratelist.processing")
+                        : t("subscriptions.upgrade_to_premium")}
                     </Text>
                   </Pressable>
                 </View>
@@ -417,7 +413,7 @@ export default function Subscription() {
         onSuccess={handlePaymentSuccess}
         onError={handlePaymentError}
       />
-    </>
+    </SafeAreaView>
   );
 }
 

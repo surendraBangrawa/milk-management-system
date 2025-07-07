@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Always resolve from the project root (parent of scripts/)
-const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
+const PROJECT_ROOT = path.resolve(__dirname, '..');
 const SHARED_DIR = path.join(PROJECT_ROOT, 'shared', 'translations');
 const BACKEND_LOCALES_DIR = path.join(PROJECT_ROOT, 'backend', 'locales');
 const FRONTEND_LOCALES_DIR = path.join(PROJECT_ROOT, 'frontend', 'locales');

@@ -113,7 +113,10 @@ def send_login_otp(user: OtpRequest, db: Session = Depends(get_db)):
         if not existing_user:
             raise HTTPException(
                 status_code=404,
-                detail="Mobile number not registered. Please sign up first.",
+                detail=t(
+                    "auth.mobile_not_registered",
+                    lang=getattr(request.state, "language", "en"),
+                ),
             )
         print("Hello2")
         new_otp = 123456
@@ -139,12 +142,18 @@ def send_login_otp(user: OtpRequest, db: Session = Depends(get_db)):
                 ):
                     raise HTTPException(
                         status_code=400,
-                        detail="Please wait 3 minutes before requesting another OTP",
+                        detail=t(
+                            "auth.otp_wait_message",
+                            lang=getattr(request.state, "language", "en"),
+                        ),
                     )
                 if otp_found.count >= 3:
                     raise HTTPException(
                         status_code=400,
-                        detail="Too many OTP attempts. Please try again after 60 minutes.",
+                        detail=t(
+                            "auth.too_many_otp_attempts",
+                            lang=getattr(request.state, "language", "en"),
+                        ),
                     )
 
                 otp_found.count = otp_found.count + 1
@@ -175,7 +184,10 @@ def send_login_otp(user: OtpRequest, db: Session = Depends(get_db)):
         #     raise HTTPException(status_code=400, detail = "Try Again after 30 minutes")
         return {
             "status_code": 200,
-            "message": "OTP sent successfully to your mobile number.",
+            "message": t(
+                "auth.otp_sent_success",
+                lang=getattr(request.state, "language", "en"),
+            ),
             "otp": new_otp,
         }
         # if login_entry:
@@ -200,12 +212,17 @@ def send_login_otp(user: OtpRequest, db: Session = Depends(get_db)):
         logger.error(str(e))
         return JSONResponse(
             status_code=500,
-            content={"detail": "Unable to send OTP. Please try again later."},
+            content={
+                "detail": t(
+                    "auth.unable_to_send_otp",
+                    lang=getattr(request.state, "language", "en"),
+                )
+            },
         )
 
 
 @router.post("/login")
-def login(user: LoginRequest, db: Session = Depends(get_db)):
+def login(user: LoginRequest, request: Request, db: Session = Depends(get_db)):
     try:
         logger.info(f"In login")
         local_time = datetime.now(local_timezone).replace(tzinfo=None)
