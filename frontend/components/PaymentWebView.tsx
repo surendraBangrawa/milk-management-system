@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   StyleSheet,
@@ -29,43 +29,14 @@ const PaymentWebView: React.FC<PaymentWebViewProps> = ({
   const webViewRef = useRef<WebView>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [paymentTimeout, setPaymentTimeout] = useState<number | null>(null);
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (paymentTimeout) {
-        clearTimeout(paymentTimeout);
-      }
-    };
-  }, [paymentTimeout]);
 
   const handleLoadStart = () => {
     setLoading(true);
     setError(null);
-
-    // Set a timeout to handle cases where payment detection fails
-    if (paymentTimeout) {
-      clearTimeout(paymentTimeout);
-    }
-
-    const timeout = setTimeout(() => {
-      console.log("Payment timeout - assuming success");
-      onSuccess();
-      onClose();
-    }, 30000); // 30 seconds timeout
-
-    setPaymentTimeout(timeout);
   };
 
   const handleLoadEnd = () => {
     setLoading(false);
-
-    // Clear timeout when page loads
-    if (paymentTimeout) {
-      clearTimeout(paymentTimeout);
-      setPaymentTimeout(null);
-    }
   };
 
   const handleError = (syntheticEvent: any) => {
@@ -78,61 +49,38 @@ const PaymentWebView: React.FC<PaymentWebViewProps> = ({
   const handleNavigationStateChange = (navState: any) => {
     const { url } = navState;
 
-    console.log("Navigation state change:", url);
-
-    // Check for success/failure URLs
+    // Only check for explicit success/failure states
     if (
       url.includes("success") ||
       url.includes("payment_success") ||
-      url.includes("paid") ||
-      url.includes("payment-callback")
+      url.includes("paid")
     ) {
-      console.log("Detected success/failure URL:", url);
-
-      // Check if it's a success callback
-      if (url.includes("razorpay_payment_link_status=paid")) {
-        console.log("Payment success detected via status parameter");
-        onSuccess();
-        onClose();
-      } else if (url.includes("razorpay_payment_link_status=failed")) {
-        console.log("Payment failure detected via status parameter");
-        onError("Payment failed. Please try again.");
-        onClose();
-      } else {
-        // Default to success for callback URLs
-        console.log("Defaulting to success for callback URL");
-        onSuccess();
-        onClose();
-      }
+      onSuccess();
+      onClose();
     } else if (
       url.includes("failure") ||
       url.includes("payment_failed") ||
       url.includes("failed")
     ) {
-      console.log("Payment failure detected via URL keywords");
       onError("Payment failed. Please try again.");
-      onClose();
-    } else if (url.includes("cancel") || url.includes("cancelled")) {
-      console.log("Payment cancellation detected");
-      onError("Payment was cancelled.");
       onClose();
     }
 
-    // Additional check: If we're back to the app URL or a success page, treat as success
-    if (url.includes("razorpay.com") && !url.includes("test")) {
-      // We're on Razorpay but not on a test page - likely payment completed
-      console.log("Detected Razorpay completion page");
-      setTimeout(() => {
+    // Check for callback URLs with status parameters
+    if (url.includes("payment-callback")) {
+      if (url.includes("razorpay_payment_link_status=paid")) {
         onSuccess();
         onClose();
-      }, 2000); // Give it 2 seconds to process
+      } else if (url.includes("razorpay_payment_link_status=failed")) {
+        onError("Payment failed. Please try again.");
+        onClose();
+      }
     }
   };
 
   const handleMessage = (event: any) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
-      console.log("WebView message received:", data);
 
       if (data.status === "success") {
         onSuccess();
@@ -140,10 +88,8 @@ const PaymentWebView: React.FC<PaymentWebViewProps> = ({
       } else if (data.status === "failure") {
         onError(data.message || "Payment failed");
         onClose();
-      } else if (data.status === "cancelled") {
-        onError(data.message || "Payment was cancelled");
-        onClose();
       }
+      // Removed cancellation handling to prevent false positives
     } catch (e) {
       // Ignore non-JSON messages
       console.log("Non-JSON message received:", event.nativeEvent.data);
@@ -158,46 +104,31 @@ const PaymentWebView: React.FC<PaymentWebViewProps> = ({
       }
     });
     
-    // Monitor URL changes for success/failure
+    // Monitor URL changes for success/failure only
     let currentUrl = window.location.href;
+    
     const observer = new MutationObserver(function() {
       if (window.location.href !== currentUrl) {
         currentUrl = window.location.href;
-        console.log('URL changed to:', currentUrl);
         
+        // Only detect explicit success/failure states
         if (currentUrl.includes('success') || currentUrl.includes('payment_success') || currentUrl.includes('paid')) {
           window.ReactNativeWebView.postMessage(JSON.stringify({status: 'success'}));
         } else if (currentUrl.includes('failure') || currentUrl.includes('payment_failed') || currentUrl.includes('failed')) {
           window.ReactNativeWebView.postMessage(JSON.stringify({status: 'failure', message: 'Payment failed'}));
-        } else if (currentUrl.includes('cancel') || currentUrl.includes('cancelled')) {
-          window.ReactNativeWebView.postMessage(JSON.stringify({status: 'cancelled', message: 'Payment was cancelled'}));
         }
       }
     });
     observer.observe(document.body, {childList: true, subtree: true});
     
-    // Only detect actual payment cancellations, not navigation
-    let paymentStarted = false;
-    
-    // Detect when payment form is loaded
-    if (window.location.href.includes('razorpay.com')) {
-      paymentStarted = true;
-    }
-    
-    // Only trigger cancellation if payment was actually started
-    window.addEventListener('beforeunload', function() {
-      if (paymentStarted) {
-        window.ReactNativeWebView.postMessage(JSON.stringify({status: 'cancelled', message: 'Payment was cancelled'}));
-      }
-    });
-    
-    // Monitor for explicit cancel buttons only
+    // Monitor for explicit success/failure buttons only
     document.addEventListener('click', function(e) {
       if (e.target.tagName === 'A' && e.target.href) {
         const href = e.target.href;
-        if (href.includes('cancel') && paymentStarted) {
-          e.preventDefault();
-          window.ReactNativeWebView.postMessage(JSON.stringify({status: 'cancelled', message: 'Payment was cancelled'}));
+        if (href.includes('success') || href.includes('paid')) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({status: 'success'}));
+        } else if (href.includes('failure') || href.includes('failed')) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({status: 'failure', message: 'Payment failed'}));
         }
       }
     });
