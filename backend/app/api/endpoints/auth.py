@@ -1,6 +1,6 @@
 import random
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.db.models import User, Otp_Table  # , Authuser
@@ -8,6 +8,7 @@ from app.schemas.user import SignupRequest, OtpRequest, LoginRequest
 from app.core.config import local_timezone
 from app.core.security import create_access_token, get_current_user
 from app.core.config import ACCESS_TOKEN_EXPIRE_MINUTES
+from app.core.i18n import t
 from datetime import datetime, timedelta
 from fastapi.responses import JSONResponse
 import logging
@@ -41,7 +42,7 @@ def call_otp_api(mobile, message):
 
 
 @router.post("/signup")
-def signup(user: SignupRequest, db: Session = Depends(get_db)):
+def signup(user: SignupRequest, request: Request, db: Session = Depends(get_db)):
     try:
         logger.info(f"In signup")
         existing_user = db.query(User).filter(User.mobile == user.mobile).first()
@@ -55,13 +56,19 @@ def signup(user: SignupRequest, db: Session = Depends(get_db)):
                 db.commit()
                 db.refresh(existing_user)
                 return {
-                    "message": "User reactivated successfully!",
+                    "message": t(
+                        "auth.user_reactivated",
+                        lang=getattr(request.state, "language", "en"),
+                    ),
                     "mobile": existing_user.mobile,
                 }
             else:
                 raise HTTPException(
                     status_code=400,
-                    detail="User with this mobile number already exists",
+                    detail=t(
+                        "auth.user_already_exists",
+                        lang=getattr(request.state, "language", "en"),
+                    ),
                 )
 
         new_user = User(
@@ -74,10 +81,21 @@ def signup(user: SignupRequest, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(new_user)
 
-        return {"message": "User registered successfully!", "mobile": new_user.mobile}
+        return {
+            "message": t(
+                "auth.user_registered", lang=getattr(request.state, "language", "en")
+            ),
+            "mobile": new_user.mobile,
+        }
     except Exception as e:
         logger.error(f"Error: {e}")
-        raise HTTPException(status_code=404, detail="Something went wrong")
+        raise HTTPException(
+            status_code=404,
+            detail=t(
+                "auth.something_went_wrong",
+                lang=getattr(request.state, "language", "en"),
+            ),
+        )
 
 
 @router.post("/send_login_otp")

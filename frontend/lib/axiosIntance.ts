@@ -2,6 +2,7 @@ import axios from "axios";
 import * as SecureStore from "expo-secure-store";
 import Constants from "expo-constants";
 import Toast from "react-native-toast-message";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { API_BASE_URL } = Constants.expoConfig?.extra || {};
 
@@ -163,6 +164,16 @@ axiosInstance.interceptors.request.use(
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    // Add language header
+    try {
+      const userLanguage = await AsyncStorage.getItem("user-language");
+      if (userLanguage) {
+        config.headers["Accept-Language"] = userLanguage;
+      }
+    } catch (error) {
+      console.error("Error getting user language:", error);
     }
 
     // Check subscription limits for specific endpoints
