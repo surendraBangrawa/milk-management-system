@@ -107,6 +107,10 @@ export const getMilkReportTransactionApi = async ({
   sellerId,
   startDate,
   endDate,
+}: {
+  sellerId: string;
+  startDate: string;
+  endDate: string;
 }) => {
   try {
     const token = await SecureStore.getItemAsync("accessToken");
@@ -140,6 +144,22 @@ export const getMilkReportTransactionApi = async ({
     }
 
     return await response.blob();
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getTotalRecordDateRangeApi = async ({
+  start_date,
+  end_date,
+}: {
+  start_date: string;
+  end_date: string;
+}) => {
+  try {
+    return await axiosInstance.get("/transactions/total_record_date_range", {
+      params: { start_date, end_date },
+    });
   } catch (error) {
     throw error;
   }

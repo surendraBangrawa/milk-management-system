@@ -6,6 +6,7 @@ import SafeAreaWrapper from "@/components/SafeAreaWrapper";
 import { useTranslation } from "react-i18next";
 
 import useTheme from "@/context/theme/useTheme"; // Import useTheme
+import Logo from "@/components/Logo";
 
 const HomeScreen = () => {
   const [mode, setMode] = useState<"customer" | "supplier">("customer");
@@ -22,7 +23,7 @@ const HomeScreen = () => {
         style={[styles.headerContainer, { backgroundColor: colors.surface }]}
       >
         <Text style={[styles.title, { color: colors.textPrimary }]}>
-          {t("home.logo")}
+          <Logo />
         </Text>
         <View style={styles.navbar}>
           <Pressable

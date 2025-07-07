@@ -39,7 +39,8 @@
     "payment_successful": "भुगतान सफल!",
     "premium_activated": "आपकी प्रीमियम सदस्यता सक्रिय हो गई है।",
     "payment_failed": "भुगतान विफल",
-    "payment_could_not_complete": "भुगतान पूरा नहीं हो सका। कृपया पुनः प्रयास करें।"
+    "payment_could_not_complete": "भुगतान पूरा नहीं हो सका। कृपया पुनः प्रयास करें।",
+    "to": "से"
   },
   "signup": {
     "title": "साइन अप करें",
@@ -254,5 +255,19 @@
     "error": "त्रुटि",
     "failed_to_load": "ग्राहक डेटा लोड करने में विफल।",
     "transaction_detail": "लेन-देन विवरण"
+  },
+  "summary": {
+    "title": "सारांश",
+    "select_start_date": "प्रारंभ तिथि चुनें",
+    "select_end_date": "समाप्ति तिथि चुनें",
+    "fetch_summary": "सारांश प्राप्त करें",
+    "loading": "लोड हो रहा है...",
+    "error_loading": "सारांश लोड करने में विफल।",
+    "total_milk_quantity": "कुल दूध मात्रा",
+    "total_milk_amount": "कुल दूध राशि",
+    "total_expense_amount": "कुल खर्च राशि",
+    "total_entries": "कुल प्रविष्टियाँ",
+    "no_data": "कोई सारांश डेटा नहीं मिला।",
+    "select_date_range": "तिथि सीमा चुनें"
   }
 }

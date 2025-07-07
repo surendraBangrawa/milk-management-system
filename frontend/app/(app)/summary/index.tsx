@@ -1,17 +1,56 @@
-import React from "react";
-import { View, StyleSheet, Text } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, StyleSheet, Text, TouchableOpacity } from "react-native";
 import { Stack } from "expo-router";
 
 import useTheme from "@/context/theme/useTheme";
+import { getTotalRecordDateRangeApi } from "@/redux/slice/transactions/transactionApi";
+import DateTimePickerModal from "@/components/DatePickerModal";
+import SafeAreaWrapper from "@/components/SafeAreaWrapper";
+import { useTranslation } from "react-i18next";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 const SummaryScreen = () => {
   const { colors } = useTheme();
+  const { t } = useTranslation();
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [summary, setSummary] = useState<any>(null);
+
+  const fetchSummary = async (start: string, end: string) => {
+    setLoading(true);
+    setError(null);
+    setSummary(null);
+    try {
+      const res = await getTotalRecordDateRangeApi({
+        start_date: start,
+        end_date: end,
+      });
+      setSummary(res.data);
+    } catch (err: any) {
+      setError(err?.message || t("summary.error_loading"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFetch = () => {
+    if (startDate && endDate) {
+      fetchSummary(
+        startDate.toISOString().split("T")[0],
+        endDate.toISOString().split("T")[0]
+      );
+    }
+  };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaWrapper backgroundColor={colors.background}>
       <Stack.Screen
         options={{
-          title: "Summary",
+          title: t("summary.title"),
           headerStyle: {
             backgroundColor: colors.surface,
           },
@@ -21,7 +60,198 @@ const SummaryScreen = () => {
           },
         }}
       />
-    </View>
+      {/* Date Range Card */}
+      <View
+        style={[
+          styles.inputCard,
+          { backgroundColor: colors.surface, borderColor: colors.border },
+        ]}
+      >
+        <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>
+          {t("summary.select_date_range")}
+        </Text>
+        <View style={styles.inputRow}>
+          <TouchableOpacity
+            style={[styles.inputButton, { flex: 1, marginRight: 5 }]}
+            onPress={() => setShowStartPicker(true)}
+            activeOpacity={0.8}
+          >
+            <MaterialCommunityIcons
+              name="calendar-range"
+              size={20}
+              color={colors.primary}
+            />
+            <Text style={styles.inputButtonText}>
+              {startDate
+                ? startDate.toLocaleDateString()
+                : t("summary.select_start_date")}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.inputButton, { flex: 1, marginLeft: 5 }]}
+            onPress={() => setShowEndPicker(true)}
+            activeOpacity={0.8}
+          >
+            <MaterialCommunityIcons
+              name="calendar-range"
+              size={20}
+              color={colors.primary}
+            />
+            <Text
+              style={[styles.inputButtonText, { flexShrink: 1, minWidth: 0 }]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {endDate
+                ? endDate.toLocaleDateString()
+                : t("summary.select_end_date")}
+            </Text>
+          </TouchableOpacity>
+        </View>
+        <TouchableOpacity
+          style={[
+            styles.fetchButton,
+            { backgroundColor: colors.primary },
+            (loading || !startDate || !endDate) && { opacity: 0.6 },
+          ]}
+          onPress={handleFetch}
+          disabled={loading || !startDate || !endDate}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.fetchButtonText}>
+            {t("summary.fetch_summary")}
+          </Text>
+        </TouchableOpacity>
+      </View>
+      {/* Date Pickers */}
+      <DateTimePickerModal
+        visible={showStartPicker}
+        initialDate={startDate || new Date()}
+        onConfirm={(date) => {
+          setShowStartPicker(false);
+          setStartDate(date);
+        }}
+        onClose={() => setShowStartPicker(false)}
+      />
+      <DateTimePickerModal
+        visible={showEndPicker}
+        initialDate={endDate || new Date()}
+        onConfirm={(date) => {
+          setShowEndPicker(false);
+          setEndDate(date);
+        }}
+        onClose={() => setShowEndPicker(false)}
+      />
+      {/* Summary Stats */}
+      {loading ? (
+        <View style={styles.centered}>
+          <MaterialCommunityIcons
+            name="progress-clock"
+            size={32}
+            color={colors.primary}
+          />
+          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+            {t("summary.loading")}
+          </Text>
+        </View>
+      ) : error ? (
+        <View style={styles.centered}>
+          <MaterialCommunityIcons
+            name="alert-circle-outline"
+            size={32}
+            color={colors.error}
+          />
+          <Text style={[styles.errorText, { color: colors.error }]}>
+            {error}
+          </Text>
+        </View>
+      ) : summary ? (
+        <View style={styles.statsGrid}>
+          <View
+            style={[
+              styles.statCard,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="cow"
+              size={32}
+              color={colors.primary}
+              style={{ marginBottom: 4 }}
+            />
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+              {t("summary.total_milk_quantity")}
+            </Text>
+            <Text style={[styles.statValue, { color: colors.primary }]}>
+              {summary.total_milk_quantity}
+            </Text>
+          </View>
+          <View
+            style={[
+              styles.statCard,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="currency-inr"
+              size={32}
+              color={colors.success}
+              style={{ marginBottom: 4 }}
+            />
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+              {t("summary.total_milk_amount")}
+            </Text>
+            <Text style={[styles.statValue, { color: colors.success }]}>
+              ₹{summary.total_milk_amount}
+            </Text>
+          </View>
+          <View
+            style={[
+              styles.statCard,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="currency-inr"
+              size={32}
+              color={colors.error}
+              style={{ marginBottom: 4 }}
+            />
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+              {t("summary.total_expense_amount")}
+            </Text>
+            <Text style={[styles.statValue, { color: colors.error }]}>
+              ₹{summary.total_expense_amount}
+            </Text>
+          </View>
+          <View
+            style={[
+              styles.statCard,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="format-list-numbered"
+              size={32}
+              color={colors.textPrimary}
+              style={{ marginBottom: 4 }}
+            />
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+              {t("summary.total_entries")}
+            </Text>
+            <Text style={[styles.statValue, { color: colors.textPrimary }]}>
+              {summary.total_entries_count}
+            </Text>
+          </View>
+        </View>
+      ) : (
+        <View style={styles.centered}>
+          <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+            {t("summary.no_data")}
+          </Text>
+        </View>
+      )}
+    </SafeAreaWrapper>
   );
 };
 
@@ -31,139 +261,115 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 8,
   },
-  headerRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginRight: 10,
+  inputCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 18,
+    marginBottom: 18,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 6,
   },
-  headerName: {
-    fontSize: 17,
-    fontWeight: "600",
-    marginRight: 8,
-    maxWidth: 150,
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 0,
-    justifyContent: "center",
-    alignItems: "center",
-    overflow: "hidden",
-  },
-  avatarText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    textAlign: "center",
-    lineHeight: 38,
-  },
-  transactionCard: {
-    padding: 12,
-    marginVertical: 6,
-    borderRadius: 8,
-    flexDirection: "row",
-    borderLeftWidth: 4,
-  },
-  leftSection: {
-    flex: 1,
-    paddingRight: 8,
-  },
-  transactionDate: {
-    fontSize: 13,
-    marginBottom: 4,
-  },
-  transactionAmount: {
+  inputLabel: {
     fontSize: 16,
-    fontWeight: "bold",
-    marginVertical: 2,
+    fontWeight: "600",
+    marginBottom: 10,
   },
-  transactionType: {
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  inputButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginRight: 8,
+    marginBottom: 4,
+    minWidth: 120,
+  },
+  inputButtonText: {
+    marginLeft: 7,
+    fontWeight: "500",
+    color: "#333",
+    fontSize: 15,
+  },
+  inputToText: {
+    color: "#888",
+    fontWeight: "500",
+    marginRight: 8,
+    fontSize: 15,
+  },
+  fetchButton: {
+    width: "100%",
+    borderRadius: 6,
+    paddingVertical: 13,
+    marginTop: 6,
+    elevation: 2,
+    alignItems: "center",
+  },
+  fetchButtonText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 17,
+    letterSpacing: 0.2,
+  },
+  statsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginTop: 12,
+    marginBottom: 12,
+  },
+  statCard: {
+    width: "47%",
+    marginBottom: 16,
+    borderRadius: 12,
+    padding: 18,
+    alignItems: "center",
+    borderWidth: 1,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+  },
+  statLabel: {
     fontSize: 14,
     fontWeight: "500",
+    marginBottom: 2,
+  },
+  statValue: {
+    fontSize: 22,
+    fontWeight: "bold",
     marginTop: 2,
-    marginBottom: 4,
   },
-  transactionDetailText: {
-    fontSize: 13,
-    marginTop: 4,
-  },
-  readMoreText: {
-    fontSize: 13,
-    marginTop: 4,
-    textDecorationLine: "underline",
-  },
-  milkDetailsContainer: {
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-  },
-  milkDetailText: {
-    fontSize: 12,
-    marginBottom: 2,
-  },
-  rightSection: {
-    flex: 0.8,
-    alignItems: "flex-end",
-    paddingLeft: 8,
-  },
-  runningBalance: {
-    fontSize: 14,
-    fontWeight: "600",
-    marginTop: 0,
-    marginBottom: 2,
-  },
-  totalTillRecord: {
-    fontSize: 12,
-    marginBottom: 8,
-  },
-  actionButtons: {
-    marginTop: "auto",
-    flexDirection: "row",
-    justifyContent: "flex-end",
-  },
-  actionButton: {
-    padding: 8,
-    marginHorizontal: 4,
-    borderRadius: 20,
-  },
-  transactionList: {
-    paddingBottom: 220,
-  },
-  loadingIndicator: {
+  centered: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 20,
+    marginTop: 40,
+  },
+  loadingText: {
+    fontSize: 16,
+    fontWeight: "500",
   },
   errorText: {
     fontSize: 16,
-    marginTop: 20,
+    fontWeight: "500",
     textAlign: "center",
   },
-  noDataText: {
-    fontSize: 16,
+  infoText: {
+    fontSize: 15,
     textAlign: "center",
     marginTop: 20,
-  },
-  floatingButtonContainer: {
-    position: "absolute",
-    bottom: 16,
-    right: 16,
-    flexDirection: "column",
-    alignItems: "flex-end",
-  },
-  floatingButton: {
-    borderRadius: 28,
-    width: 56,
-    height: 56,
-    justifyContent: "center",
-    alignItems: "center",
-    marginVertical: 6,
-  },
-  floatingButtonText: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#fff",
   },
 });
 

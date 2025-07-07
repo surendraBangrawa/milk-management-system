@@ -39,7 +39,8 @@
     "payment_successful": "Payment Successful!",
     "premium_activated": "Your Premium subscription has been activated.",
     "payment_failed": "Payment Failed",
-    "payment_could_not_complete": "Payment could not be completed. Please try again."
+    "payment_could_not_complete": "Payment could not be completed. Please try again.",
+    "to": "to"
   },
   "signup": {
     "title": "Sign Up",
@@ -254,5 +255,19 @@
     "error": "Error",
     "failed_to_load": "Failed to load customer data.",
     "transaction_detail": "Transaction Detail"
+  },
+  "summary": {
+    "title": "Summary",
+    "select_start_date": "Select Start Date",
+    "select_end_date": "Select End Date",
+    "fetch_summary": "Fetch Summary",
+    "loading": "Loading...",
+    "error_loading": "Failed to load summary.",
+    "total_milk_quantity": "Total Milk Quantity",
+    "total_milk_amount": "Total Milk Amount",
+    "total_expense_amount": "Total Expense Amount",
+    "total_entries": "Total Entries",
+    "no_data": "No summary data found.",
+    "select_date_range": "Select Date Range"
   }
 }
