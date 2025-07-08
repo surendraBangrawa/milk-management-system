@@ -80,15 +80,15 @@ def store_rate_list(
 
         if existing_rate_list:
             # If the rate list is deleted, reactivate it
-            if existing_rate_list.is_deleted == 1:
-                existing_rate_list.is_deleted = 0
+            if bool(existing_rate_list.is_deleted):
+                setattr(existing_rate_list, "is_deleted", False)
 
             # Update the existing rate list with new rates
-            existing_rate_list.rates = rates_for_db  # Assign the list of dicts
-            existing_rate_list.min_fat = record.min_fat
-            existing_rate_list.max_fat = record.max_fat
-            existing_rate_list.min_snf = record.min_snf
-            existing_rate_list.max_snf = record.max_snf
+            setattr(existing_rate_list, "rates", rates_for_db)
+            setattr(existing_rate_list, "min_fat", record.min_fat)
+            setattr(existing_rate_list, "max_fat", record.max_fat)
+            setattr(existing_rate_list, "min_snf", record.min_snf)
+            setattr(existing_rate_list, "max_snf", record.max_snf)
 
             db.commit()
             db.refresh(existing_rate_list)
@@ -232,14 +232,14 @@ async def process_rate_list_image(file_path, db, buyer_mobile):
             db.query(RateList).filter(RateList.buyer_mobile == buyer_mobile).first()
         )
         if existing_rate_list:
-            if existing_rate_list.is_deleted == 1:
-                existing_rate_list.is_deleted = 0
-            existing_rate_list.rates = rates_for_db
-            existing_rate_list.min_fat = min_fat
-            existing_rate_list.max_fat = max_fat
-            existing_rate_list.min_snf = min_snf
-            existing_rate_list.max_snf = max_snf
-            existing_rate_list.status = "complete"
+            if bool(existing_rate_list.is_deleted):
+                setattr(existing_rate_list, "is_deleted", False)
+            setattr(existing_rate_list, "rates", rates_for_db)
+            setattr(existing_rate_list, "min_fat", min_fat)
+            setattr(existing_rate_list, "max_fat", max_fat)
+            setattr(existing_rate_list, "min_snf", min_snf)
+            setattr(existing_rate_list, "max_snf", max_snf)
+            setattr(existing_rate_list, "status", "complete")
             db.commit()
             db.refresh(existing_rate_list)
             logger.info(f"Updated existing rate list for buyer: {buyer_mobile}")
@@ -443,7 +443,7 @@ def delete_rate_list(
             )
             raise HTTPException(status_code=404, detail="Rate List not found")
 
-        rate_list_record.is_deleted = 1  # Soft delete
+        setattr(rate_list_record, "is_deleted", True)  # Soft delete
         db.commit()
         logger.info(f"Rate list soft-deleted for buyer: {buyer_mobile}")
 
@@ -470,13 +470,12 @@ def show_rate_list(
             .filter(RateList.buyer_mobile == buyer_mobile, RateList.is_deleted == 0)
             .first()
         )
-
         if not rate_list:
             logger.info(f"No rate list found for buyer: {buyer_mobile}")
             return {"rates": []}
-
         return {"rates": rate_list.rates}
-
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
         logger.error(f"Error: {e}")
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
@@ -491,40 +490,30 @@ def fetch_rate(
 ):
     try:
         logger.info(f"In gate_rate")
-
         if len(str(fat).split(".")[1]) > 1 or len(str(snf).split(".")[1]) > 1:
             raise HTTPException(
                 status_code=400, detail="Fat and SNF must have only 1 decimal place."
             )
-
         rate_list = (
             db.query(RateList)
             .filter(RateList.buyer_mobile == buyer_mobile, RateList.is_deleted == 0)
             .first()
         )
-
         if not rate_list:
             raise HTTPException(
                 status_code=404,
                 detail=f"Rate List not found for buyer_mobile: {buyer_mobile}",
             )
-
-        # Cap snf and fat at their maximum values
-        snf = min(snf, rate_list.max_snf)  # Cap SNF to max_snf
-        fat = min(fat, rate_list.max_fat)  # Cap Fat to max_fat
-
+        snf = min(snf, rate_list.max_snf)
+        fat = min(fat, rate_list.max_fat)
         logger.info(f"Looking for rate with Fat: {fat}, SNF: {snf}")
-
-        # First, check for an exact match in the rate list
         matching_rate = None
         snf_diff = None
-
         if fat >= rate_list.min_fat and snf >= rate_list.min_snf:
             for rate in rate_list.rates:
                 if rate["fat"] == fat and rate["snf"] == snf:
-                    matching_rate = rate["rate"]  # Exact match found, apply fat
+                    matching_rate = rate["rate"]
                     break
-
         # Step 2: If no exact match is found, apply the adjustment logic
         if not matching_rate:
             # Case 1: fat < min_fat and snf < min_snf
@@ -586,12 +575,9 @@ def fetch_rate(
             "rate": matching_rate,
         }
     except HTTPException as e:
-        # Handle raised HTTPException and include exception details in the response
         logger.error(f"HTTPException: {e.detail}")
         raise HTTPException(status_code=e.status_code, detail=e.detail)
-
     except Exception as e:
-        # Log the error and raise a generic error
         logger.error(f"Error: {e}")
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 

@@ -74,7 +74,7 @@ def update_total_till_records(
     )
 
     for record in all_future_records:
-        record.total_till_record = round(record.total_till_record + diff, 2)
+        setattr(record, "total_till_record", round(record.total_till_record + diff, 2))
 
     db.commit()
 
@@ -187,9 +187,11 @@ def add_milk_record(
             "shift": record.shift,
             "custom_date": record.custom_date,
         }
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
         logger.error(f"Error: {e}")
-        raise HTTPException(status_code=404, detail="Something went wrong")
+        raise HTTPException(status_code=500, detail="Something went wrong")
 
 
 @router.post("/add_expense")
@@ -436,9 +438,11 @@ def get_transactions_customer(
             start_date=request.start_date,
             end_date=request.end_date,
         )
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
         logger.error(f"Error: {e}")
-        raise HTTPException(status_code=404, detail="Something went wrong")
+        raise HTTPException(status_code=500, detail="Something went wrong")
 
 
 @router.get("/get_transactions_supplier")
@@ -762,6 +766,8 @@ def get_customer_summary(
             total_you_will_get=round(total_you_will_get_global, 2),
         )
 
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
         logger.error(f"Error fetching customer summary: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Something went wrong: {e}")

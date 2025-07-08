@@ -192,17 +192,10 @@ def check_subscription(
 
         if days_till_now <= 30:
             return {"message": "User is on free trial"}
-
-        # If no active subscription found and past free trial
         raise HTTPException(status_code=404, detail="Subscription is not live")
-    # except Exception as e:
-    #     logger.error(f"Error: {e}")
-    #     raise HTTPException(status_code=404, detail="Something went wrong")
     except HTTPException as http_exc:
-        # Catch and re-raise explicit HTTPExceptions to preserve their specific details
         raise http_exc
     except Exception as e:
-        # This catches any other unexpected errors and provides a more specific 500 error.
         logger.error(f"Error in check_subscription: {e}")
         raise HTTPException(
             status_code=500,
@@ -219,15 +212,14 @@ def fetch_plans(
         all_plans = (
             db.query(SubscriptionPlan).filter(SubscriptionPlan.is_deleted == 0).all()
         )
-
         if not all_plans:
             raise HTTPException(status_code=404, detail="No plan found")
-
         return all_plans
-
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
         logger.error(f"Error : {e}")
-        raise HTTPException(status_code=404, detail="Something went wrong")
+        raise HTTPException(status_code=500, detail="Failed to fetch plans.")
 
 
 @router.post("/create_payment_intent")

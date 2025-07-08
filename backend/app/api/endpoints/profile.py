@@ -83,7 +83,7 @@ def delete_profile(
         if not account_record:
             raise HTTPException(status_code=404, detail="User not found")
 
-        account_record.is_deleted = 1
+        setattr(account_record, "is_deleted", True)
 
         rate_list_record = (
             db.query(RateList)
@@ -92,7 +92,7 @@ def delete_profile(
         )
 
         if rate_list_record:
-            rate_list_record.is_deleted = 1
+            setattr(rate_list_record, "is_deleted", True)
 
         all_record_milk = (
             db.query(MilkRecord)
@@ -116,13 +116,13 @@ def delete_profile(
         )
 
         for milk_record in all_record_milk:
-            milk_record.is_deleted = 1
+            setattr(milk_record, "is_deleted", True)
 
         for expense_record in all_record_expense:
-            expense_record.is_deleted = 1
+            setattr(expense_record, "is_deleted", True)
 
         for customer_record in all_record_customer:
-            customer_record.is_deleted = 1
+            setattr(customer_record, "is_deleted", True)
 
         db.commit()
 
@@ -130,6 +130,8 @@ def delete_profile(
             "message": "User and related milk/expense/customers records deleted successfully"
         }
 
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
         logger.error(f"Error: {e}")
         db.rollback()
@@ -156,6 +158,8 @@ def get_profile(
         }
 
         return user_dict
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
         logger.error(f"Error: {e}")
         raise HTTPException(

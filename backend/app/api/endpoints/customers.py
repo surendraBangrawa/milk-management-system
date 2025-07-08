@@ -41,10 +41,10 @@ def add_customer(
         )
 
         if existing_customer:
-            if existing_customer.is_deleted == 1:
-                existing_customer.is_deleted = 0
-                existing_customer.name = customer.name
-                existing_customer.added_at = local_time
+            if bool(existing_customer.is_deleted):
+                setattr(existing_customer, "is_deleted", False)
+                setattr(existing_customer, "name", customer.name)
+                setattr(existing_customer, "added_at", local_time)
                 db.commit()
                 db.refresh(existing_customer)
                 return {
@@ -66,6 +66,8 @@ def add_customer(
         db.refresh(customer_entry)
 
         return {"message": "Customer added successfully!", "added_by": current_mobile}
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
         logger.error(f"Error: {e}")
         raise HTTPException(
@@ -93,7 +95,7 @@ def delete_customer(
         if not customer_record:
             raise HTTPException(status_code=404, detail="Customer not found")
 
-        customer_record.is_deleted = 1
+        setattr(customer_record, "is_deleted", True)
 
         all_record_milk = (
             db.query(MilkRecord)
@@ -116,10 +118,10 @@ def delete_customer(
         )
 
         for milk_record in all_record_milk:
-            milk_record.is_deleted = 1
+            setattr(milk_record, "is_deleted", True)
 
         for expense_record in all_record_expense:
-            expense_record.is_deleted = 1
+            setattr(expense_record, "is_deleted", True)
 
         db.commit()
 
