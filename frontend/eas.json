@@ -4,19 +4,11 @@
     "appVersionSource": "remote"
   },
   "build": {
-    "development": {
-      "developmentClient": true,
-      "distribution": "internal",
-      "env": {
-        "APP_ENV": "development"
-      }
-    },
     "prod": {
-      // This is your base production profile
       "distribution": "store",
       "env": {
         "APP_ENV": "production",
-        "API_BASE_URL": "http://your-production-api-url.com"
+        "API_BASE_URL": "https://api.digidairy.site"
       },
       "android": {
         "buildType": "apk"
@@ -30,7 +22,7 @@
       "distribution": "internal",
       "env": {
         "APP_ENV": "dev",
-        "API_BASE_URL": "http://128.199.30.222:8000"
+        "API_BASE_URL": "https://api.digidairy.site"
       },
       "android": {
         "buildType": "apk"
