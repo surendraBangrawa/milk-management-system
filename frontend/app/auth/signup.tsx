@@ -75,10 +75,19 @@ const Signup = () => {
         }
       }
     } catch (err: any) {
-      const errorMessage =
+      let errorMessage =
         err?.response?.data?.detail ||
         err.message ||
         t("common.something_went_wrong"); // Translated generic error
+
+      // If the error message matches the backend's 'user already exists', use the translation key
+      if (
+        errorMessage === t("auth.user_already_exists") ||
+        errorMessage.toLowerCase().includes("already exists")
+      ) {
+        errorMessage = t("auth.user_already_exists");
+      }
+
       Toast.show({
         type: "error",
         text1: errorMessage,

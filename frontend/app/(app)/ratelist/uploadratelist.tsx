@@ -148,25 +148,12 @@ const UploadRateListScreen = () => {
         options={{
           title: "Upload Ratelist",
           headerStyle: {
-            backgroundColor: colors.surface,
+            backgroundColor: colors.surface, // Use theme surface for header background
           },
-          headerTintColor: colors.textPrimary,
+          headerTintColor: colors.textPrimary, // Use theme text color for title and back arrow
           headerTitleStyle: {
-            color: colors.textPrimary,
+            fontWeight: "600", // Semi-bold header title
           },
-          headerBackVisible: true,
-          headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => router.back()}
-              style={{ marginLeft: 16 }}
-            >
-              <Ionicons
-                name="arrow-back"
-                size={24}
-                color={colors.textPrimary}
-              />
-            </TouchableOpacity>
-          ),
         }}
       />
 

@@ -1,12 +1,9 @@
 import React, { useEffect } from "react";
+import { View, StyleSheet, StatusBar, Platform, ViewStyle } from "react-native";
 import {
-  View,
-  StyleSheet,
   SafeAreaView,
-  StatusBar,
-  Platform,
-  ViewStyle,
-} from "react-native";
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import useTheme from "@/context/theme/useTheme";
 
 interface SafeAreaWrapperProps {
@@ -24,6 +21,7 @@ const SafeAreaWrapper: React.FC<SafeAreaWrapperProps> = ({
   const statusBarStyle =
     themeMode === "dark" ? "light-content" : "dark-content";
   const bgColor = backgroundColor || colors.background;
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     // Set status bar to be translucent on Android
@@ -40,8 +38,11 @@ const SafeAreaWrapper: React.FC<SafeAreaWrapperProps> = ({
         backgroundColor="transparent"
         translucent={Platform.OS === "android"}
       />
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.contentContainer}>{children}</View>
+      <SafeAreaView
+        style={styles.safeArea}
+        edges={["top", "left", "right", "bottom"]}
+      >
+        <View style={[styles.contentContainer]}>{children}</View>
       </SafeAreaView>
     </View>
   );
@@ -56,8 +57,6 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
-    // Add padding for Android status bar to prevent content from going behind it
-    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0,
   },
 });
 
