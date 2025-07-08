@@ -8,19 +8,13 @@ import {
 } from "react-native";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/redux/store";
-import {
-  cancelProcessing,
-  resetUploadStatus,
-} from "@/redux/slice/ratelist/uploadStatusSlice";
-import { uploadStatusService } from "@/services/uploadStatusService";
+import { resetUploadStatus } from "@/redux/slice/ratelist/uploadStatusSlice";
 import useTheme from "@/context/theme/useTheme";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const UploadStatusBanner = () => {
   const dispatch = useDispatch();
   const { colors } = useTheme();
   const uploadStatus = useSelector((state: RootState) => state.uploadStatus);
-  const insets = useSafeAreaInsets();
 
   // Auto-dismiss completed status after 5 seconds
   useEffect(() => {
@@ -77,7 +71,6 @@ const UploadStatusBanner = () => {
         {
           backgroundColor: colors.surface,
           borderColor: colors.border,
-          bottom: insets.bottom,
         },
       ]}
     >

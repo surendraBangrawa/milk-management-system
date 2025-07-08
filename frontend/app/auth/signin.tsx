@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   View,
   TextInput,
@@ -10,7 +10,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  SafeAreaView,
 } from "react-native";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
@@ -90,113 +89,104 @@ const Signin = () => {
   };
 
   return (
-    <SafeAreaView
-      style={[styles.safeArea, { backgroundColor: colors.background }]}
+    <KeyboardAvoidingView
+      style={styles.keyboardAvoidingView}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
     >
-      <KeyboardAvoidingView
-        style={styles.keyboardAvoidingView}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
       >
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
+        <View
+          style={[styles.container, { backgroundColor: colors.background }]}
         >
-          <View
-            style={[styles.container, { backgroundColor: colors.background }]}
-          >
-            <StatusBar
-              barStyle={statusBarStyle}
-              backgroundColor={colors.surface}
-            />
-            <Text style={[styles.title, { color: colors.textPrimary }]}>
-              {t("signin.title")} {/* Translated title */}
-            </Text>
+          <StatusBar
+            barStyle={statusBarStyle}
+            backgroundColor={colors.surface}
+          />
+          <Text style={[styles.title, { color: colors.textPrimary }]}>
+            {t("signin.title")} {/* Translated title */}
+          </Text>
 
-            <View style={styles.inputContainer}>
-              <Controller
-                control={control}
-                render={({ field: { onChange, value } }) => (
-                  <TextInput
-                    style={[
-                      styles.input,
-                      {
-                        borderColor: errors.phone
-                          ? colors.error
-                          : colors.border,
-                        backgroundColor: colors.surface,
-                        color: colors.textPrimary,
-                      },
-                    ]}
-                    placeholder={t("signin.phone_placeholder")} // Translated placeholder
-                    placeholderTextColor={colors.textSecondary}
-                    value={value}
-                    onChangeText={onChange}
-                    keyboardType="phone-pad"
-                    maxLength={10}
-                  />
-                )}
-                name="phone"
-                rules={{
-                  required: t("signin.phone_required"), // Translated validation message
-                  pattern: {
-                    value: /^[0-9]{10}$/,
-                    message: t("signin.phone_invalid"), // Translated validation message
-                  },
-                }}
-              />
-              <Text
-                style={[
-                  styles.errorText,
-                  {
-                    color: colors.error,
-                    opacity: errors.phone ? 1 : 0,
-                  },
-                ]}
-              >
-                {errors.phone?.message as string}
-              </Text>
-            </View>
-
-            <TouchableOpacity
-              style={[
-                styles.button,
-                { backgroundColor: loading ? colors.border : colors.primary },
-              ]}
-              onPress={handleSubmit(handleLogin)}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator size="small" color={colors.surface} />
-              ) : (
-                <Text style={[styles.buttonText, { color: colors.surface }]}>
-                  {t("signin.login_button")} {/* Translated button text */}
-                </Text>
+          <View style={styles.inputContainer}>
+            <Controller
+              control={control}
+              render={({ field: { onChange, value } }) => (
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      borderColor: errors.phone ? colors.error : colors.border,
+                      backgroundColor: colors.surface,
+                      color: colors.textPrimary,
+                    },
+                  ]}
+                  placeholder={t("signin.phone_placeholder")} // Translated placeholder
+                  placeholderTextColor={colors.textSecondary}
+                  value={value}
+                  onChangeText={onChange}
+                  keyboardType="phone-pad"
+                  maxLength={10}
+                />
               )}
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => router.push("/auth/signup")}>
-              <Text style={[styles.signInText, { color: colors.textPrimary }]}>
-                {t("signin.no_account_prompt")} {/* Translated prompt */}
-                <Text style={[styles.signInLink, { color: colors.primary }]}>
-                  {t("signin.signup_link")} {/* Translated link */}
-                </Text>
-              </Text>
-            </TouchableOpacity>
+              name="phone"
+              rules={{
+                required: t("signin.phone_required"), // Translated validation message
+                pattern: {
+                  value: /^[0-9]{10}$/,
+                  message: t("signin.phone_invalid"), // Translated validation message
+                },
+              }}
+            />
+            <Text
+              style={[
+                styles.errorText,
+                {
+                  color: colors.error,
+                  opacity: errors.phone ? 1 : 0,
+                },
+              ]}
+            >
+              {errors.phone?.message as string}
+            </Text>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+
+          <TouchableOpacity
+            style={[
+              styles.button,
+              { backgroundColor: loading ? colors.border : colors.primary },
+            ]}
+            onPress={handleSubmit(handleLogin)}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color={colors.surface} />
+            ) : (
+              <Text style={[styles.buttonText, { color: colors.surface }]}>
+                {t("signin.login_button")} {/* Translated button text */}
+              </Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => router.push("/auth/signup")}>
+            <Text style={[styles.signInText, { color: colors.textPrimary }]}>
+              {t("signin.no_account_prompt")} {/* Translated prompt */}
+              <Text style={[styles.signInLink, { color: colors.primary }]}>
+                {t("signin.signup_link")} {/* Translated link */}
+              </Text>
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
   keyboardAvoidingView: {
     flex: 1,
   },

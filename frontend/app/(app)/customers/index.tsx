@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -15,7 +15,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchSellerSummaries } from "@/redux/slice/transactions/transactionsSlice";
 import { AppDispatch, RootState } from "@/redux/store";
 import useTheme from "@/context/theme/useTheme";
-import SafeAreaWrapper from "@/components/SafeAreaWrapper";
 import { useTranslation } from "react-i18next";
 
 interface Customer {
@@ -171,59 +170,55 @@ const CustomerScreen = () => {
   );
 
   return (
-    <SafeAreaWrapper backgroundColor={colors.background}>
-      <View style={styles.container}>
-        <TextInput
-          style={[
-            styles.searchInput,
-            {
-              borderColor: colors.border,
-              backgroundColor: colors.surface,
-              color: colors.textPrimary,
-            },
-          ]}
-          placeholder="Search by name or mobile"
-          placeholderTextColor={colors.textSecondary}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          clearButtonMode="while-editing"
+    <View style={styles.container}>
+      <TextInput
+        style={[
+          styles.searchInput,
+          {
+            borderColor: colors.border,
+            backgroundColor: colors.surface,
+            color: colors.textPrimary,
+          },
+        ]}
+        placeholder="Search by name or mobile"
+        placeholderTextColor={colors.textSecondary}
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        clearButtonMode="while-editing"
+      />
+      {loading ? (
+        <ActivityIndicator
+          size="large"
+          color={colors.primary}
+          style={styles.loadingIndicator}
         />
-        {loading ? (
-          <ActivityIndicator
-            size="large"
-            color={colors.primary}
-            style={styles.loadingIndicator}
-          />
-        ) : error ? (
-          <Text style={[styles.errorText, { color: colors.error }]}>
-            {error}
-          </Text>
-        ) : filteredPeople.length === 0 && searchQuery !== "" ? (
-          <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
-            No customers found matching your search.
-          </Text>
-        ) : people.length === 0 && searchQuery === "" ? (
-          <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
-            No customer data available.
-          </Text>
-        ) : (
-          <FlatList
-            data={filteredPeople}
-            renderItem={renderPerson}
-            keyExtractor={(item, index) => index.toString()}
-            contentContainerStyle={styles.listContainer}
-            showsVerticalScrollIndicator={false}
-          />
-        )}
-        <TouchableOpacity
-          style={[styles.floatingButton, { backgroundColor: colors.primary }]}
-          onPress={() => router.push("/customers/contacts/contact")}
-          activeOpacity={0.85}
-        >
-          <Text style={[styles.buttonText, { color: colors.surface }]}>+</Text>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaWrapper>
+      ) : error ? (
+        <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
+      ) : filteredPeople.length === 0 && searchQuery !== "" ? (
+        <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
+          No customers found matching your search.
+        </Text>
+      ) : people.length === 0 && searchQuery === "" ? (
+        <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
+          No customer data available.
+        </Text>
+      ) : (
+        <FlatList
+          data={filteredPeople}
+          renderItem={renderPerson}
+          keyExtractor={(item, index) => index.toString()}
+          contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
+      <TouchableOpacity
+        style={[styles.floatingButton, { backgroundColor: colors.primary }]}
+        onPress={() => router.push("/customers/contacts/contact")}
+        activeOpacity={0.85}
+      >
+        <Text style={[styles.buttonText, { color: colors.surface }]}>+</Text>
+      </TouchableOpacity>
+    </View>
   );
 };
 

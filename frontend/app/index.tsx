@@ -1,6 +1,5 @@
 import {
   Text,
-  SafeAreaView,
   Pressable,
   View,
   StatusBar,
@@ -123,128 +122,126 @@ const HeroScreen = () => {
     >
       <StatusBar barStyle={statusBarStyle} backgroundColor={colors.surface} />
 
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.heroContent}>
-          <Text style={[styles.appLogoText, { color: colors.textPrimary }]}>
-            {t("app_name")}
-          </Text>
+      <View style={styles.heroContent}>
+        <Text style={[styles.appLogoText, { color: colors.textPrimary }]}>
+          {t("app_name")}
+        </Text>
 
-          <ScrollView
-            ref={carouselScrollViewRef}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onScroll={onScroll}
-            scrollEventThrottle={16}
-            style={styles.carouselScrollView}
-          >
-            {marketingSlides.map((item, index) => (
-              <View key={index} style={styles.carouselItem}>
-                {item.image && (
-                  <Image
-                    source={item.image}
-                    style={styles.carouselImage}
-                    resizeMode="contain"
-                  />
-                )}
-                <Text
-                  style={[styles.carouselTitle, { color: colors.textPrimary }]}
-                >
-                  {t(item.titleKey)}
-                </Text>
-                <Text
-                  style={[
-                    styles.carouselDescription,
-                    { color: colors.textSecondary },
-                  ]}
-                >
-                  {t(item.descriptionKey)}
-                </Text>
-              </View>
-            ))}
-          </ScrollView>
-
-          {/* Pagination Dots */}
-          <View style={styles.paginationDotsContainer}>
-            {marketingSlides.map((_, index) => (
-              <Pressable
-                key={`dot-${index}`}
-                style={[
-                  styles.dot,
-                  {
-                    backgroundColor:
-                      index === activeSlide
-                        ? colors.primary
-                        : colors.textSecondary,
-                    opacity: index === activeSlide ? 1 : 0.4,
-                  },
-                ]}
-                onPress={() => scrollToSlide(index)}
-                accessibilityLabel={t("carousel.dot_label", {
-                  index: index + 1,
-                })}
-              />
-            ))}
-          </View>
-
-          {/* Action Buttons */}
-          <View style={styles.buttonGroup}>
-            <Pressable
-              style={({ pressed }) => [
-                styles.button,
-                { backgroundColor: colors.primary },
-                Platform.select({
-                  ios: {
-                    shadowOpacity: pressed ? 0.2 : 0.1,
-                    shadowRadius: pressed ? 3 : 4,
-                  },
-                  android: {
-                    elevation: pressed ? 2 : 3,
-                  },
-                }),
-              ]}
-              onPress={() => {
-                router.push("/auth/signin");
-              }}
-              accessibilityLabel={t("hero.signin_button")}
-            >
-              <Text style={[styles.buttonText, { color: colors.onPrimary }]}>
-                {t("hero.signin_button")}
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={({ pressed }) => [
-                styles.button,
-                styles.secondaryButton,
-                {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.primary,
-                },
-                Platform.select({
-                  ios: {
-                    shadowOpacity: pressed ? 0.2 : 0.1,
-                    shadowRadius: pressed ? 3 : 4,
-                  },
-                  android: {
-                    elevation: pressed ? 2 : 3,
-                  },
-                }),
-              ]}
-              onPress={() => {
-                router.push("/auth/signup");
-              }}
-              accessibilityLabel={t("hero.signup_button")}
-            >
+        <ScrollView
+          ref={carouselScrollViewRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          style={styles.carouselScrollView}
+        >
+          {marketingSlides.map((item, index) => (
+            <View key={index} style={styles.carouselItem}>
+              {item.image && (
+                <Image
+                  source={item.image}
+                  style={styles.carouselImage}
+                  resizeMode="contain"
+                />
+              )}
               <Text
-                style={[styles.secondaryButtonText, { color: colors.primary }]}
+                style={[styles.carouselTitle, { color: colors.textPrimary }]}
               >
-                {t("hero.signup_button")}
+                {t(item.titleKey)}
               </Text>
-            </Pressable>
-          </View>
+              <Text
+                style={[
+                  styles.carouselDescription,
+                  { color: colors.textSecondary },
+                ]}
+              >
+                {t(item.descriptionKey)}
+              </Text>
+            </View>
+          ))}
+        </ScrollView>
+
+        {/* Pagination Dots */}
+        <View style={styles.paginationDotsContainer}>
+          {marketingSlides.map((_, index) => (
+            <Pressable
+              key={`dot-${index}`}
+              style={[
+                styles.dot,
+                {
+                  backgroundColor:
+                    index === activeSlide
+                      ? colors.primary
+                      : colors.textSecondary,
+                  opacity: index === activeSlide ? 1 : 0.4,
+                },
+              ]}
+              onPress={() => scrollToSlide(index)}
+              accessibilityLabel={t("carousel.dot_label", {
+                index: index + 1,
+              })}
+            />
+          ))}
         </View>
-      </SafeAreaView>
+
+        {/* Action Buttons */}
+        <View style={styles.buttonGroup}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.button,
+              { backgroundColor: colors.primary },
+              Platform.select({
+                ios: {
+                  shadowOpacity: pressed ? 0.2 : 0.1,
+                  shadowRadius: pressed ? 3 : 4,
+                },
+                android: {
+                  elevation: pressed ? 2 : 3,
+                },
+              }),
+            ]}
+            onPress={() => {
+              router.push("/auth/signin");
+            }}
+            accessibilityLabel={t("hero.signin_button")}
+          >
+            <Text style={[styles.buttonText, { color: colors.onPrimary }]}>
+              {t("hero.signin_button")}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.button,
+              styles.secondaryButton,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.primary,
+              },
+              Platform.select({
+                ios: {
+                  shadowOpacity: pressed ? 0.2 : 0.1,
+                  shadowRadius: pressed ? 3 : 4,
+                },
+                android: {
+                  elevation: pressed ? 2 : 3,
+                },
+              }),
+            ]}
+            onPress={() => {
+              router.push("/auth/signup");
+            }}
+            accessibilityLabel={t("hero.signup_button")}
+          >
+            <Text
+              style={[styles.secondaryButtonText, { color: colors.primary }]}
+            >
+              {t("hero.signup_button")}
+            </Text>
+          </Pressable>
+        </View>
+      </View>
     </ImageBackground>
   );
 };
@@ -259,13 +256,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-  },
-  safeArea: {
-    flex: 1,
-    width: "100%",
-    justifyContent: "space-between", // Distribute content vertically
-    alignItems: "center",
-    paddingVertical: Platform.OS === "android" ? StatusBar.currentHeight : 0, // Handle Android notch/status bar space
   },
   heroContent: {
     alignItems: "center",

@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import {
   View,
   FlatList,
@@ -21,7 +21,6 @@ import {
 } from "@/redux/slice/transactions/transactionsSlice";
 
 import useTheme from "@/context/theme/useTheme";
-import SafeAreaWrapper from "@/components/SafeAreaWrapper";
 import CustomerTransaction from "@/components/Transaction/CustomerTransaction";
 import { useTranslation } from "react-i18next";
 
@@ -227,7 +226,7 @@ const TransactionScreen = () => {
   };
 
   return (
-    <SafeAreaWrapper backgroundColor={colors.background}>
+    <>
       <Stack.Screen
         options={{
           headerStyle: {
@@ -355,7 +354,7 @@ const TransactionScreen = () => {
           <Text style={styles.bottomActionButtonText}>Got</Text>
         </TouchableOpacity>
       </View>
-    </SafeAreaWrapper>
+    </>
   );
 };
 

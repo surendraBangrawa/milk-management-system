@@ -42,7 +42,14 @@ const SafeAreaWrapper: React.FC<SafeAreaWrapperProps> = ({
         style={styles.safeArea}
         edges={["top", "left", "right", "bottom"]}
       >
-        <View style={[styles.contentContainer]}>{children}</View>
+        <View
+          style={[
+            styles.contentContainer,
+            { paddingTop: insets.top, paddingBottom: insets.bottom },
+          ]}
+        >
+          {children}
+        </View>
       </SafeAreaView>
     </View>
   );

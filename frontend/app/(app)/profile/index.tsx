@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { StyleSheet, View, Text, Image, ActivityIndicator } from "react-native";
 import Toast from "react-native-toast-message";
 import { getProfileApi } from "@/redux/slice/profile/profileApi";

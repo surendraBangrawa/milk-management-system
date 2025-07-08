@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import { useState, useRef } from "react";
 import {
   View,
   TextInput,
@@ -17,7 +17,6 @@ import Toast from "react-native-toast-message";
 import { saveContactApi } from "@/redux/slice/customers/customerApi";
 
 import useTheme from "@/context/theme/useTheme";
-import SafeAreaWrapper from "@/components/SafeAreaWrapper";
 
 // Assuming ProfileIcon is a static local image, it doesn't need theming
 const ProfileIcon = require("../../../../assets/images/avatar.jpg");
@@ -114,7 +113,7 @@ const AddCustomerFormScreen = () => {
   };
 
   return (
-    <SafeAreaWrapper backgroundColor={colors.background}>
+    <>
       <Stack.Screen
         options={{
           title: effectiveMobile ? "Edit Customer" : "Add Customer",
@@ -256,7 +255,7 @@ const AddCustomerFormScreen = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaWrapper>
+    </>
   );
 };
 

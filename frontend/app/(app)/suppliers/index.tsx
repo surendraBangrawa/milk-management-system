@@ -16,7 +16,6 @@ import { getSupplierSummaryApi } from "@/redux/slice/supplier/supplierApi";
 import { useTranslation } from "react-i18next";
 
 import useTheme from "@/context/theme/useTheme";
-import SafeAreaWrapper from "@/components/SafeAreaWrapper";
 
 interface SupplierSummary {
   mobile: string;
@@ -240,53 +239,49 @@ const SupplierScreen = () => {
   );
 
   return (
-    <SafeAreaWrapper backgroundColor={colors.background}>
-      <View style={styles.container}>
-        <TextInput
-          style={[
-            styles.searchInput,
-            {
-              borderColor: colors.border,
-              backgroundColor: colors.surface,
-              color: colors.textPrimary,
-            },
-          ]}
-          placeholder="Search suppliers by name or mobile"
-          placeholderTextColor={colors.textSecondary}
-          value={searchQuery}
-          onChangeText={handleSearch} // Use the handleSearch function
-          clearButtonMode="while-editing"
-        />
+    <View style={styles.container}>
+      <TextInput
+        style={[
+          styles.searchInput,
+          {
+            borderColor: colors.border,
+            backgroundColor: colors.surface,
+            color: colors.textPrimary,
+          },
+        ]}
+        placeholder="Search suppliers by name or mobile"
+        placeholderTextColor={colors.textSecondary}
+        value={searchQuery}
+        onChangeText={handleSearch} // Use the handleSearch function
+        clearButtonMode="while-editing"
+      />
 
-        {loading ? (
-          <ActivityIndicator
-            size="large"
-            color={colors.primary}
-            style={styles.loadingIndicator}
-          />
-        ) : error ? (
-          <Text style={[styles.errorText, { color: colors.error }]}>
-            {error}
-          </Text>
-        ) : filteredPeople.length === 0 && searchQuery !== "" ? ( // No results for the search query
-          <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
-            No suppliers found matching your search.
-          </Text>
-        ) : people.length === 0 && searchQuery === "" ? ( // No data fetched initially
-          <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
-            No supplier data available.
-          </Text>
-        ) : (
-          <FlatList
-            data={filteredPeople} // Use the filtered list
-            renderItem={renderPerson}
-            keyExtractor={(item, index) => index.toString()}
-            contentContainerStyle={styles.listContainer}
-            showsVerticalScrollIndicator={false}
-          />
-        )}
-      </View>
-    </SafeAreaWrapper>
+      {loading ? (
+        <ActivityIndicator
+          size="large"
+          color={colors.primary}
+          style={styles.loadingIndicator}
+        />
+      ) : error ? (
+        <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
+      ) : filteredPeople.length === 0 && searchQuery !== "" ? ( // No results for the search query
+        <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
+          No suppliers found matching your search.
+        </Text>
+      ) : people.length === 0 && searchQuery === "" ? ( // No data fetched initially
+        <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
+          No supplier data available.
+        </Text>
+      ) : (
+        <FlatList
+          data={filteredPeople} // Use the filtered list
+          renderItem={renderPerson}
+          keyExtractor={(item, index) => index.toString()}
+          contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
+    </View>
   );
 };
 

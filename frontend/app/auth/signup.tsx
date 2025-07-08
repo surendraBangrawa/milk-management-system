@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   View,
   TextInput,
@@ -6,11 +6,10 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  StatusBar,
   Linking,
   Platform,
   ScrollView,
-  SafeAreaView,
+  KeyboardAvoidingView,
 } from "react-native";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
@@ -20,15 +19,12 @@ import Checkbox from "expo-checkbox"; // Import Checkbox from expo-checkbox
 import { sendOtpApi, signUpApi } from "@/redux/slice/auth/authApi";
 
 import useTheme from "@/context/theme/useTheme";
-// Import useTranslation hook
 import { useTranslation } from "react-i18next";
 
 const Signup = () => {
   const router = useRouter();
-  const { colors, themeMode } = useTheme();
+  const { colors } = useTheme();
   const { t } = useTranslation(); // Initialize useTranslation
-  const statusBarStyle =
-    themeMode === "dark" ? "light-content" : "dark-content";
 
   const {
     control,
@@ -110,11 +106,11 @@ const Signup = () => {
   };
 
   return (
-    <SafeAreaView
-      style={[styles.safeArea, { backgroundColor: colors.background }]}
+    <KeyboardAvoidingView
+      style={styles.keyboardAvoidingView}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
     >
-      <StatusBar barStyle={statusBarStyle} backgroundColor={colors.surface} />
-
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -311,12 +307,12 @@ const Signup = () => {
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
+  keyboardAvoidingView: {
     flex: 1,
   },
   scrollView: {

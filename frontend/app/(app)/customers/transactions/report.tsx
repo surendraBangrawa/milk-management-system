@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -17,7 +17,6 @@ import * as Sharing from "expo-sharing";
 import moment from "moment";
 
 import useTheme from "@/context/theme/useTheme";
-import SafeAreaWrapper from "@/components/SafeAreaWrapper";
 import DatePickerModal from "@/components/DatePickerModal";
 import ReportCustomerTransaction from "@/components/Transaction/ReportCustomerTransaction";
 import { useDispatch, useSelector } from "react-redux";
@@ -316,7 +315,7 @@ const ReportScreen = () => {
   };
 
   return (
-    <SafeAreaWrapper backgroundColor={colors.background}>
+    <>
       <Stack.Screen
         options={{
           title: "Report",
@@ -457,7 +456,7 @@ const ReportScreen = () => {
           )}
         </TouchableOpacity>
       </View>
-    </SafeAreaWrapper>
+    </>
   );
 };
 

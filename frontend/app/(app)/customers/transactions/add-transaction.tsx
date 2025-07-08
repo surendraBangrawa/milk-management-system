@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   TextInput,
   StyleSheet,
@@ -18,7 +18,6 @@ import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
 
 import useTheme from "@/context/theme/useTheme";
-import SafeAreaWrapper from "@/components/SafeAreaWrapper";
 import {
   addCustomerTransactionApi,
   editCustomerTransactionApi,
@@ -198,7 +197,7 @@ const AddTransactionScreen = () => {
   };
 
   return (
-    <SafeAreaWrapper backgroundColor={colors.background}>
+    <>
       <Stack.Screen
         options={{
           title: effectiveType === "GAVE" ? "You Gave" : "You Got",
@@ -372,7 +371,7 @@ const AddTransactionScreen = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaWrapper>
+    </>
   );
 };
 

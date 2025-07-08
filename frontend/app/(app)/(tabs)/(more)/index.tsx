@@ -1,4 +1,3 @@
-import React from "react";
 import { useSession } from "@/context/AuthProvider";
 import { useRouter } from "expo-router";
 import { StyleSheet, View, Text, Pressable, ScrollView } from "react-native";
@@ -6,7 +5,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 
 import useTheme from "@/context/theme/useTheme";
-import SafeAreaWrapper from "@/components/SafeAreaWrapper";
 
 interface Option {
   labelKey: string;
@@ -121,75 +119,71 @@ export default function TabTwoScreen() {
   };
 
   return (
-    <SafeAreaWrapper backgroundColor={colors.background}>
-      <ScrollView style={styles.container}>
-        {sections.map((section, sectionIndex) => (
-          <View key={`section-${sectionIndex}`} style={styles.sectionContainer}>
-            {section.titleKey && (
-              <Text
-                style={[styles.sectionTitle, { color: colors.textPrimary }]}
+    <ScrollView style={styles.container}>
+      {sections.map((section, sectionIndex) => (
+        <View key={`section-${sectionIndex}`} style={styles.sectionContainer}>
+          {section.titleKey && (
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+              {t(section.titleKey)}
+            </Text>
+          )}
+          <View
+            style={[styles.optionsList, { backgroundColor: colors.surface }]}
+          >
+            {section.data.map((option, optionIndex) => (
+              <Pressable
+                key={option.labelKey} // Use labelKey as key for stability
+                style={({ pressed }) => [
+                  styles.optionButton,
+                  {
+                    backgroundColor: colors.surface,
+                    borderBottomWidth:
+                      optionIndex === section.data.length - 1
+                        ? 0
+                        : StyleSheet.hairlineWidth,
+                    borderBottomColor: colors.border,
+                  },
+                ]}
+                onPress={() => handleOptionPress(option)}
+                accessibilityRole="button"
+                accessibilityLabel={`${t(option.labelKey)} option`} // Translate accessibility label
               >
-                {t(section.titleKey)}
-              </Text>
-            )}
-            <View
-              style={[styles.optionsList, { backgroundColor: colors.surface }]}
-            >
-              {section.data.map((option, optionIndex) => (
-                <Pressable
-                  key={option.labelKey} // Use labelKey as key for stability
-                  style={({ pressed }) => [
-                    styles.optionButton,
-                    {
-                      backgroundColor: colors.surface,
-                      borderBottomWidth:
-                        optionIndex === section.data.length - 1
-                          ? 0
-                          : StyleSheet.hairlineWidth,
-                      borderBottomColor: colors.border,
-                    },
-                  ]}
-                  onPress={() => handleOptionPress(option)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${t(option.labelKey)} option`} // Translate accessibility label
-                >
-                  <View style={styles.optionContent}>
-                    <Ionicons
-                      name={option.icon}
-                      size={24}
-                      color={option.iconColor || colors.textPrimary}
-                      style={styles.optionIcon}
-                    />
-                    <Text
-                      style={[
-                        styles.optionText,
-                        {
-                          color:
-                            option.type === "logout"
-                              ? colors.error
-                              : colors.textPrimary,
-                        },
-                      ]}
-                    >
-                      {t(option.labelKey)}
-                    </Text>
+                <View style={styles.optionContent}>
+                  <Ionicons
+                    name={option.icon}
+                    size={24}
+                    color={option.iconColor || colors.textPrimary}
+                    style={styles.optionIcon}
+                  />
+                  <Text
+                    style={[
+                      styles.optionText,
+                      {
+                        color:
+                          option.type === "logout"
+                            ? colors.error
+                            : colors.textPrimary,
+                      },
+                    ]}
+                  >
+                    {t(option.labelKey)}
+                  </Text>
 
-                    {option.path && !option.hideChevron && (
-                      <Ionicons
-                        name="chevron-forward-outline"
-                        size={20}
-                        color={colors.textSecondary}
-                        style={styles.chevronIcon}
-                      />
-                    )}
-                  </View>
-                </Pressable>
-              ))}
-            </View>
+                  {option.path && !option.hideChevron && (
+                    <Ionicons
+                      name="chevron-forward-outline"
+                      size={20}
+                      color={colors.textSecondary}
+                      style={styles.chevronIcon}
+                    />
+                  )}
+                </View>
+              </Pressable>
+            ))}
           </View>
-        ))}
-      </ScrollView>
-    </SafeAreaWrapper>
+        </View>
+      ))}
+    </ScrollView>
   );
 }
 

@@ -1,6 +1,5 @@
 import { Heading, Paragraph, Section } from "@/components/InfoPageComponents";
 import StaticInfoScreen from "@/components/StaticInfoScreen";
-import React from "react";
 import { useTranslation } from "react-i18next";
 
 export default function ContactUsScreen() {

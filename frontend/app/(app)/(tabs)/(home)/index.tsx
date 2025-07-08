@@ -1,8 +1,7 @@
-import React, { useState } from "react";
-import { Text, StyleSheet, Pressable, View, Platform } from "react-native";
+import { useState } from "react";
+import { Text, StyleSheet, Pressable, View } from "react-native";
 import CustomerScreen from "../../customers";
 import SupplierScreen from "../../suppliers";
-import SafeAreaWrapper from "@/components/SafeAreaWrapper";
 import { useTranslation } from "react-i18next";
 
 import useTheme from "@/context/theme/useTheme"; // Import useTheme
@@ -18,7 +17,7 @@ const HomeScreen = () => {
   };
 
   return (
-    <SafeAreaWrapper backgroundColor={colors.background}>
+    <>
       <View
         style={[styles.headerContainer, { backgroundColor: colors.surface }]}
       >
@@ -71,7 +70,7 @@ const HomeScreen = () => {
       <View style={styles.screenContainer}>
         {mode === "customer" ? <CustomerScreen /> : <SupplierScreen />}
       </View>
-    </SafeAreaWrapper>
+    </>
   );
 };
 

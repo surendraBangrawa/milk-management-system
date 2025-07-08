@@ -12,14 +12,9 @@ import {
 import Toast from "react-native-toast-message";
 import useTheme from "@/context/theme/useTheme";
 import axios from "@/lib/axiosIntance";
-import {
-  refreshSubscriptionStatus,
-  checkCustomerLimit,
-  checkTransactionLimit,
-} from "@/lib/subscriptionUtils";
+import { refreshSubscriptionStatus } from "@/lib/subscriptionUtils";
 import PaymentWebView from "@/components/PaymentWebView";
 import { useTranslation } from "react-i18next";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Subscription() {
   const { colors } = useTheme();
@@ -209,7 +204,7 @@ export default function Subscription() {
   const premiumPlan = getPremiumPlan();
 
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
+    <>
       <ScrollView
         style={[styles.container, { backgroundColor: colors.background }]}
         keyboardShouldPersistTaps="handled"
@@ -413,7 +408,7 @@ export default function Subscription() {
         onSuccess={handlePaymentSuccess}
         onError={handlePaymentError}
       />
-    </SafeAreaView>
+    </>
   );
 }
 

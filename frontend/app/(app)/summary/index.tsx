@@ -5,14 +5,12 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  SafeAreaView,
 } from "react-native";
 import { Stack } from "expo-router";
 import { Picker } from "@react-native-picker/picker";
 import useTheme from "@/context/theme/useTheme";
 import { getTotalRecordDateRangeApi } from "@/redux/slice/transactions/transactionApi";
 import DateTimePickerModal from "@/components/DatePickerModal";
-import SafeAreaWrapper from "@/components/SafeAreaWrapper";
 import { useTranslation } from "react-i18next";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
@@ -61,271 +59,250 @@ const SummaryScreen = () => {
   };
 
   return (
-    <SafeAreaWrapper backgroundColor={colors.background}>
-      <SafeAreaView style={{ flex: 1 }}>
-        <View style={{ flex: 1 }}>
-          <ScrollView
-            contentContainerStyle={{ flexGrow: 1, paddingBottom: 16 }}
-            keyboardShouldPersistTaps="handled"
+    <View style={{ flex: 1 }}>
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 16 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Stack.Screen
+          options={{
+            title: t("summary.title"),
+            headerStyle: {
+              backgroundColor: colors.surface,
+            },
+            headerTintColor: colors.textPrimary,
+            headerTitleStyle: {
+              fontWeight: "600",
+            },
+          }}
+        />
+        {/* Date Range Card */}
+        <View
+          style={[
+            styles.inputCard,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
+        >
+          <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>
+            {t("summary.select_date_range")}
+          </Text>
+          <View style={styles.inputRow}>
+            <TouchableOpacity
+              style={[styles.inputButton, { flex: 1, marginRight: 5 }]}
+              onPress={() => setShowStartPicker(true)}
+              activeOpacity={0.8}
+            >
+              <MaterialCommunityIcons
+                name="calendar-range"
+                size={20}
+                color={colors.primary}
+              />
+              <Text style={styles.inputButtonText}>
+                {startDate
+                  ? startDate.toLocaleDateString()
+                  : t("summary.select_start_date")}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.inputButton, { flex: 1, marginLeft: 5 }]}
+              onPress={() => setShowEndPicker(true)}
+              activeOpacity={0.8}
+            >
+              <MaterialCommunityIcons
+                name="calendar-range"
+                size={20}
+                color={colors.primary}
+              />
+              <Text
+                style={[styles.inputButtonText, { flexShrink: 1, minWidth: 0 }]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {endDate
+                  ? endDate.toLocaleDateString()
+                  : t("summary.select_end_date")}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          {/* Shift Filter */}
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={shift || "ALL"}
+              onValueChange={(value) => setShift(value)}
+              style={{ color: colors.textPrimary }}
+              dropdownIconColor={colors.textSecondary}
+            >
+              <Picker.Item
+                label={t("summary.all_shifts") || "All Shifts"}
+                value="ALL"
+              />
+              <Picker.Item
+                label={t("summary.morning") || "Morning"}
+                value="M"
+              />
+              <Picker.Item
+                label={t("summary.evening") || "Evening"}
+                value="E"
+              />
+            </Picker>
+          </View>
+          <TouchableOpacity
+            style={[
+              styles.fetchButton,
+              { backgroundColor: colors.primary },
+              (loading || !startDate || !endDate) && { opacity: 0.6 },
+            ]}
+            onPress={handleFetch}
+            disabled={loading || !startDate || !endDate}
+            activeOpacity={0.8}
           >
-            <Stack.Screen
-              options={{
-                title: t("summary.title"),
-                headerStyle: {
-                  backgroundColor: colors.surface,
-                },
-                headerTintColor: colors.textPrimary,
-                headerTitleStyle: {
-                  fontWeight: "600",
-                },
-              }}
+            <Text style={styles.fetchButtonText}>
+              {t("summary.fetch_summary")}
+            </Text>
+          </TouchableOpacity>
+        </View>
+        {/* Date Pickers */}
+        <DateTimePickerModal
+          visible={showStartPicker}
+          initialDate={startDate || new Date()}
+          onConfirm={(date) => {
+            setShowStartPicker(false);
+            setStartDate(date);
+          }}
+          onClose={() => setShowStartPicker(false)}
+        />
+        <DateTimePickerModal
+          visible={showEndPicker}
+          initialDate={endDate || new Date()}
+          onConfirm={(date) => {
+            setShowEndPicker(false);
+            setEndDate(date);
+          }}
+          onClose={() => setShowEndPicker(false)}
+        />
+        {/* Summary Stats */}
+        {loading ? (
+          <View style={styles.centered}>
+            <MaterialCommunityIcons
+              name="progress-clock"
+              size={32}
+              color={colors.primary}
             />
-            {/* Date Range Card */}
+            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+              {t("summary.loading")}
+            </Text>
+          </View>
+        ) : error ? (
+          <View style={styles.centered}>
+            <MaterialCommunityIcons
+              name="alert-circle-outline"
+              size={32}
+              color={colors.error}
+            />
+            <Text style={[styles.errorText, { color: colors.error }]}>
+              {error}
+            </Text>
+          </View>
+        ) : summary ? (
+          <View style={styles.statsGrid}>
             <View
               style={[
-                styles.inputCard,
-                { backgroundColor: colors.surface, borderColor: colors.border },
+                styles.statCard,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                },
               ]}
             >
-              <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>
-                {t("summary.select_date_range")}
+              <MaterialCommunityIcons
+                name="cow"
+                size={32}
+                color={colors.primary}
+                style={{ marginBottom: 4 }}
+              />
+              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+                {t("summary.total_milk_quantity")}
               </Text>
-              <View style={styles.inputRow}>
-                <TouchableOpacity
-                  style={[styles.inputButton, { flex: 1, marginRight: 5 }]}
-                  onPress={() => setShowStartPicker(true)}
-                  activeOpacity={0.8}
-                >
-                  <MaterialCommunityIcons
-                    name="calendar-range"
-                    size={20}
-                    color={colors.primary}
-                  />
-                  <Text style={styles.inputButtonText}>
-                    {startDate
-                      ? startDate.toLocaleDateString()
-                      : t("summary.select_start_date")}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.inputButton, { flex: 1, marginLeft: 5 }]}
-                  onPress={() => setShowEndPicker(true)}
-                  activeOpacity={0.8}
-                >
-                  <MaterialCommunityIcons
-                    name="calendar-range"
-                    size={20}
-                    color={colors.primary}
-                  />
-                  <Text
-                    style={[
-                      styles.inputButtonText,
-                      { flexShrink: 1, minWidth: 0 },
-                    ]}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
-                    {endDate
-                      ? endDate.toLocaleDateString()
-                      : t("summary.select_end_date")}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-              {/* Shift Filter */}
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={shift || "ALL"}
-                  onValueChange={(value) => setShift(value)}
-                  style={{ color: colors.textPrimary }}
-                  dropdownIconColor={colors.textSecondary}
-                >
-                  <Picker.Item
-                    label={t("summary.all_shifts") || "All Shifts"}
-                    value="ALL"
-                  />
-                  <Picker.Item
-                    label={t("summary.morning") || "Morning"}
-                    value="M"
-                  />
-                  <Picker.Item
-                    label={t("summary.evening") || "Evening"}
-                    value="E"
-                  />
-                </Picker>
-              </View>
-              <TouchableOpacity
-                style={[
-                  styles.fetchButton,
-                  { backgroundColor: colors.primary },
-                  (loading || !startDate || !endDate) && { opacity: 0.6 },
-                ]}
-                onPress={handleFetch}
-                disabled={loading || !startDate || !endDate}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.fetchButtonText}>
-                  {t("summary.fetch_summary")}
-                </Text>
-              </TouchableOpacity>
+              <Text style={[styles.statValue, { color: colors.primary }]}>
+                {summary.total_milk_quantity}
+              </Text>
             </View>
-            {/* Date Pickers */}
-            <DateTimePickerModal
-              visible={showStartPicker}
-              initialDate={startDate || new Date()}
-              onConfirm={(date) => {
-                setShowStartPicker(false);
-                setStartDate(date);
-              }}
-              onClose={() => setShowStartPicker(false)}
-            />
-            <DateTimePickerModal
-              visible={showEndPicker}
-              initialDate={endDate || new Date()}
-              onConfirm={(date) => {
-                setShowEndPicker(false);
-                setEndDate(date);
-              }}
-              onClose={() => setShowEndPicker(false)}
-            />
-            {/* Summary Stats */}
-            {loading ? (
-              <View style={styles.centered}>
-                <MaterialCommunityIcons
-                  name="progress-clock"
-                  size={32}
-                  color={colors.primary}
-                />
-                <Text
-                  style={[styles.loadingText, { color: colors.textSecondary }]}
-                >
-                  {t("summary.loading")}
-                </Text>
-              </View>
-            ) : error ? (
-              <View style={styles.centered}>
-                <MaterialCommunityIcons
-                  name="alert-circle-outline"
-                  size={32}
-                  color={colors.error}
-                />
-                <Text style={[styles.errorText, { color: colors.error }]}>
-                  {error}
-                </Text>
-              </View>
-            ) : summary ? (
-              <View style={styles.statsGrid}>
-                <View
-                  style={[
-                    styles.statCard,
-                    {
-                      backgroundColor: colors.surface,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name="cow"
-                    size={32}
-                    color={colors.primary}
-                    style={{ marginBottom: 4 }}
-                  />
-                  <Text
-                    style={[styles.statLabel, { color: colors.textSecondary }]}
-                  >
-                    {t("summary.total_milk_quantity")}
-                  </Text>
-                  <Text style={[styles.statValue, { color: colors.primary }]}>
-                    {summary.total_milk_quantity}
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.statCard,
-                    {
-                      backgroundColor: colors.surface,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name="currency-inr"
-                    size={32}
-                    color={colors.success}
-                    style={{ marginBottom: 4 }}
-                  />
-                  <Text
-                    style={[styles.statLabel, { color: colors.textSecondary }]}
-                  >
-                    {t("summary.total_milk_amount")}
-                  </Text>
-                  <Text style={[styles.statValue, { color: colors.success }]}>
-                    ₹{summary.total_milk_amount}
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.statCard,
-                    {
-                      backgroundColor: colors.surface,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name="currency-inr"
-                    size={32}
-                    color={colors.error}
-                    style={{ marginBottom: 4 }}
-                  />
-                  <Text
-                    style={[styles.statLabel, { color: colors.textSecondary }]}
-                  >
-                    {t("summary.total_expense_amount")}
-                  </Text>
-                  <Text style={[styles.statValue, { color: colors.error }]}>
-                    ₹{summary.total_expense_amount}
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.statCard,
-                    {
-                      backgroundColor: colors.surface,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name="format-list-numbered"
-                    size={32}
-                    color={colors.textPrimary}
-                    style={{ marginBottom: 4 }}
-                  />
-                  <Text
-                    style={[styles.statLabel, { color: colors.textSecondary }]}
-                  >
-                    {t("summary.total_entries")}
-                  </Text>
-                  <Text
-                    style={[styles.statValue, { color: colors.textPrimary }]}
-                  >
-                    {summary.total_entries_count}
-                  </Text>
-                </View>
-              </View>
-            ) : (
-              <View style={styles.centered}>
-                <Text
-                  style={[styles.infoText, { color: colors.textSecondary }]}
-                >
-                  {t("summary.no_data")}
-                </Text>
-              </View>
-            )}
-          </ScrollView>
-        </View>
-      </SafeAreaView>
-    </SafeAreaWrapper>
+            <View
+              style={[
+                styles.statCard,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="currency-inr"
+                size={32}
+                color={colors.success}
+                style={{ marginBottom: 4 }}
+              />
+              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+                {t("summary.total_milk_amount")}
+              </Text>
+              <Text style={[styles.statValue, { color: colors.success }]}>
+                ₹{summary.total_milk_amount}
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.statCard,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="currency-inr"
+                size={32}
+                color={colors.error}
+                style={{ marginBottom: 4 }}
+              />
+              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+                {t("summary.total_expense_amount")}
+              </Text>
+              <Text style={[styles.statValue, { color: colors.error }]}>
+                ₹{summary.total_expense_amount}
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.statCard,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="format-list-numbered"
+                size={32}
+                color={colors.textPrimary}
+                style={{ marginBottom: 4 }}
+              />
+              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+                {t("summary.total_entries")}
+              </Text>
+              <Text style={[styles.statValue, { color: colors.textPrimary }]}>
+                {summary.total_entries_count}
+              </Text>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.centered}>
+            <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+              {t("summary.no_data")}
+            </Text>
+          </View>
+        )}
+      </ScrollView>
+    </View>
   );
 };
 
