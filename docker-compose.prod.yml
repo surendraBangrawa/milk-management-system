@@ -68,8 +68,8 @@ services:
       backend:
         condition: service_started
     volumes:
-      - /home/static:/home/static
-      - /home/media:/home/media
+      - /home/static:/app/home/static
+      - /home/media:/app/home/media
     restart: always
     command: >
       sh -c "python manage.py collectstatic --noinput &&
