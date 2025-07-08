@@ -141,18 +141,10 @@ EOF
     info "nginx config written."
 
     # Validation step: remove malformed proxy_set_header lines
-    tmpfile=$(mktemp)
-    while IFS= read -r line; do
-        if [[ "$line" =~ ^[[:space:]]*proxy_set_header[[:space:]]+[^[:space:];]+[[:space:]]+[^[:space:];]+[[:space:]]*;[[:space:]]*$ ]]; then
-            echo "$line" >> "$tmpfile"
-        elif [[ "$line" =~ proxy_set_header ]]; then
-            # skip malformed proxy_set_header lines
-            continue
-        else
-            echo "$line" >> "$tmpfile"
-        fi
-    done < "$NGINX_CONF_PATH"
-    mv "$tmpfile" "$NGINX_CONF_PATH"
+    awk '!
+    /^\s*proxy_set_header/ { print; next }
+    NF == 4 && $1 == "proxy_set_header" && $4 ~ /;$/ { print }
+    ' "$NGINX_CONF_PATH" > "$NGINX_CONF_PATH.tmp" && mv "$NGINX_CONF_PATH.tmp" "$NGINX_CONF_PATH"
     info "nginx config validated for proxy_set_header lines."
 }
 
