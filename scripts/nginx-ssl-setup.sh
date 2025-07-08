@@ -46,10 +46,11 @@ upstream backend_api {
 server {
     listen 80;
     server_name $ADMIN_DOMAIN;
-    return 301 https://$host$request_uri;
+    return 301 https://\$host\$request_uri;
 }
 server {
-    listen 443 ssl http2;
+    listen 443 ssl;
+    http2;
     server_name $ADMIN_DOMAIN;
     ssl_certificate /etc/letsencrypt/live/$ADMIN_DOMAIN/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/$ADMIN_DOMAIN/privkey.pem;
@@ -95,10 +96,11 @@ server {
 server {
     listen 80;
     server_name $API_DOMAIN;
-    return 301 https://$host$request_uri;
+    return 301 https://\$host\$request_uri;
 }
 server {
-    listen 443 ssl http2;
+    listen 443 ssl;
+    http2;
     server_name $API_DOMAIN;
     ssl_certificate /etc/letsencrypt/live/$API_DOMAIN/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/$API_DOMAIN/privkey.pem;
