@@ -99,7 +99,7 @@ def signup(user: SignupRequest, request: Request, db: Session = Depends(get_db))
 
 
 @router.post("/send_login_otp")
-def send_login_otp(user: OtpRequest, db: Session = Depends(get_db)):
+def send_login_otp(user: OtpRequest, request: Request, db: Session = Depends(get_db)):
     try:
         logger.info(f"In send_login_otp")
         local_time = datetime.now(local_timezone)
