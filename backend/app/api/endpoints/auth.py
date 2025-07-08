@@ -49,10 +49,10 @@ def signup(user: SignupRequest, request: Request, db: Session = Depends(get_db))
         logger.info(existing_user)
 
         if existing_user:
-            if existing_user.is_deleted == 1:
-                existing_user.is_deleted = 0
-                existing_user.name = user.name
-                existing_user.referral_code = user.referral_code
+            if bool(existing_user.is_deleted):
+                setattr(existing_user, "is_deleted", False)
+                setattr(existing_user, "name", user.name)
+                setattr(existing_user, "referral_code", user.referral_code)
                 db.commit()
                 db.refresh(existing_user)
                 return {
@@ -87,10 +87,13 @@ def signup(user: SignupRequest, request: Request, db: Session = Depends(get_db))
             ),
             "mobile": new_user.mobile,
         }
+    except HTTPException as e:
+        # Re-raise known HTTPExceptions
+        raise e
     except Exception as e:
-        logger.error(f"Error: {e}")
+        logger.error(f"Unexpected error in signup: {e}", exc_info=True)
         raise HTTPException(
-            status_code=404,
+            status_code=500,
             detail=t(
                 "auth.something_went_wrong",
                 lang=getattr(request.state, "language", "en"),
