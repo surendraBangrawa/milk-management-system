@@ -79,10 +79,10 @@ server {
     }
     location / {
         proxy_pass http://admin_app;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-Proto \$scheme;
         proxy_redirect off;
         proxy_connect_timeout 60s;
         proxy_send_timeout 60s;
@@ -114,10 +114,10 @@ server {
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     location / {
         proxy_pass http://backend_api;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-Proto \$scheme;
         proxy_redirect off;
         proxy_connect_timeout 60s;
         proxy_send_timeout 60s;
@@ -126,7 +126,7 @@ server {
         add_header Access-Control-Allow-Origin *;
         add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS";
         add_header Access-Control-Allow-Headers "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization";
-        if ($request_method = 'OPTIONS') {
+        if (\$request_method = 'OPTIONS') {
             add_header Access-Control-Allow-Origin *;
             add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS";
             add_header Access-Control-Allow-Headers "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization";
@@ -139,13 +139,6 @@ server {
 }
 EOF
     info "nginx config written."
-
-    # Validation step: remove malformed proxy_set_header lines
-    awk '!
-    /^\s*proxy_set_header/ { print; next }
-    NF == 4 && $1 == "proxy_set_header" && $4 ~ /;$/ { print }
-    ' "$NGINX_CONF_PATH" > "$NGINX_CONF_PATH.tmp" && mv "$NGINX_CONF_PATH.tmp" "$NGINX_CONF_PATH"
-    info "nginx config validated for proxy_set_header lines."
 }
 
 # 3. Symlink config
@@ -180,4 +173,4 @@ main() {
     info "Nginx and SSL setup complete!"
 }
 
-main 
+main
