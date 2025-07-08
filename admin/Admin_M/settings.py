@@ -140,13 +140,27 @@ USE_TZ = False
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
 
 # --- MODIFIED THIS LINE ---
 STATIC_ROOT = (
     BASE_DIR / "home/static"
 )  # This path now correctly matches your docker-compose volume mount
 # --- END MODIFICATION ---
+
+# Add STATICFILES_DIRS to include custom static files
+STATICFILES_DIRS = [
+    BASE_DIR / "home" / "static" / "custom",  # Custom static files
+]
+
+# Configure static files to avoid conflicts
+STATICFILES_FINDERS = [
+    "django.contrib.staticfiles.finders.FileSystemFinder",
+    "django.contrib.staticfiles.finders.AppDirectoriesFinder",
+]
+
+# Use default static files storage
+STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
 
 LOGIN_URL = "/"
 
