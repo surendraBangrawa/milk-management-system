@@ -129,6 +129,9 @@ def delete_customer(
             "message": "Customer and related milk/expense records deleted successfully"
         }
 
+    except HTTPException as http_exc:
+        db.rollback()
+        raise http_exc
     except Exception as e:
         logger.error(f"Error: {e}")
         db.rollback()
