@@ -1,11 +1,10 @@
 #!/bin/bash
 
-# Nginx & SSL Setup Script for digidairy.site (host-level, not Docker)
+# Simple Nginx Setup Script for digidairy.site (host-level, not Docker)
 # - Installs nginx and certbot if needed
-# - Sets up config for admin.digidairy.site and api.digidairy.site
-# - Obtains/renews SSL certs
-# - Reloads nginx
-# - Idempotent: safe to run multiple times
+# - Sets up config for admin.digidairy.site and api.digidairy.site (HTTP only)
+# - Does NOT reference SSL or run certbot
+# - You must run certbot manually after confirming nginx is running
 
 set -e
 
@@ -31,7 +30,7 @@ install_nginx_certbot() {
     apt-get install -y nginx certbot python3-certbot-nginx
 }
 
-# 2. Write nginx config
+# 2. Write nginx config (HTTP only)
 write_nginx_config() {
     info "Writing nginx config to $NGINX_CONF_PATH..."
     cat > "$NGINX_CONF_PATH" <<EOF
@@ -46,23 +45,6 @@ upstream backend_api {
 server {
     listen 80;
     server_name $ADMIN_DOMAIN;
-    return 301 https://\$host\$request_uri;
-}
-server {
-    listen 443 ssl;
-    server_name $ADMIN_DOMAIN;
-    ssl_certificate /etc/letsencrypt/live/$ADMIN_DOMAIN/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/$ADMIN_DOMAIN/privkey.pem;
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384;
-    ssl_prefer_server_ciphers off;
-    ssl_session_cache shared:SSL:10m;
-    ssl_session_timeout 10m;
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-    add_header X-Frame-Options DENY always;
-    add_header X-Content-Type-Options nosniff always;
-    add_header X-XSS-Protection "1; mode=block" always;
-    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     location /static/ {
         alias $STATIC_PATH/;
         expires 30d;
@@ -95,23 +77,6 @@ server {
 server {
     listen 80;
     server_name $API_DOMAIN;
-    return 301 https://\$host\$request_uri;
-}
-server {
-    listen 443 ssl;
-    server_name $API_DOMAIN;
-    ssl_certificate /etc/letsencrypt/live/$API_DOMAIN/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/$API_DOMAIN/privkey.pem;
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384;
-    ssl_prefer_server_ciphers off;
-    ssl_session_cache shared:SSL:10m;
-    ssl_session_timeout 10m;
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-    add_header X-Frame-Options DENY always;
-    add_header X-Content-Type-Options nosniff always;
-    add_header X-XSS-Protection "1; mode=block" always;
-    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     location / {
         proxy_pass http://backend_api;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
@@ -151,13 +116,7 @@ symlink_nginx_config() {
     fi
 }
 
-# 4. Obtain/renew SSL certs
-obtain_ssl() {
-    info "Obtaining SSL certificates for $ADMIN_DOMAIN and $API_DOMAIN..."
-    certbot --nginx --non-interactive --agree-tos --redirect --expand --email admin@digidairy.site -d $ADMIN_DOMAIN -d $API_DOMAIN || true
-}
-
-# 5. Reload nginx
+# 4. Reload nginx
 reload_nginx() {
     info "Reloading nginx..."
     nginx -t && systemctl reload nginx
@@ -168,9 +127,8 @@ main() {
     install_nginx_certbot
     write_nginx_config
     symlink_nginx_config
-    obtain_ssl
     reload_nginx
-    info "Nginx and SSL setup complete!"
+    info "Nginx setup complete! Now run certbot manually to enable SSL."
 }
 
 main
