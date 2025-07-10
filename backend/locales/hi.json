@@ -16,7 +16,6 @@
     "dot_label": "स्लाइड {{index}} पर जाएँ"
   },
   "common": {
-    "error": "त्रुटि",
     "ok": "ठीक है",
     "try_again": "कृपया फिर से प्रयास करें।",
     "error_verifying_otp": "ओटीपी सत्यापित करने में त्रुटि",
@@ -85,7 +84,9 @@
     "login_failed_no_token": "लॉगिन विफल: कोई एक्सेस टोकन नहीं।",
     "invalid_otp_fallback": "अमान्य ओटीपी",
     "otp_sent_success": "ओटीपी सफलतापूर्वक भेजा गया!",
-    "failed_to_send_otp_fallback": "ओटीपी भेजने में विफल"
+    "failed_to_send_otp_fallback": "ओटीपी भेजने में विफल",
+    "didnt_receive_otp": "ओटीपी नहीं मिला?",
+    "resend_in": "{{time}} में फिर से भेजें"
   },
   "settings": {
     "title": "सामान्य",

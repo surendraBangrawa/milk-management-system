@@ -73,7 +73,7 @@ export const fetchSellerSummaries = createAsyncThunk(
         res?.data?.seller_details &&
         Array.isArray(res.data.seller_details)
       ) {
-        const sortedData = res.data.seller_details.sort((a, b) => {
+        const sortedData = res.data.seller_details.sort((a: any, b: any) => {
           const dateA = a.date ? new Date(a.date) : null;
           const dateB = b.date ? new Date(b.date) : null;
           if (!dateA || isNaN(dateA.getTime())) return 1;
@@ -87,9 +87,22 @@ export const fetchSellerSummaries = createAsyncThunk(
         );
       }
     } catch (err: any) {
-      return rejectWithValue(
-        err?.response?.data?.detail || "Failed to fetch seller summaries."
-      );
+      // Handle different error response structures
+      let errorMessage = "Failed to fetch seller summaries.";
+
+      if (err?.response?.data?.detail) {
+        // If detail is an object with message property
+        if (
+          typeof err.response.data.detail === "object" &&
+          err.response.data.detail.message
+        ) {
+          errorMessage = err.response.data.detail.message;
+        } else if (typeof err.response.data.detail === "string") {
+          errorMessage = err.response.data.detail;
+        }
+      }
+
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -100,7 +113,7 @@ export const fetchSellerTransactionsById = createAsyncThunk(
     try {
       const res = await getCustomerTransactionApi(sellerId);
       if (res.status === 200 && res?.data && Array.isArray(res.data)) {
-        const sortedData = res.data.sort((a, b) => {
+        const sortedData = res.data.sort((a: any, b: any) => {
           const dateA = a.added_at ? new Date(a.added_at) : null;
           const dateB = b.added_at ? new Date(b.added_at) : null;
           if (!dateA || isNaN(dateA.getTime())) return 1;
@@ -115,11 +128,22 @@ export const fetchSellerTransactionsById = createAsyncThunk(
         );
       }
     } catch (err: any) {
-      // Return an error if the API call failed
-      return rejectWithValue(
-        err?.response?.data?.detail ||
-          `Failed to fetch transactions for seller ${sellerId}.`
-      );
+      // Handle different error response structures
+      let errorMessage = `Failed to fetch transactions for seller ${sellerId}.`;
+
+      if (err?.response?.data?.detail) {
+        // If detail is an object with message property
+        if (
+          typeof err.response.data.detail === "object" &&
+          err.response.data.detail.message
+        ) {
+          errorMessage = err.response.data.detail.message;
+        } else if (typeof err.response.data.detail === "string") {
+          errorMessage = err.response.data.detail;
+        }
+      }
+
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -161,11 +185,22 @@ export const deleteTransaction = createAsyncThunk(
         return rejectWithValue(errorMsg);
       }
     } catch (err: any) {
-      // Handle API call errors
-      return rejectWithValue(
-        err?.response?.data?.detail ||
-          `Failed to delete transaction ${record_id}.`
-      );
+      // Handle different error response structures
+      let errorMessage = `Failed to delete transaction ${record_id}.`;
+
+      if (err?.response?.data?.detail) {
+        // If detail is an object with message property
+        if (
+          typeof err.response.data.detail === "object" &&
+          err.response.data.detail.message
+        ) {
+          errorMessage = err.response.data.detail.message;
+        } else if (typeof err.response.data.detail === "string") {
+          errorMessage = err.response.data.detail;
+        }
+      }
+
+      return rejectWithValue(errorMessage);
     }
   }
 );

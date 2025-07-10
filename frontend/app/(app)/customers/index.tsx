@@ -193,7 +193,11 @@ const CustomerScreen = () => {
           style={styles.loadingIndicator}
         />
       ) : error ? (
-        <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
+        <Text style={[styles.errorText, { color: colors.error }]}>
+          {typeof error === "string"
+            ? error
+            : error?.message || "An error occurred"}
+        </Text>
       ) : filteredPeople.length === 0 && searchQuery !== "" ? (
         <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
           No customers found matching your search.

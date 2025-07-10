@@ -16,7 +16,6 @@
     "dot_label": "Go to slide {{index}}"
   },
   "common": {
-    "error": "Error",
     "ok": "OK",
     "try_again": "Please try again.",
     "error_verifying_otp": "Error verifying OTP",
@@ -85,7 +84,9 @@
     "login_failed_no_token": "Login failed: No access token.",
     "invalid_otp_fallback": "Invalid OTP",
     "otp_sent_success": "OTP sent successfully!",
-    "failed_to_send_otp_fallback": "Failed to send OTP"
+    "failed_to_send_otp_fallback": "Failed to send OTP",
+    "didnt_receive_otp": "Didn't receive OTP?",
+    "resend_in": "Resend in {{time}}"
   },
   "settings": {
     "title": "General",
