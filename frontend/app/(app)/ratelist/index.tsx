@@ -22,11 +22,12 @@ import ThemedAlert from "@/components/ThemedAlert";
 import Toast from "react-native-toast-message";
 import { checkRatelistUploadLimit } from "@/lib/subscriptionUtils";
 import { useTranslation } from "react-i18next";
+import SafeAreaWrapper from "@/components/SafeAreaWrapper";
 
 const RateListViewer = () => {
   const router = useRouter();
   const isFocused = useIsFocused();
-  const { colors } = useTheme();
+  const { colors, themeMode } = useTheme();
   const { t } = useTranslation();
   const uploadStatus = useSelector((state: RootState) => state.uploadStatus);
 
@@ -145,7 +146,7 @@ const RateListViewer = () => {
     mainContainer: {
       flex: 1,
       backgroundColor: colors.background, // Use theme background color
-      paddingTop: 0, // Adjust padding
+      // Adjust padding
     },
     container: {
       flex: 1,
@@ -231,12 +232,12 @@ const RateListViewer = () => {
   const renderContent = () => {
     if (loading) {
       return (
-        <View style={themedStyles.loadingContainer}>
+        <SafeAreaWrapper edges={["bottom", "left", "right"]}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={themedStyles.loadingText}>
             {t("ratelist.fetching_rate_list_status")}
           </Text>
-        </View>
+        </SafeAreaWrapper>
       );
     }
 

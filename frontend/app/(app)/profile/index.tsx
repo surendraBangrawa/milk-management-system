@@ -1,18 +1,32 @@
-import { useEffect, useState } from "react";
-import { StyleSheet, View, Text, Image, ActivityIndicator } from "react-native";
-import Toast from "react-native-toast-message";
-import { getProfileApi } from "@/redux/slice/profile/profileApi";
+import { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  ScrollView,
+  TouchableOpacity,
+} from "react-native";
 import { Stack } from "expo-router";
-const Avatar = require("../../../assets/images/avatar.jpg");
-
+import { getProfileApi } from "@/redux/slice/profile/profileApi";
+import Toast from "react-native-toast-message";
 import useTheme from "@/context/theme/useTheme";
+import { Ionicons } from "@expo/vector-icons";
+
+interface UserData {
+  name: string;
+  email: string;
+  phone: string;
+  // Add other fields as needed
+}
 
 export default function Profile() {
-  const [userData, setUserData] = useState(null);
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<null | string>(null);
 
-  const { colors } = useTheme();
+  const { colors, themeMode, systemThemeMode, manualThemeMode, setTheme } =
+    useTheme();
 
   const fetchProfile = async () => {
     try {
@@ -60,131 +74,214 @@ export default function Profile() {
     );
   }
 
+  const themeOptions = [
+    { key: "system", label: "System", icon: "settings-outline" },
+    { key: "light", label: "Light", icon: "sunny-outline" },
+    { key: "dark", label: "Dark", icon: "moon-outline" },
+  ];
+
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <>
       <Stack.Screen
         options={{
           title: "Profile",
           headerStyle: {
-            backgroundColor: colors.surface, // Use surface color for header background
+            backgroundColor: colors.surface,
           },
-          headerTintColor: colors.textPrimary, // Use primary text color for title and icons
+          headerTintColor: colors.textPrimary,
           headerTitleStyle: {
-            color: colors.textPrimary, // Ensure title color is also themed
+            fontWeight: "600",
           },
         }}
       />
-      <View style={styles.header}>
-        <Image source={Avatar} style={styles.profilePic} />
-        <View style={styles.userInfo}>
-          <Text style={[styles.userName, { color: colors.textPrimary }]}>
-            {userData?.name}
+      <ScrollView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        contentContainerStyle={styles.contentContainer}
+      >
+        {/* User Info Section */}
+        <View
+          style={[
+            styles.section,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
+        >
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+            User Information
           </Text>
-          <Text style={[styles.userEmail, { color: colors.textSecondary }]}>
-            {userData?.mobile}
-          </Text>
+          {userData && (
+            <>
+              <View style={styles.infoRow}>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>
+                  Name:
+                </Text>
+                <Text style={[styles.value, { color: colors.textPrimary }]}>
+                  {userData.name}
+                </Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>
+                  Email:
+                </Text>
+                <Text style={[styles.value, { color: colors.textPrimary }]}>
+                  {userData.email}
+                </Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>
+                  Phone:
+                </Text>
+                <Text style={[styles.value, { color: colors.textPrimary }]}>
+                  {userData.phone}
+                </Text>
+              </View>
+            </>
+          )}
         </View>
-      </View>
-    </View>
+
+        {/* Theme Settings Section */}
+        <View
+          style={[
+            styles.section,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
+        >
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+            Theme Settings
+          </Text>
+          <Text
+            style={[styles.sectionSubtitle, { color: colors.textSecondary }]}
+          >
+            Choose your preferred theme
+          </Text>
+
+          {themeOptions.map((option) => {
+            const isSelected =
+              (option.key === "system" && manualThemeMode === "system") ||
+              (option.key === "light" && manualThemeMode === "light") ||
+              (option.key === "dark" && manualThemeMode === "dark");
+
+            return (
+              <TouchableOpacity
+                key={option.key}
+                style={[
+                  styles.themeOption,
+                  {
+                    backgroundColor: isSelected
+                      ? colors.primary + "20"
+                      : "transparent",
+                    borderColor: isSelected ? colors.primary : colors.border,
+                  },
+                ]}
+                onPress={() =>
+                  setTheme(option.key as "light" | "dark" | "system")
+                }
+              >
+                <View style={styles.themeOptionContent}>
+                  <Ionicons
+                    name={option.icon as any}
+                    size={24}
+                    color={isSelected ? colors.primary : colors.textSecondary}
+                  />
+                  <Text
+                    style={[
+                      styles.themeOptionText,
+                      {
+                        color: isSelected ? colors.primary : colors.textPrimary,
+                      },
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                  {option.key === "system" && (
+                    <Text
+                      style={[
+                        styles.themeOptionSubtext,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      ({systemThemeMode === "dark" ? "Dark" : "Light"})
+                    </Text>
+                  )}
+                </View>
+                {isSelected && (
+                  <Ionicons name="checkmark" size={20} color={colors.primary} />
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </ScrollView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // backgroundColor applied inline from theme
-    padding: 20,
+  },
+  contentContainer: {
+    padding: 16,
   },
   centered: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    // backgroundColor applied inline from theme
   },
   errorText: {
-    // color applied inline from theme
-    fontSize: 14,
+    fontSize: 16,
     textAlign: "center",
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  profilePic: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginRight: 20,
-  },
-  userInfo: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 22,
-    fontWeight: "bold",
-    // color applied inline from theme
-  },
-  userEmail: {
-    fontSize: 16,
-    // color applied inline from theme
-  },
-  // Example styles for potential future elements, themed
-  input: {
-    // backgroundColor applied inline from theme
-    padding: 12,
-    marginVertical: 10,
-    borderRadius: 8,
+  section: {
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
     borderWidth: 1,
-    // borderColor applied inline from theme
-    // color applied inline from theme for text input
   },
-  editButton: {
-    // backgroundColor applied inline from theme
-    paddingVertical: 12,
-    marginVertical: 10,
-    borderRadius: 8,
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 12,
+  },
+  sectionSubtitle: {
+    fontSize: 14,
+    marginBottom: 16,
+  },
+  infoRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-  },
-  editButtonText: {
-    color: "#fff", // Keep white text for contrast on colored buttons
-    fontSize: 16,
-  },
-  saveButton: {
-    // backgroundColor applied inline from theme
-    paddingVertical: 12,
-    marginVertical: 10,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  saveButtonText: {
-    color: "#fff", // Keep white text for contrast on colored buttons
-    fontSize: 16,
-  },
-  logoutButton: {
-    // backgroundColor applied inline from theme
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  logoutButtonText: {
-    color: "#fff", // Keep white text for contrast on colored buttons
-    fontSize: 16,
-  },
-  deleteButton: {
-    // backgroundColor applied inline from theme
-    paddingVertical: 12,
-    marginTop: 20,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  deleteButtonText: {
-    color: "#fff", // Keep white text for contrast on colored buttons
-    fontSize: 16,
+    paddingVertical: 8,
   },
   label: {
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  value: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  themeOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  themeOptionContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  themeOptionText: {
+    fontSize: 16,
+    fontWeight: "500",
+    marginLeft: 12,
+  },
+  themeOptionSubtext: {
     fontSize: 14,
-    marginTop: 10,
-    // color applied inline from theme
+    marginLeft: 8,
   },
 });

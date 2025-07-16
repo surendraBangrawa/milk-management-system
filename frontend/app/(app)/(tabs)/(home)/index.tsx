@@ -3,6 +3,7 @@ import { Text, StyleSheet, Pressable, View } from "react-native";
 import CustomerScreen from "../../customers";
 import SupplierScreen from "../../suppliers";
 import { useTranslation } from "react-i18next";
+import SafeAreaWrapper from "@/components/SafeAreaWrapper";
 
 import useTheme from "@/context/theme/useTheme"; // Import useTheme
 import Logo from "@/components/Logo";
@@ -17,19 +18,22 @@ const HomeScreen = () => {
   };
 
   return (
-    <>
+    <SafeAreaWrapper>
       <View
         style={[styles.headerContainer, { backgroundColor: colors.surface }]}
       >
         <Text style={[styles.title, { color: colors.textPrimary }]}>
           <Logo />
         </Text>
-        <View style={styles.navbar}>
+        <View style={[styles.navbar, { backgroundColor: colors.surface }]}>
           <Pressable
             style={[
               styles.navItem,
               mode === "customer" && styles.activeNavItem,
-              mode === "customer" && { borderBottomColor: colors.primary },
+              {
+                borderBottomColor:
+                  mode === "customer" ? colors.primary : colors.border,
+              },
             ]}
             onPress={() => handleModeChange("customer")}
             android_ripple={{ color: colors.primaryLight }}
@@ -37,9 +41,10 @@ const HomeScreen = () => {
             <Text
               style={[
                 styles.navText,
-                { color: colors.textSecondary },
-                mode === "customer" && styles.activeNavText,
-                mode === "customer" && { color: colors.primary },
+                {
+                  color:
+                    mode === "customer" ? colors.primary : colors.textSecondary,
+                },
               ]}
             >
               {t("home.customer")}
@@ -49,7 +54,10 @@ const HomeScreen = () => {
             style={[
               styles.navItem,
               mode === "supplier" && styles.activeNavItem,
-              mode === "supplier" && { borderBottomColor: colors.primary },
+              {
+                borderBottomColor:
+                  mode === "supplier" ? colors.primary : colors.border,
+              },
             ]}
             onPress={() => handleModeChange("supplier")}
             android_ripple={{ color: colors.primaryLight }}
@@ -57,9 +65,10 @@ const HomeScreen = () => {
             <Text
               style={[
                 styles.navText,
-                { color: colors.textSecondary },
-                mode === "supplier" && styles.activeNavText,
-                mode === "supplier" && { color: colors.primary },
+                {
+                  color:
+                    mode === "supplier" ? colors.primary : colors.textSecondary,
+                },
               ]}
             >
               {t("home.supplier")}
@@ -67,10 +76,12 @@ const HomeScreen = () => {
           </Pressable>
         </View>
       </View>
-      <View style={styles.screenContainer}>
+      <View
+        style={[styles.screenContainer, { backgroundColor: colors.background }]}
+      >
         {mode === "customer" ? <CustomerScreen /> : <SupplierScreen />}
       </View>
-    </>
+    </SafeAreaWrapper>
   );
 };
 

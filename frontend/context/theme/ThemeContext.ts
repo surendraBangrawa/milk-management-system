@@ -4,9 +4,12 @@ import { ColorPalette, lightColors } from "./theme"; // Import ColorPalette and 
 
 // Define the shape of the object provided by the ThemeContext
 interface ThemeContextType {
-  themeMode: ColorSchemeName | "light" | "dark";
+  themeMode: "light" | "dark";
+  systemThemeMode: ColorSchemeName;
+  manualThemeMode: "light" | "dark" | "system";
   colors: ColorPalette;
   toggleTheme: () => void; // Function to toggle between light and dark mode
+  setTheme: (mode: "light" | "dark" | "system") => void; // Function to set specific theme mode
 }
 
 // Create the context with a default value (can be null initially)

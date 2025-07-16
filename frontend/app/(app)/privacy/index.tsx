@@ -5,8 +5,8 @@ import { Heading, Paragraph, Section } from "@/components/InfoPageComponents";
 export default function PrivacyPolicyScreen() {
   const { t } = useTranslation();
   // You might want to get the last updated date dynamically, e.g., from an API or a constant.
-  // For now, let's use a static date as per your current setup, but formatted for i18n.
-  const lastUpdatedDate = "June 29, 2025"; // Example date
+  // For now, let's use a static date.
+  const lastUpdatedDate = "June 29, 2025";
 
   return (
     <StaticInfoScreen title={t("more.privacy_policy")}>

@@ -54,14 +54,14 @@ const ThemedAlert: React.FC<ThemedAlertProps> = ({
       case "warning":
         return {
           icon: "warning",
-          iconColor: "#FFA500",
-          backgroundColor: "#FFA50020",
+          iconColor: colors.warning,
+          backgroundColor: colors.warning + "20",
         };
       default:
         return {
           icon: "information-circle",
-          iconColor: colors.primary,
-          backgroundColor: colors.primary + "20",
+          iconColor: colors.info,
+          backgroundColor: colors.info + "20",
         };
     }
   };
@@ -87,7 +87,10 @@ const ThemedAlert: React.FC<ThemedAlertProps> = ({
       animationType="fade"
       onRequestClose={handleDismiss}
     >
-      <Pressable style={styles.overlay} onPress={handleDismiss}>
+      <Pressable
+        style={[styles.overlay, { backgroundColor: colors.overlay }]}
+        onPress={handleDismiss}
+      >
         <Pressable
           style={[
             styles.alertContainer,
@@ -169,7 +172,6 @@ const ThemedAlert: React.FC<ThemedAlertProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
@@ -237,7 +239,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   confirmButtonText: {
-    color: "#FFFFFF",
+    // Color will be set dynamically in the component
   },
 });
 

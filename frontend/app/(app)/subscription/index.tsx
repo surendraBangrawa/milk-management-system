@@ -17,7 +17,7 @@ import PaymentWebView from "@/components/PaymentWebView";
 import { useTranslation } from "react-i18next";
 
 export default function Subscription() {
-  const { colors } = useTheme();
+  const { colors, themeMode } = useTheme();
   const { t } = useTranslation();
   const [plans, setPlans] = useState<any[]>([]);
   const [current, setCurrent] = useState<any>(null);
@@ -204,9 +204,14 @@ export default function Subscription() {
   const premiumPlan = getPremiumPlan();
 
   return (
-    <>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: colors.background, flex: 1 },
+      ]}
+    >
       <ScrollView
-        style={[styles.container, { backgroundColor: colors.background }]}
+        style={{ flex: 1 }}
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -408,7 +413,7 @@ export default function Subscription() {
         onSuccess={handlePaymentSuccess}
         onError={handlePaymentError}
       />
-    </>
+    </View>
   );
 }
 

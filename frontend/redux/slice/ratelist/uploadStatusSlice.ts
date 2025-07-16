@@ -34,7 +34,6 @@ const uploadStatusSlice = createSlice({
   initialState,
   reducers: {
     startUpload: (state) => {
-      console.log("Redux: startUpload action dispatched");
       state.isUploading = true;
       state.status = "uploading";
       state.progress = 0;
@@ -43,10 +42,6 @@ const uploadStatusSlice = createSlice({
       state.error = null;
     },
     uploadComplete: (state, action: PayloadAction<{ taskId: string }>) => {
-      console.log(
-        "Redux: uploadComplete action dispatched with taskId:",
-        action.payload.taskId
-      );
       state.isUploading = false;
       state.isProcessing = true;
       state.taskId = action.payload.taskId;

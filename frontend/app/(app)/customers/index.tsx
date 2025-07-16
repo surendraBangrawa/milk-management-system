@@ -16,6 +16,7 @@ import { fetchSellerSummaries } from "@/redux/slice/transactions/transactionsSli
 import { AppDispatch, RootState } from "@/redux/store";
 import useTheme from "@/context/theme/useTheme";
 import { useTranslation } from "react-i18next";
+import SafeAreaWrapper from "@/components/SafeAreaWrapper";
 
 interface Customer {
   mobile: string;
@@ -51,7 +52,7 @@ const RandomAvatar = ({ name }: { name: string | undefined | null }) => {
 const CustomerScreen = () => {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
-  const { colors } = useTheme();
+  const { colors, themeMode } = useTheme();
   const { t } = useTranslation();
 
   const people = useSelector(
@@ -170,59 +171,61 @@ const CustomerScreen = () => {
   );
 
   return (
-    <View style={styles.container}>
-      <TextInput
-        style={[
-          styles.searchInput,
-          {
-            borderColor: colors.border,
-            backgroundColor: colors.surface,
-            color: colors.textPrimary,
-          },
-        ]}
-        placeholder="Search by name or mobile"
-        placeholderTextColor={colors.textSecondary}
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-        clearButtonMode="while-editing"
-      />
-      {loading ? (
-        <ActivityIndicator
-          size="large"
-          color={colors.primary}
-          style={styles.loadingIndicator}
+    <SafeAreaWrapper edges={["bottom", "left", "right"]}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <TextInput
+          style={[
+            styles.searchInput,
+            {
+              borderColor: colors.border,
+              backgroundColor: colors.surface,
+              color: colors.textPrimary,
+            },
+          ]}
+          placeholder="Search by name or mobile"
+          placeholderTextColor={colors.textSecondary}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          clearButtonMode="while-editing"
         />
-      ) : error ? (
-        <Text style={[styles.errorText, { color: colors.error }]}>
-          {typeof error === "string"
-            ? error
-            : error?.message || "An error occurred"}
-        </Text>
-      ) : filteredPeople.length === 0 && searchQuery !== "" ? (
-        <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
-          No customers found matching your search.
-        </Text>
-      ) : people.length === 0 && searchQuery === "" ? (
-        <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
-          No customer data available.
-        </Text>
-      ) : (
-        <FlatList
-          data={filteredPeople}
-          renderItem={renderPerson}
-          keyExtractor={(item, index) => index.toString()}
-          contentContainerStyle={styles.listContainer}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
-      <TouchableOpacity
-        style={[styles.floatingButton, { backgroundColor: colors.primary }]}
-        onPress={() => router.push("/customers/contacts/contact")}
-        activeOpacity={0.85}
-      >
-        <Text style={[styles.buttonText, { color: colors.surface }]}>+</Text>
-      </TouchableOpacity>
-    </View>
+        {loading ? (
+          <ActivityIndicator
+            size="large"
+            color={colors.primary}
+            style={styles.loadingIndicator}
+          />
+        ) : error ? (
+          <Text style={[styles.errorText, { color: colors.error }]}>
+            {typeof error === "string"
+              ? error
+              : (error as any)?.message || "An error occurred"}
+          </Text>
+        ) : filteredPeople.length === 0 && searchQuery !== "" ? (
+          <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
+            No customers found matching your search.
+          </Text>
+        ) : people.length === 0 && searchQuery === "" ? (
+          <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
+            No customer data available.
+          </Text>
+        ) : (
+          <FlatList
+            data={filteredPeople}
+            renderItem={renderPerson}
+            keyExtractor={(item, index) => index.toString()}
+            contentContainerStyle={styles.listContainer}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
+        <TouchableOpacity
+          style={[styles.floatingButton, { backgroundColor: colors.primary }]}
+          onPress={() => router.push("/customers/contacts/contact")}
+          activeOpacity={0.85}
+        >
+          <Text style={[styles.buttonText, { color: colors.surface }]}>+</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaWrapper>
   );
 };
 

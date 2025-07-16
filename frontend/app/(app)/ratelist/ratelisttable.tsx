@@ -11,6 +11,7 @@ import { getRatelist } from "@/redux/slice/ratelist/rateListApi"; // Assuming th
 import { Stack } from "expo-router";
 import useTheme from "@/context/theme/useTheme";
 import Toast from "react-native-toast-message";
+import SafeAreaWrapper from "@/components/SafeAreaWrapper";
 
 // Define a type for your rate list item for better type safety
 interface RateItem {
@@ -122,12 +123,12 @@ const RateListTableScreen = () => {
   const renderTableContent = () => {
     if (loading) {
       return (
-        <View style={styles.centered}>
+        <SafeAreaWrapper edges={["bottom", "left", "right"]}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
             Loading Rate List...
           </Text>
-        </View>
+        </SafeAreaWrapper>
       );
     }
 
@@ -288,7 +289,7 @@ const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
     padding: 20,
-    paddingTop: 0, // Let Stack.Screen handle top padding/header space
+    // Let Stack.Screen handle top padding/header space
   },
   centered: {
     flex: 1,

@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { StyleSheet, View, Text, Pressable, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import SafeAreaWrapper from "@/components/SafeAreaWrapper";
 
 import useTheme from "@/context/theme/useTheme";
 
@@ -97,7 +98,7 @@ const sections: Section[] = [
         labelKey: "account.logout",
         type: "logout",
         icon: "log-out-outline",
-        iconColor: "#e74c3c",
+        iconColor: "error",
         hideChevron: true,
       },
     ],
@@ -107,7 +108,7 @@ const sections: Section[] = [
 export default function TabTwoScreen() {
   const router = useRouter();
   const { signOut } = useSession();
-  const { colors } = useTheme();
+  const { colors, themeMode } = useTheme();
   const { t } = useTranslation();
 
   const handleOptionPress = (option: Option) => {
@@ -119,71 +120,84 @@ export default function TabTwoScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      {sections.map((section, sectionIndex) => (
-        <View key={`section-${sectionIndex}`} style={styles.sectionContainer}>
-          {section.titleKey && (
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-              {t(section.titleKey)}
-            </Text>
-          )}
-          <View
-            style={[styles.optionsList, { backgroundColor: colors.surface }]}
-          >
-            {section.data.map((option, optionIndex) => (
-              <Pressable
-                key={option.labelKey} // Use labelKey as key for stability
-                style={({ pressed }) => [
-                  styles.optionButton,
-                  {
-                    backgroundColor: colors.surface,
-                    borderBottomWidth:
-                      optionIndex === section.data.length - 1
-                        ? 0
-                        : StyleSheet.hairlineWidth,
-                    borderBottomColor: colors.border,
-                  },
-                ]}
-                onPress={() => handleOptionPress(option)}
-                accessibilityRole="button"
-                accessibilityLabel={`${t(option.labelKey)} option`} // Translate accessibility label
+    <SafeAreaWrapper>
+      <ScrollView
+        style={[styles.container, { backgroundColor: colors.background }]}
+      >
+        {sections.map((section, sectionIndex) => (
+          <View key={`section-${sectionIndex}`} style={styles.sectionContainer}>
+            {section.titleKey && (
+              <Text
+                style={[styles.sectionTitle, { color: colors.textPrimary }]}
               >
-                <View style={styles.optionContent}>
-                  <Ionicons
-                    name={option.icon}
-                    size={24}
-                    color={option.iconColor || colors.textPrimary}
-                    style={styles.optionIcon}
-                  />
-                  <Text
-                    style={[
-                      styles.optionText,
-                      {
-                        color:
-                          option.type === "logout"
-                            ? colors.error
-                            : colors.textPrimary,
-                      },
-                    ]}
-                  >
-                    {t(option.labelKey)}
-                  </Text>
-
-                  {option.path && !option.hideChevron && (
+                {t(section.titleKey)}
+              </Text>
+            )}
+            <View
+              style={[
+                styles.optionsList,
+                { backgroundColor: colors.surface, shadowColor: colors.shadow },
+              ]}
+            >
+              {section.data.map((option, optionIndex) => (
+                <Pressable
+                  key={option.labelKey} // Use labelKey as key for stability
+                  style={({ pressed }) => [
+                    styles.optionButton,
+                    {
+                      backgroundColor: colors.surface,
+                      borderBottomWidth:
+                        optionIndex === section.data.length - 1
+                          ? 0
+                          : StyleSheet.hairlineWidth,
+                      borderBottomColor: colors.border,
+                    },
+                  ]}
+                  onPress={() => handleOptionPress(option)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${t(option.labelKey)} option`} // Translate accessibility label
+                >
+                  <View style={styles.optionContent}>
                     <Ionicons
-                      name="chevron-forward-outline"
-                      size={20}
-                      color={colors.textSecondary}
-                      style={styles.chevronIcon}
+                      name={option.icon}
+                      size={24}
+                      color={
+                        option.iconColor === "error"
+                          ? colors.error
+                          : option.iconColor || colors.textPrimary
+                      }
+                      style={styles.optionIcon}
                     />
-                  )}
-                </View>
-              </Pressable>
-            ))}
+                    <Text
+                      style={[
+                        styles.optionText,
+                        {
+                          color:
+                            option.type === "logout"
+                              ? colors.error
+                              : colors.textPrimary,
+                        },
+                      ]}
+                    >
+                      {t(option.labelKey)}
+                    </Text>
+
+                    {option.path && !option.hideChevron && (
+                      <Ionicons
+                        name="chevron-forward-outline"
+                        size={20}
+                        color={colors.textSecondary}
+                        style={styles.chevronIcon}
+                      />
+                    )}
+                  </View>
+                </Pressable>
+              ))}
+            </View>
           </View>
-        </View>
-      ))}
-    </ScrollView>
+        ))}
+      </ScrollView>
+    </SafeAreaWrapper>
   );
 }
 
@@ -205,7 +219,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: "hidden",
     elevation: 2,
-    shadowColor: "#000", // Add shadow color for consistent appearance
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,

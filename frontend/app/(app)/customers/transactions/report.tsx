@@ -295,22 +295,18 @@ const ReportScreen = () => {
   };
 
   const closeStartDatePicker = () => {
-    console.log("Report: Closing start date picker");
     setShowStartDatePicker(false);
   };
 
   const closeEndDatePicker = () => {
-    console.log("Report: Closing end date picker");
     setShowEndDatePicker(false);
   };
 
   const openStartDatePicker = () => {
-    console.log("Report: Opening start date picker");
     setShowStartDatePicker(true);
   };
 
   const openEndDatePicker = () => {
-    console.log("Report: Opening end date picker");
     setShowEndDatePicker(true);
   };
 
@@ -464,7 +460,6 @@ const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 8,
   },
   contentContainer: {
     flex: 1,

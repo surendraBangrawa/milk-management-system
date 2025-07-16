@@ -51,7 +51,7 @@ const RandomAvatar = ({ name }: { name: string | undefined | null }) => {
 const TransactionScreen = () => {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
-  const { colors } = useTheme();
+  const { colors, themeMode } = useTheme();
   const { t } = useTranslation();
 
   const params = useLocalSearchParams();
@@ -249,9 +249,17 @@ const TransactionScreen = () => {
         }}
       />
 
-      <View style={styles.mainContainer}>
+      <View
+        style={[styles.mainContainer, { backgroundColor: colors.background }]}
+      >
         <View
-          style={[styles.customHeaderBar, { backgroundColor: colors.surface }]}
+          style={[
+            styles.customHeaderBar,
+            {
+              backgroundColor: colors.surface,
+              borderBottomColor: colors.border,
+            },
+          ]}
         >
           <TouchableOpacity
             onPress={handleReport}
@@ -320,10 +328,7 @@ const TransactionScreen = () => {
       <View
         style={[
           styles.bottomActionBar,
-          {
-            backgroundColor: colors.surface,
-            borderTopColor: colors.border,
-          },
+          { backgroundColor: colors.surface, borderTopColor: colors.border },
         ]}
       >
         <TouchableOpacity

@@ -34,15 +34,16 @@ const RandomAvatar = ({ name }: { name: string | undefined | null }) => {
   const initials = getInitials(name);
   return (
     <View style={[styles.avatar, { backgroundColor }]}>
-      <Text style={styles.avatarText}>{initials}</Text>
+      <Text style={[styles.avatarText, { color: colors.textPrimary }]}>
+        {initials}
+      </Text>
     </View>
   );
 };
 
 const AddCustomerScreen = () => {
   const router = useRouter();
-  const { colors } = useTheme();
-
+  const { colors, themeMode } = useTheme();
   const [contacts, setContacts] = useState<Contacts.Contact[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);

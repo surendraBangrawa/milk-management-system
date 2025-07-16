@@ -706,7 +706,7 @@ const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
     padding: 20,
-    paddingTop: 0, // Handled by Stack.Screen header
+    // Handled by Stack.Screen header
   },
   centered: {
     flex: 1,

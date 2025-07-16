@@ -30,7 +30,6 @@ const fetchRate = async (data: Rate) => {
     if (res.status === 200 && res.data && res.data.rate !== undefined) {
       return res.data.rate;
     } else {
-      console.warn("Failed to fetch rate or rate is missing in response:", res);
       return null;
     }
   } catch (error) {
@@ -42,8 +41,7 @@ const fetchRate = async (data: Rate) => {
 const AddMilk = () => {
   const dispatch = useDispatch<AppDispatch>();
   const params = useLocalSearchParams();
-  const { colors } = useTheme();
-
+  const { colors, themeMode } = useTheme();
   const {
     seller_mobile,
     name,

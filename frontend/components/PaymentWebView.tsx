@@ -92,7 +92,6 @@ const PaymentWebView: React.FC<PaymentWebViewProps> = ({
       // Removed cancellation handling to prevent false positives
     } catch (e) {
       // Ignore non-JSON messages
-      console.log("Non-JSON message received:", event.nativeEvent.data);
     }
   };
 
@@ -145,7 +144,15 @@ const PaymentWebView: React.FC<PaymentWebViewProps> = ({
     >
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         {/* Header */}
-        <View style={[styles.header, { backgroundColor: colors.surface }]}>
+        <View
+          style={[
+            styles.header,
+            {
+              backgroundColor: colors.surface,
+              borderBottomColor: colors.border,
+            },
+          ]}
+        >
           <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
             Complete Payment
           </Text>
@@ -162,7 +169,12 @@ const PaymentWebView: React.FC<PaymentWebViewProps> = ({
         {/* WebView Container */}
         <View style={styles.webViewContainer}>
           {loading && (
-            <View style={styles.loadingContainer}>
+            <View
+              style={[
+                styles.loadingContainer,
+                { backgroundColor: colors.surface + "E6" },
+              ]}
+            >
               <ActivityIndicator size="large" color={colors.primary} />
               <Text
                 style={[styles.loadingText, { color: colors.textSecondary }]}
@@ -173,7 +185,12 @@ const PaymentWebView: React.FC<PaymentWebViewProps> = ({
           )}
 
           {error && (
-            <View style={styles.errorContainer}>
+            <View
+              style={[
+                styles.errorContainer,
+                { backgroundColor: colors.surface + "E6" },
+              ]}
+            >
               <Text style={[styles.errorText, { color: colors.error }]}>
                 {error}
               </Text>
@@ -243,7 +260,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
   },
   headerTitle: {
     fontSize: 18,
@@ -275,7 +291,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
     zIndex: 1,
   },
   loadingText: {
@@ -290,7 +305,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
     zIndex: 1,
     padding: 20,
   },

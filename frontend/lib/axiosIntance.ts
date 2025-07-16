@@ -6,13 +6,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { API_BASE_URL } = Constants.expoConfig?.extra || {};
 
-console.log("API_BASE_URL:", API_BASE_URL);
-
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
 });
-
-console.log("Axios instance baseURL:", axiosInstance.defaults.baseURL);
 
 // Track subscription status
 let subscriptionStatus: any = null;
@@ -139,20 +135,13 @@ const canPerformAction = async (endpoint: string) => {
 // Function to handle logout
 const handleLogout = async () => {
   try {
-    console.log("Starting logout process...");
-
     // Call the global signOut function if available
     if (globalSignOut) {
-      console.log("Calling global signOut function");
       const result = globalSignOut();
       if (result instanceof Promise) {
         await result;
       }
-    } else {
-      console.log("Global signOut function not available");
     }
-
-    console.log("Logout process completed");
   } catch (error) {
     console.error("Error during logout:", error);
   }
@@ -196,24 +185,11 @@ axiosInstance.interceptors.request.use(
 
 axiosInstance.interceptors.response.use(
   (response) => {
-    console.log("Axios success response:", {
-      status: response.status,
-      url: response.config?.url,
-    });
     return response;
   },
   async (error) => {
-    console.log("Axios error:", {
-      status: error.response?.status,
-      data: error.response?.data,
-      url: error.config?.url,
-      message: error.message,
-    });
-
     // Check if the error has a structured detail with error codes
     const errorDetail = error.response?.data?.detail;
-    console.log("Error detail type:", typeof errorDetail);
-    console.log("Error detail:", errorDetail);
 
     // If error detail is an object with error_code and requires_logout
     if (
@@ -221,13 +197,8 @@ axiosInstance.interceptors.response.use(
       typeof errorDetail === "object" &&
       errorDetail.error_code
     ) {
-      console.log("Structured error received:", errorDetail);
-
       // Only logout if the backend explicitly says it requires logout
       if (errorDetail.requires_logout === true) {
-        console.log(
-          `Authentication error requiring logout: ${errorDetail.error_code}`
-        );
         // Show the error message to user for logout-requiring errors
         Toast.show({
           type: "error",
@@ -237,9 +208,6 @@ axiosInstance.interceptors.response.use(
         await handleLogout();
         return Promise.reject(error);
       } else {
-        console.log(
-          `Authentication error NOT requiring logout: ${errorDetail.error_code} - NOT showing toast`
-        );
         // Don't show toast for non-logout errors - let components handle their own messages
         return Promise.reject(error);
       }
@@ -248,8 +216,6 @@ axiosInstance.interceptors.response.use(
     // Fallback for legacy error format (string details)
     if (error.response?.status === 401) {
       const detail = error.response?.data?.detail;
-      console.log("401 error with detail:", detail);
-      console.log("Detail type:", typeof detail);
 
       if (typeof detail === "string") {
         // Only logout for specific authentication failures
@@ -258,7 +224,6 @@ axiosInstance.interceptors.response.use(
           detail.includes("Invalid token") ||
           detail.includes("User not found or inactive")
         ) {
-          console.log("Legacy authentication error requiring logout");
           // Show error message for logout-requiring errors
           Toast.show({
             type: "error",
@@ -268,16 +233,13 @@ axiosInstance.interceptors.response.use(
           await handleLogout();
           return Promise.reject(error);
         } else {
-          console.log("Legacy authentication error NOT requiring logout");
           // Don't show toast for non-logout errors - let components handle their own messages
           return Promise.reject(error);
         }
       } else if (typeof detail === "object" && detail !== null) {
         // Handle case where detail is an object but doesn't have error_code
-        console.log("401 error with object detail but no error_code:", detail);
 
         if (detail.requires_logout === true) {
-          console.log("Object detail requires logout");
           // Show error message for logout-requiring errors
           Toast.show({
             type: "error",
@@ -318,14 +280,12 @@ axiosInstance.interceptors.response.use(
     // Handle 404 errors (Not Found)
     if (error.response?.status === 404) {
       // Don't show generic toast for 404 errors - let components handle their own messages
-      console.log("404 error - letting component handle the message");
       return Promise.reject(error);
     }
 
     // Handle 500 errors (Internal Server Error)
     if (error.response?.status === 500) {
       const errorDetail = error.response?.data?.detail;
-      console.log("500 error detail:", errorDetail);
 
       // Check if it's a structured error with authentication info
       if (
@@ -340,7 +300,6 @@ axiosInstance.interceptors.response.use(
         });
 
         if (errorDetail.requires_logout === true) {
-          console.log("500 error with authentication failure, logging out");
           await handleLogout();
           return Promise.reject(error);
         }
@@ -365,71 +324,8 @@ axiosInstance.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Handle any other errors
-    const status = error.response?.status;
-    const message =
-      error.response?.data?.detail || error.message || "Something went wrong";
-
-    // Don't show generic toast for other errors - let components handle their own messages
-    console.log(
-      `Error ${status || ""}: ${message} - letting component handle the message`
-    );
-
     return Promise.reject(error);
   }
 );
-
-// Test function to manually trigger logout (for debugging)
-export const testLogout = () => {
-  console.log("Testing logout functionality...");
-  handleLogout();
-};
-
-// Test function to check if global signOut is set
-export const checkGlobalSignOut = () => {
-  console.log("Global signOut function available:", !!globalSignOut);
-  console.log("Global signOut function type:", typeof globalSignOut);
-  return !!globalSignOut;
-};
-
-// Test function to simulate the backend error
-export const testBackendError = async () => {
-  console.log("Testing backend error simulation...");
-
-  // Simulate the exact error structure from the backend
-  const mockError = {
-    response: {
-      status: 401,
-      data: {
-        detail: {
-          message: "User not found or inactive",
-          error_code: "USER_NOT_FOUND_OR_INACTIVE",
-          requires_logout: true,
-        },
-      },
-    },
-  };
-
-  console.log("Mock error:", mockError);
-  console.log("Testing error handling...");
-
-  // Test the error handling logic directly
-  const errorDetail = mockError.response?.data?.detail;
-  console.log("Error detail:", errorDetail);
-
-  if (
-    errorDetail &&
-    typeof errorDetail === "object" &&
-    errorDetail.error_code
-  ) {
-    console.log("Structured error detected");
-    if (errorDetail.requires_logout === true) {
-      console.log("Logout required, calling handleLogout");
-      await handleLogout();
-    }
-  }
-
-  console.log("Test completed");
-};
 
 export default axiosInstance;

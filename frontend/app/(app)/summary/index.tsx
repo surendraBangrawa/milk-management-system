@@ -13,9 +13,10 @@ import { getTotalRecordDateRangeApi } from "@/redux/slice/transactions/transacti
 import DateTimePickerModal from "@/components/DatePickerModal";
 import { useTranslation } from "react-i18next";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import SafeAreaWrapper from "@/components/SafeAreaWrapper";
 
 const SummaryScreen = () => {
-  const { colors } = useTheme();
+  const { colors, themeMode } = useTheme();
   const { t } = useTranslation();
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
@@ -58,10 +59,151 @@ const SummaryScreen = () => {
     }
   };
 
+  const themedStyles = StyleSheet.create({
+    mainContainer: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    container: {
+      flex: 1,
+      padding: 16,
+    },
+    header: {
+      marginBottom: 20,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: "bold",
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    subtitle: {
+      fontSize: 16,
+      color: colors.textSecondary,
+    },
+    formContainer: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 20,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    formTitle: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginBottom: 16,
+    },
+    row: {
+      flexDirection: "row",
+      marginBottom: 16,
+      gap: 12,
+    },
+    column: {
+      flex: 1,
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: "500",
+      color: colors.textPrimary,
+      marginBottom: 6,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 8,
+      padding: 12,
+      fontSize: 16,
+      color: colors.textPrimary,
+      backgroundColor: colors.inputBackground,
+    },
+    pickerContainer: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 8,
+      backgroundColor: colors.inputBackground,
+    },
+    picker: {
+      color: colors.textPrimary,
+    },
+    button: {
+      backgroundColor: colors.primary,
+      paddingVertical: 12,
+      paddingHorizontal: 24,
+      borderRadius: 8,
+      alignItems: "center",
+      marginTop: 8,
+    },
+    buttonText: {
+      color: colors.surface,
+      fontSize: 16,
+      fontWeight: "600",
+    },
+    disabledButton: {
+      backgroundColor: colors.border,
+    },
+    disabledButtonText: {
+      color: colors.textSecondary,
+    },
+    summaryContainer: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      padding: 16,
+      marginTop: 20,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    summaryTitle: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginBottom: 16,
+      textAlign: "center",
+    },
+    summaryRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      paddingVertical: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.divider,
+    },
+    summaryLabel: {
+      fontSize: 16,
+      color: colors.textSecondary,
+    },
+    summaryValue: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    errorContainer: {
+      backgroundColor: colors.error + "20",
+      padding: 16,
+      borderRadius: 8,
+      marginTop: 16,
+    },
+    errorText: {
+      color: colors.error,
+      fontSize: 16,
+      textAlign: "center",
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    centered: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+  });
+
   return (
-    <View style={{ flex: 1 }}>
+    <SafeAreaWrapper edges={["bottom", "left", "right"]}>
       <ScrollView
-        contentContainerStyle={{ flexGrow: 1, paddingBottom: 16 }}
+        contentContainerStyle={themedStyles.container}
         keyboardShouldPersistTaps="handled"
       >
         <Stack.Screen
@@ -79,16 +221,20 @@ const SummaryScreen = () => {
         {/* Date Range Card */}
         <View
           style={[
-            styles.inputCard,
-            { backgroundColor: colors.surface, borderColor: colors.border },
+            themedStyles.formContainer,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              shadowColor: colors.shadow,
+            },
           ]}
         >
-          <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>
+          <Text style={[themedStyles.formTitle, { color: colors.textPrimary }]}>
             {t("summary.select_date_range")}
           </Text>
-          <View style={styles.inputRow}>
+          <View style={themedStyles.row}>
             <TouchableOpacity
-              style={[styles.inputButton, { flex: 1, marginRight: 5 }]}
+              style={[themedStyles.button, { flex: 1, marginRight: 5 }]}
               onPress={() => setShowStartPicker(true)}
               activeOpacity={0.8}
             >
@@ -97,14 +243,14 @@ const SummaryScreen = () => {
                 size={20}
                 color={colors.primary}
               />
-              <Text style={styles.inputButtonText}>
+              <Text style={themedStyles.buttonText}>
                 {startDate
                   ? startDate.toLocaleDateString()
                   : t("summary.select_start_date")}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.inputButton, { flex: 1, marginLeft: 5 }]}
+              style={[themedStyles.button, { flex: 1, marginLeft: 5 }]}
               onPress={() => setShowEndPicker(true)}
               activeOpacity={0.8}
             >
@@ -114,7 +260,10 @@ const SummaryScreen = () => {
                 color={colors.primary}
               />
               <Text
-                style={[styles.inputButtonText, { flexShrink: 1, minWidth: 0 }]}
+                style={[
+                  themedStyles.buttonText,
+                  { flexShrink: 1, minWidth: 0 },
+                ]}
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
@@ -125,11 +274,11 @@ const SummaryScreen = () => {
             </TouchableOpacity>
           </View>
           {/* Shift Filter */}
-          <View style={styles.pickerContainer}>
+          <View style={themedStyles.pickerContainer}>
             <Picker
               selectedValue={shift || "ALL"}
               onValueChange={(value) => setShift(value)}
-              style={{ color: colors.textPrimary }}
+              style={themedStyles.picker}
               dropdownIconColor={colors.textSecondary}
             >
               <Picker.Item
@@ -148,15 +297,16 @@ const SummaryScreen = () => {
           </View>
           <TouchableOpacity
             style={[
-              styles.fetchButton,
+              themedStyles.button,
               { backgroundColor: colors.primary },
-              (loading || !startDate || !endDate) && { opacity: 0.6 },
+              (loading || !startDate || !endDate) &&
+                themedStyles.disabledButton,
             ]}
             onPress={handleFetch}
             disabled={loading || !startDate || !endDate}
             activeOpacity={0.8}
           >
-            <Text style={styles.fetchButtonText}>
+            <Text style={themedStyles.buttonText}>
               {t("summary.fetch_summary")}
             </Text>
           </TouchableOpacity>
@@ -182,136 +332,82 @@ const SummaryScreen = () => {
         />
         {/* Summary Stats */}
         {loading ? (
-          <View style={styles.centered}>
+          <View style={themedStyles.loadingContainer}>
             <MaterialCommunityIcons
               name="progress-clock"
               size={32}
               color={colors.primary}
             />
-            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+            <Text
+              style={[themedStyles.buttonText, { color: colors.textSecondary }]}
+            >
               {t("summary.loading")}
             </Text>
           </View>
         ) : error ? (
-          <View style={styles.centered}>
+          <View style={themedStyles.errorContainer}>
             <MaterialCommunityIcons
               name="alert-circle-outline"
               size={32}
               color={colors.error}
             />
-            <Text style={[styles.errorText, { color: colors.error }]}>
+            <Text style={[themedStyles.errorText, { color: colors.error }]}>
               {error}
             </Text>
           </View>
         ) : summary ? (
-          <View style={styles.statsGrid}>
-            <View
-              style={[
-                styles.statCard,
-                {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                },
-              ]}
-            >
-              <MaterialCommunityIcons
-                name="cow"
-                size={32}
-                color={colors.primary}
-                style={{ marginBottom: 4 }}
-              />
-              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+          <View style={themedStyles.summaryContainer}>
+            <Text style={themedStyles.summaryTitle}>
+              {t("summary.summary_stats")}
+            </Text>
+            <View style={themedStyles.summaryRow}>
+              <Text style={themedStyles.summaryLabel}>
                 {t("summary.total_milk_quantity")}
               </Text>
-              <Text style={[styles.statValue, { color: colors.primary }]}>
+              <Text style={themedStyles.summaryValue}>
                 {summary.total_milk_quantity}
               </Text>
             </View>
-            <View
-              style={[
-                styles.statCard,
-                {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                },
-              ]}
-            >
-              <MaterialCommunityIcons
-                name="currency-inr"
-                size={32}
-                color={colors.success}
-                style={{ marginBottom: 4 }}
-              />
-              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+            <View style={themedStyles.summaryRow}>
+              <Text style={themedStyles.summaryLabel}>
                 {t("summary.total_milk_amount")}
               </Text>
-              <Text style={[styles.statValue, { color: colors.success }]}>
+              <Text style={themedStyles.summaryValue}>
                 ₹{summary.total_milk_amount}
               </Text>
             </View>
-            <View
-              style={[
-                styles.statCard,
-                {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                },
-              ]}
-            >
-              <MaterialCommunityIcons
-                name="currency-inr"
-                size={32}
-                color={colors.error}
-                style={{ marginBottom: 4 }}
-              />
-              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+            <View style={themedStyles.summaryRow}>
+              <Text style={themedStyles.summaryLabel}>
                 {t("summary.total_expense_amount")}
               </Text>
-              <Text style={[styles.statValue, { color: colors.error }]}>
+              <Text style={themedStyles.summaryValue}>
                 ₹{summary.total_expense_amount}
               </Text>
             </View>
-            <View
-              style={[
-                styles.statCard,
-                {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                },
-              ]}
-            >
-              <MaterialCommunityIcons
-                name="format-list-numbered"
-                size={32}
-                color={colors.textPrimary}
-                style={{ marginBottom: 4 }}
-              />
-              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+            <View style={themedStyles.summaryRow}>
+              <Text style={themedStyles.summaryLabel}>
                 {t("summary.total_entries")}
               </Text>
-              <Text style={[styles.statValue, { color: colors.textPrimary }]}>
+              <Text style={themedStyles.summaryValue}>
                 {summary.total_entries_count}
               </Text>
             </View>
           </View>
         ) : (
-          <View style={styles.centered}>
-            <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+          <View style={themedStyles.centered}>
+            <Text
+              style={[themedStyles.buttonText, { color: colors.textSecondary }]}
+            >
               {t("summary.no_data")}
             </Text>
           </View>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaWrapper>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 8,
-  },
   inputCard: {
     borderRadius: 14,
     borderWidth: 1,
@@ -338,7 +434,6 @@ const styles = StyleSheet.create({
   inputButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f5f5f5",
     borderRadius: 6,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -349,11 +444,9 @@ const styles = StyleSheet.create({
   inputButtonText: {
     marginLeft: 7,
     fontWeight: "500",
-    color: "#333",
     fontSize: 15,
   },
   inputToText: {
-    color: "#888",
     fontWeight: "500",
     marginRight: 8,
     fontSize: 15,

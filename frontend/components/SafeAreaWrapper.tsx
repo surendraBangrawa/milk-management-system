@@ -1,55 +1,32 @@
-import React, { useEffect } from "react";
-import { View, StyleSheet, StatusBar, Platform, ViewStyle } from "react-native";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import React from "react";
+import { View, StyleSheet, ViewStyle } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import useTheme from "@/context/theme/useTheme";
+import ThemedStatusBar from "./ThemedStatusBar";
 
 interface SafeAreaWrapperProps {
   children: React.ReactNode;
   style?: ViewStyle;
   backgroundColor?: string;
+  edges?: ("top" | "bottom" | "left" | "right")[];
+  paddingTop?: boolean;
+  paddingBottom?: boolean;
 }
 
 const SafeAreaWrapper: React.FC<SafeAreaWrapperProps> = ({
   children,
   style,
   backgroundColor,
+  edges = ["top", "left", "right", "bottom"],
 }) => {
-  const { colors, themeMode } = useTheme();
-  const statusBarStyle =
-    themeMode === "dark" ? "light-content" : "dark-content";
+  const { colors } = useTheme();
   const bgColor = backgroundColor || colors.background;
-  const insets = useSafeAreaInsets();
-
-  useEffect(() => {
-    // Set status bar to be translucent on Android
-    if (Platform.OS === "android") {
-      StatusBar.setTranslucent(true);
-      StatusBar.setBackgroundColor("transparent");
-    }
-  }, []);
 
   return (
     <View style={[styles.container, { backgroundColor: bgColor }, style]}>
-      <StatusBar
-        barStyle={statusBarStyle}
-        backgroundColor="transparent"
-        translucent={Platform.OS === "android"}
-      />
-      <SafeAreaView
-        style={styles.safeArea}
-        edges={["top", "left", "right", "bottom"]}
-      >
-        <View
-          style={[
-            styles.contentContainer,
-            { paddingTop: insets.top, paddingBottom: insets.bottom },
-          ]}
-        >
-          {children}
-        </View>
+      <ThemedStatusBar backgroundColor={bgColor} />
+      <SafeAreaView style={styles.safeArea} edges={edges}>
+        <View style={[styles.contentContainer]}>{children}</View>
       </SafeAreaView>
     </View>
   );

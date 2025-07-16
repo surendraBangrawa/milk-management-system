@@ -150,7 +150,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingTop: 40, // More top padding for better visual spacing
   },
   sectionTitle: {
     fontSize: 24,

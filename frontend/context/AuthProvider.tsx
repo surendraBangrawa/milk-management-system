@@ -37,20 +37,13 @@ export function SessionProvider({ children }: PropsWithChildren) {
 
   const signOut = () => {
     try {
-      console.log("AuthProvider: Starting signOut process...");
-
       // Clear token from storage
       setSession(null);
-      console.log("AuthProvider: Token cleared from storage");
 
       // Clear user data from SecureStore (async but we don't wait)
       SecureStore.deleteItemAsync("user")
-        .then(() => {
-          console.log("AuthProvider: User data cleared from SecureStore");
-        })
-        .catch((error) => {
-          console.error("AuthProvider: Error clearing user data:", error);
-        });
+        .then(() => {})
+        .catch((error) => {});
 
       // Show logout message
       Toast.show({
@@ -58,19 +51,15 @@ export function SessionProvider({ children }: PropsWithChildren) {
         text1: "Session Expired",
         text2: "You have been logged out. Please sign in again.",
       });
-      console.log("AuthProvider: Toast message shown");
 
       // Navigate to login screen
       try {
         router.replace("/auth/signin");
-        console.log("AuthProvider: Navigated to login screen");
       } catch (navError) {
         console.error("AuthProvider: Navigation error:", navError);
         // Fallback navigation
         router.push("/auth/signin");
       }
-
-      console.log("AuthProvider: SignOut process completed");
     } catch (error) {
       console.error("AuthProvider: Error during signOut:", error);
     }

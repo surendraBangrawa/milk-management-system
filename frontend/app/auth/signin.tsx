@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  StatusBar,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -16,6 +15,7 @@ import * as SecureStore from "expo-secure-store";
 import { useForm, Controller } from "react-hook-form";
 import Toast from "react-native-toast-message";
 import { sendOtpApi } from "@/redux/slice/auth/authApi";
+import SafeAreaWrapper from "@/components/SafeAreaWrapper";
 
 // Import your useTheme hook
 import useTheme from "@/context/theme/useTheme";
@@ -26,9 +26,6 @@ const Signin = () => {
   const router = useRouter();
   const { colors, themeMode } = useTheme();
   const { t } = useTranslation(); // Initialize useTranslation
-  const statusBarStyle =
-    themeMode === "dark" ? "light-content" : "dark-content";
-
   const {
     control,
     handleSubmit,
@@ -89,100 +86,100 @@ const Signin = () => {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.keyboardAvoidingView}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
-    >
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="interactive"
+    <SafeAreaWrapper>
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
-        <View
-          style={[styles.container, { backgroundColor: colors.background }]}
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
         >
-          <StatusBar
-            barStyle={statusBarStyle}
-            backgroundColor={colors.surface}
-          />
-          <Text style={[styles.title, { color: colors.textPrimary }]}>
-            {t("signin.title")} {/* Translated title */}
-          </Text>
-
-          <View style={styles.inputContainer}>
-            <Controller
-              control={control}
-              render={({ field: { onChange, value } }) => (
-                <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      borderColor: errors.phone ? colors.error : colors.border,
-                      backgroundColor: colors.surface,
-                      color: colors.textPrimary,
-                    },
-                  ]}
-                  placeholder={t("signin.phone_placeholder")} // Translated placeholder
-                  placeholderTextColor={colors.textSecondary}
-                  value={value}
-                  onChangeText={onChange}
-                  keyboardType="phone-pad"
-                  maxLength={10}
-                />
-              )}
-              name="phone"
-              rules={{
-                required: t("signin.phone_required"), // Translated validation message
-                pattern: {
-                  value: /^[0-9]{10}$/,
-                  message: t("signin.phone_invalid"), // Translated validation message
-                },
-              }}
-            />
-            <Text
-              style={[
-                styles.errorText,
-                {
-                  color: colors.error,
-                  opacity: errors.phone ? 1 : 0,
-                },
-              ]}
-            >
-              {errors.phone?.message as string}
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            style={[
-              styles.button,
-              { backgroundColor: loading ? colors.border : colors.primary },
-            ]}
-            onPress={handleSubmit(handleLogin)}
-            disabled={loading}
+          <View
+            style={[styles.container, { backgroundColor: colors.background }]}
           >
-            {loading ? (
-              <ActivityIndicator size="small" color={colors.surface} />
-            ) : (
-              <Text style={[styles.buttonText, { color: colors.surface }]}>
-                {t("signin.login_button")} {/* Translated button text */}
-              </Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={() => router.push("/auth/signup")}>
-            <Text style={[styles.signInText, { color: colors.textPrimary }]}>
-              {t("signin.no_account_prompt")} {/* Translated prompt */}
-              <Text style={[styles.signInLink, { color: colors.primary }]}>
-                {t("signin.signup_link")} {/* Translated link */}
-              </Text>
+            <Text style={[styles.title, { color: colors.textPrimary }]}>
+              {t("signin.title")} {/* Translated title */}
             </Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+
+            <View style={styles.inputContainer}>
+              <Controller
+                control={control}
+                render={({ field: { onChange, value } }) => (
+                  <TextInput
+                    style={[
+                      styles.input,
+                      {
+                        borderColor: errors.phone
+                          ? colors.error
+                          : colors.border,
+                        backgroundColor: colors.surface,
+                        color: colors.textPrimary,
+                      },
+                    ]}
+                    placeholder={t("signin.phone_placeholder")} // Translated placeholder
+                    placeholderTextColor={colors.textSecondary}
+                    value={value}
+                    onChangeText={onChange}
+                    keyboardType="phone-pad"
+                    maxLength={10}
+                  />
+                )}
+                name="phone"
+                rules={{
+                  required: t("signin.phone_required"), // Translated validation message
+                  pattern: {
+                    value: /^[0-9]{10}$/,
+                    message: t("signin.phone_invalid"), // Translated validation message
+                  },
+                }}
+              />
+              <Text
+                style={[
+                  styles.errorText,
+                  {
+                    color: colors.error,
+                    opacity: errors.phone ? 1 : 0,
+                  },
+                ]}
+              >
+                {errors.phone?.message as string}
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.button,
+                { backgroundColor: loading ? colors.border : colors.primary },
+              ]}
+              onPress={handleSubmit(handleLogin)}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color={colors.surface} />
+              ) : (
+                <Text style={[styles.buttonText, { color: colors.surface }]}>
+                  {t("signin.login_button")} {/* Translated button text */}
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => router.push("/auth/signup")}>
+              <Text style={[styles.signInText, { color: colors.textPrimary }]}>
+                {t("signin.no_account_prompt")} {/* Translated prompt */}
+                <Text style={[styles.signInLink, { color: colors.primary }]}>
+                  {t("signin.signup_link")} {/* Translated link */}
+                </Text>
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaWrapper>
   );
 };
 
@@ -203,7 +200,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingTop: 20,
     paddingBottom: 20,
   },
   title: {

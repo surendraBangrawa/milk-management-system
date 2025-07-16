@@ -109,7 +109,6 @@ const InputTable = () => {
     const key = getStorageKey();
     try {
       await AsyncStorage.setItem(key, JSON.stringify(latestRatesRef.current));
-      console.log(`Draft saved for key: ${key}`);
     } catch (error) {
       console.error(`Failed to save draft for key ${key}:`, error);
     }
@@ -121,7 +120,6 @@ const InputTable = () => {
 
     const loadAndGenerate = async () => {
       if (!(sf && ef && ss && es)) {
-        console.log("Ranges not available for generation/load.");
         setGeneratingTable(false);
         return;
       }
@@ -193,9 +191,6 @@ const InputTable = () => {
         const draft = await AsyncStorage.getItem(key);
         if (draft !== null) {
           loadedRates = JSON.parse(draft);
-          console.log(`Draft loaded for key: ${key}`);
-        } else {
-          console.log(`No draft found for key: ${key}`);
         }
       } catch (error) {
         console.error(`Failed to load draft for key ${key}:`, error);
@@ -227,7 +222,6 @@ const InputTable = () => {
         setTableData(generatedTableData);
         setRates(mergedRates);
         setGeneratingTable(false);
-        console.log("Table data generated and draft loaded/merged.");
       }
     };
 
@@ -248,13 +242,11 @@ const InputTable = () => {
     let intervalId: ReturnType<typeof setInterval> | null = null;
 
     if (!generatingTable && tableData.length > 0) {
-      console.log("Starting auto-save interval...");
       intervalId = setInterval(saveDraft, 15000);
     }
 
     return () => {
       if (intervalId !== null) {
-        console.log("Clearing auto-save interval.");
         clearInterval(intervalId);
       }
     };
@@ -322,8 +314,6 @@ const InputTable = () => {
       return;
     }
 
-    console.log("Saving rate list:", rateListToSend.length, "items");
-
     try {
       const rateListRequest: RateListRequest = {
         min_fat: minFat,
@@ -346,7 +336,6 @@ const InputTable = () => {
         const key = getStorageKey();
         try {
           await AsyncStorage.removeItem(key);
-          console.log(`Draft cleared for key: ${key}`);
         } catch (removeError) {
           console.error(`Failed to clear draft for key ${key}:`, removeError);
         }

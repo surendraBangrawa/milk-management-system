@@ -239,7 +239,7 @@ const SupplierScreen = () => {
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <TextInput
         style={[
           styles.searchInput,
@@ -293,13 +293,10 @@ const styles = StyleSheet.create({
   searchInput: {
     height: 48,
     borderWidth: 1,
-    borderColor: "#e0e0e0", // Fallback border
     borderRadius: 24,
     paddingHorizontal: 16,
     marginBottom: 16,
     fontSize: 16,
-    backgroundColor: "#ffffff", // Fallback background
-    color: "#212121", // Fallback text color
   },
   listContainer: {
     paddingBottom: 20,
@@ -311,7 +308,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#ffffff", // Fallback background
   },
   personButton: {
     flexDirection: "row",
@@ -325,7 +321,6 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: "#b39ddb", // Fallback background
     borderWidth: 0,
     justifyContent: "center",
     alignItems: "center",
@@ -342,7 +337,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
     lineHeight: 48,
-    color: "#fff",
   },
   textContainer: {
     flexDirection: "column",
@@ -353,13 +347,11 @@ const styles = StyleSheet.create({
   personName: {
     fontSize: 17,
     fontWeight: "600",
-    color: "#212121", // Fallback text color
     marginBottom: 2,
   },
   personPhone: {
     fontSize: 13,
     marginTop: 2,
-    color: "#757575", // Fallback text color
   },
   personBalance: {
     fontSize: 15,
@@ -370,7 +362,6 @@ const styles = StyleSheet.create({
   personDate: {
     fontSize: 11,
     marginTop: 2,
-    color: "#757575", // Fallback text color
   },
   balanceContainer: {
     justifyContent: "center",
@@ -387,13 +378,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 20,
     textAlign: "center",
-    color: "#c62828", // Fallback color
   },
   noDataText: {
     fontSize: 16,
     textAlign: "center",
     marginTop: 20,
-    color: "#757575", // Fallback color
   },
 });
 

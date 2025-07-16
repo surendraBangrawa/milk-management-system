@@ -2,7 +2,6 @@ import {
   Text,
   Pressable,
   View,
-  StatusBar,
   StyleSheet,
   ActivityIndicator,
   ImageBackground,
@@ -10,7 +9,9 @@ import {
   ScrollView,
   Dimensions,
   Image,
+  // SafeAreaView, // Remove this line
 } from "react-native";
+import SafeAreaWrapper from "@/components/SafeAreaWrapper";
 import React, { useRef, useEffect } from "react"; // Import useEffect
 import { useSession } from "@/context/AuthProvider";
 import { Redirect, useRouter } from "expo-router";
@@ -50,9 +51,6 @@ const HeroScreen = () => {
   const { colors, themeMode } = useTheme();
   const { t } = useTranslation();
 
-  const statusBarStyle =
-    themeMode === "dark" ? "light-content" : "dark-content";
-
   const carouselScrollViewRef = useRef<ScrollView>(null);
   const [activeSlide, setActiveSlide] = React.useState(0);
 
@@ -91,23 +89,24 @@ const HeroScreen = () => {
 
   if (isLoading) {
     return (
-      <View
-        style={[
-          styles.centeredContainer,
-          { backgroundColor: colors.background },
-        ]}
-      >
-        <StatusBar barStyle={statusBarStyle} backgroundColor={colors.surface} />
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text
+      <SafeAreaWrapper>
+        <View
           style={[
-            styles.loadingText,
-            { color: colors.textPrimary, marginTop: 10 },
+            styles.centeredContainer,
+            { backgroundColor: colors.background },
           ]}
         >
-          {t("hero.loading_session")}
-        </Text>
-      </View>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text
+            style={[
+              styles.loadingText,
+              { color: colors.textPrimary, marginTop: 10 },
+            ]}
+          >
+            {t("hero.loading_session")}
+          </Text>
+        </View>
+      </SafeAreaWrapper>
     );
   }
 
@@ -116,133 +115,133 @@ const HeroScreen = () => {
   }
 
   return (
-    <ImageBackground
-      style={[styles.container, { backgroundColor: colors.background }]}
-      resizeMode="cover"
-    >
-      <StatusBar barStyle={statusBarStyle} backgroundColor={colors.surface} />
+    <SafeAreaWrapper>
+      <ImageBackground
+        style={[styles.container, { backgroundColor: colors.background }]}
+        resizeMode="cover"
+      >
+        <View style={styles.heroContent}>
+          <Text style={[styles.appLogoText, { color: colors.textPrimary }]}>
+            {t("app_name")}
+          </Text>
 
-      <View style={styles.heroContent}>
-        <Text style={[styles.appLogoText, { color: colors.textPrimary }]}>
-          {t("app_name")}
-        </Text>
+          <ScrollView
+            ref={carouselScrollViewRef}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onScroll={onScroll}
+            scrollEventThrottle={16}
+            style={styles.carouselScrollView}
+          >
+            {marketingSlides.map((item, index) => (
+              <View key={index} style={styles.carouselItem}>
+                {item.image && (
+                  <Image
+                    source={item.image}
+                    style={styles.carouselImage}
+                    resizeMode="contain"
+                  />
+                )}
+                <Text
+                  style={[styles.carouselTitle, { color: colors.textPrimary }]}
+                >
+                  {t(item.titleKey)}
+                </Text>
+                <Text
+                  style={[
+                    styles.carouselDescription,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  {t(item.descriptionKey)}
+                </Text>
+              </View>
+            ))}
+          </ScrollView>
 
-        <ScrollView
-          ref={carouselScrollViewRef}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          onScroll={onScroll}
-          scrollEventThrottle={16}
-          style={styles.carouselScrollView}
-        >
-          {marketingSlides.map((item, index) => (
-            <View key={index} style={styles.carouselItem}>
-              {item.image && (
-                <Image
-                  source={item.image}
-                  style={styles.carouselImage}
-                  resizeMode="contain"
-                />
-              )}
-              <Text
-                style={[styles.carouselTitle, { color: colors.textPrimary }]}
-              >
-                {t(item.titleKey)}
-              </Text>
-              <Text
+          {/* Pagination Dots */}
+          <View style={styles.paginationDotsContainer}>
+            {marketingSlides.map((_, index) => (
+              <Pressable
+                key={`dot-${index}`}
                 style={[
-                  styles.carouselDescription,
-                  { color: colors.textSecondary },
+                  styles.dot,
+                  {
+                    backgroundColor:
+                      index === activeSlide
+                        ? colors.primary
+                        : colors.textSecondary,
+                    opacity: index === activeSlide ? 1 : 0.4,
+                  },
                 ]}
-              >
-                {t(item.descriptionKey)}
-              </Text>
-            </View>
-          ))}
-        </ScrollView>
+                onPress={() => scrollToSlide(index)}
+                accessibilityLabel={t("carousel.dot_label", {
+                  index: index + 1,
+                })}
+              />
+            ))}
+          </View>
 
-        {/* Pagination Dots */}
-        <View style={styles.paginationDotsContainer}>
-          {marketingSlides.map((_, index) => (
+          {/* Action Buttons */}
+          <View style={styles.buttonGroup}>
             <Pressable
-              key={`dot-${index}`}
-              style={[
-                styles.dot,
-                {
-                  backgroundColor:
-                    index === activeSlide
-                      ? colors.primary
-                      : colors.textSecondary,
-                  opacity: index === activeSlide ? 1 : 0.4,
-                },
+              style={({ pressed }) => [
+                styles.button,
+                { backgroundColor: colors.primary },
+                Platform.select({
+                  ios: {
+                    shadowOpacity: pressed ? 0.2 : 0.1,
+                    shadowRadius: pressed ? 3 : 4,
+                  },
+                  android: {
+                    elevation: pressed ? 2 : 3,
+                  },
+                }),
               ]}
-              onPress={() => scrollToSlide(index)}
-              accessibilityLabel={t("carousel.dot_label", {
-                index: index + 1,
-              })}
-            />
-          ))}
-        </View>
-
-        {/* Action Buttons */}
-        <View style={styles.buttonGroup}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.button,
-              { backgroundColor: colors.primary },
-              Platform.select({
-                ios: {
-                  shadowOpacity: pressed ? 0.2 : 0.1,
-                  shadowRadius: pressed ? 3 : 4,
-                },
-                android: {
-                  elevation: pressed ? 2 : 3,
-                },
-              }),
-            ]}
-            onPress={() => {
-              router.push("/auth/signin");
-            }}
-            accessibilityLabel={t("hero.signin_button")}
-          >
-            <Text style={[styles.buttonText, { color: colors.onPrimary }]}>
-              {t("hero.signin_button")}
-            </Text>
-          </Pressable>
-
-          <Pressable
-            style={({ pressed }) => [
-              styles.button,
-              styles.secondaryButton,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.primary,
-              },
-              Platform.select({
-                ios: {
-                  shadowOpacity: pressed ? 0.2 : 0.1,
-                  shadowRadius: pressed ? 3 : 4,
-                },
-                android: {
-                  elevation: pressed ? 2 : 3,
-                },
-              }),
-            ]}
-            onPress={() => {
-              router.push("/auth/signup");
-            }}
-            accessibilityLabel={t("hero.signup_button")}
-          >
-            <Text
-              style={[styles.secondaryButtonText, { color: colors.primary }]}
+              onPress={() => {
+                router.push("/auth/signin");
+              }}
+              accessibilityLabel={t("hero.signin_button")}
             >
-              {t("hero.signup_button")}
-            </Text>
-          </Pressable>
+              <Text style={[styles.buttonText, { color: colors.textPrimary }]}>
+                {t("hero.signin_button")}
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.button,
+                styles.secondaryButton,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.primary,
+                },
+                Platform.select({
+                  ios: {
+                    shadowOpacity: pressed ? 0.2 : 0.1,
+                    shadowRadius: pressed ? 3 : 4,
+                  },
+                  android: {
+                    elevation: pressed ? 2 : 3,
+                  },
+                }),
+              ]}
+              onPress={() => {
+                router.push("/auth/signup");
+              }}
+              accessibilityLabel={t("hero.signup_button")}
+            >
+              <Text
+                style={[styles.secondaryButtonText, { color: colors.primary }]}
+              >
+                {t("hero.signup_button")}
+              </Text>
+            </Pressable>
+          </View>
         </View>
-      </View>
-    </ImageBackground>
+      </ImageBackground>
+    </SafeAreaWrapper>
   );
 };
 

@@ -47,14 +47,11 @@ const DatePickerModal: React.FC<DatePickerModalProps> = ({
   };
 
   const handleConfirm = () => {
-    console.log("Confirm pressed, calling onConfirm with date:", date);
     onConfirm(date);
     onClose();
   };
 
   const handleCancel = () => {
-    console.log("Cancel pressed, calling onClose");
-    // Reset to initial date when canceling
     if (initialDate) {
       setDate(initialDate);
     }
@@ -69,14 +66,16 @@ const DatePickerModal: React.FC<DatePickerModalProps> = ({
   // For iOS, show a simple picker without modal
   if (Platform.OS === "ios") {
     return (
-      <View style={styles.iosContainer}>
+      <View style={[styles.iosContainer, { backgroundColor: colors.overlay }]}>
         <View
           style={[
             styles.iosPickerContainer,
             { backgroundColor: colors.surface },
           ]}
         >
-          <View style={styles.iosHeader}>
+          <View
+            style={[styles.iosHeader, { borderBottomColor: colors.border }]}
+          >
             <TouchableOpacity onPress={handleCancel} style={styles.iosButton}>
               <Text style={[styles.iosButtonText, { color: colors.error }]}>
                 Cancel
@@ -120,7 +119,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "flex-end",
   },
   iosPickerContainer: {
@@ -135,7 +133,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
   },
   iosButton: {
     paddingHorizontal: 15,

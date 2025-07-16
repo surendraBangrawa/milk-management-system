@@ -75,8 +75,6 @@ const UploadRateListScreen = () => {
   };
 
   const uploadImage = async () => {
-    console.log("Upload button clicked, current status:", uploadStatus);
-
     if (!selectedImageUri) {
       Toast.show({
         type: "error",
@@ -88,11 +86,9 @@ const UploadRateListScreen = () => {
 
     // Prevent multiple clicks
     if (uploadStatus.isUploading || uploadStatus.isProcessing || isUploading) {
-      console.log("Upload already in progress, ignoring click");
       return;
     }
 
-    console.log("Starting upload...");
     setIsUploading(true);
     dispatch(startUpload());
 

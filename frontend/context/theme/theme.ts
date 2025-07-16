@@ -13,7 +13,20 @@ interface ColorPalette {
   success: string;
   border: string;
   shadow: string; // Shadow color (opacity will be applied via RGBA or style)
-  // Add any other colors you use
+  // Additional colors for better theme support
+  card: string;
+  inputBackground: string;
+  placeholder: string;
+  link: string;
+  warning: string;
+  info: string;
+  divider: string;
+  overlay: string;
+  // Status colors
+  statusBar: string;
+  tabBar: string;
+  tabBarInactive: string;
+  tabBarActive: string;
 }
 
 // Define your light mode colors
@@ -29,9 +42,23 @@ const lightColors: ColorPalette = {
   success: "#66bb6a", // Muted success green
   border: "#e0e0e0", // Light gray border
   shadow: "rgba(0, 0, 0, 0.1)", // Softer shadow color (iOS)
+  // Additional colors
+  card: "#ffffff",
+  inputBackground: "#f8f9fa",
+  placeholder: "#9e9e9e",
+  link: "#1976d2",
+  warning: "#ff9800",
+  info: "#2196f3",
+  divider: "#e0e0e0",
+  overlay: "rgba(0, 0, 0, 0.5)",
+  // Status colors
+  statusBar: "#ffffff",
+  tabBar: "#ffffff",
+  tabBarInactive: "#757575",
+  tabBarActive: "#7e57c2",
 };
 
-// Define your dark mode colors (Revised)
+// Define your dark mode colors (Enhanced)
 const darkColors: ColorPalette = {
   primary: "#bb86fc", // A common Material Design dark mode primary purple
   primaryLight: "#6200ea", // A deeper purple, potentially for accents or interactive states
@@ -44,6 +71,20 @@ const darkColors: ColorPalette = {
   success: "#81c784", // A dark mode friendly success green
   border: "#333333", // Darker border color for subtle separation
   shadow: "rgba(255, 255, 255, 0.1)", // White shadow with low opacity for dark mode
+  // Additional colors
+  card: "#1e1e1e",
+  inputBackground: "#2d2d2d",
+  placeholder: "#666666",
+  link: "#90caf9",
+  warning: "#ffb74d",
+  info: "#64b5f6",
+  divider: "#333333",
+  overlay: "rgba(0, 0, 0, 0.7)",
+  // Status colors
+  statusBar: "#121212",
+  tabBar: "#1e1e1e",
+  tabBarInactive: "#a0a0a0",
+  tabBarActive: "#bb86fc",
 };
 
 // Map mode names to color palettes

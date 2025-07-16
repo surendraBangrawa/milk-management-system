@@ -20,6 +20,7 @@ import { sendOtpApi, signUpApi } from "@/redux/slice/auth/authApi";
 
 import useTheme from "@/context/theme/useTheme";
 import { useTranslation } from "react-i18next";
+import SafeAreaWrapper from "@/components/SafeAreaWrapper";
 
 const Signup = () => {
   const router = useRouter();
@@ -106,208 +107,212 @@ const Signup = () => {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.keyboardAvoidingView}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
-    >
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        bounces={false}
-        automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
+    <SafeAreaWrapper edges={["top", "bottom", "left", "right"]}>
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
-        <View
-          style={[styles.container, { backgroundColor: colors.background }]}
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          bounces={false}
+          automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
         >
-          <Text style={[styles.title, { color: colors.textPrimary }]}>
-            {t("signup.title")} {/* Translated title */}
-          </Text>
-
-          <View style={styles.inputContainer}>
-            <Controller
-              control={control}
-              render={({ field: { onChange, value } }) => (
-                <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      borderColor: errors.name ? colors.error : colors.border,
-                      backgroundColor: colors.surface,
-                      color: colors.textPrimary,
-                    },
-                  ]}
-                  placeholder={t("signup.name_placeholder")} // Translated placeholder
-                  placeholderTextColor={colors.textSecondary}
-                  value={value}
-                  onChangeText={onChange}
-                />
-              )}
-              name="name"
-              rules={{ required: t("signup.name_required") }} // Translated validation message
-            />
-            <Text
-              style={[
-                styles.errorText,
-                {
-                  color: colors.error,
-                  opacity: errors.name ? 1 : 0,
-                },
-              ]}
-            >
-              {errors.name?.message as string}
+          <View
+            style={[styles.container, { backgroundColor: colors.background }]}
+          >
+            <Text style={[styles.title, { color: colors.textPrimary }]}>
+              {t("signup.title")} {/* Translated title */}
             </Text>
-          </View>
 
-          <View style={styles.inputContainer}>
-            <Controller
-              control={control}
-              render={({ field: { onChange, value } }) => (
-                <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      borderColor: errors.phone ? colors.error : colors.border,
-                      backgroundColor: colors.surface,
-                      color: colors.textPrimary,
-                    },
-                  ]}
-                  placeholder={t("signup.phone_placeholder")} // Translated placeholder
-                  placeholderTextColor={colors.textSecondary}
-                  value={value}
-                  onChangeText={onChange}
-                  keyboardType="phone-pad"
-                  maxLength={10}
-                />
-              )}
-              name="phone"
-              rules={{
-                required: t("signup.phone_required"), // Translated validation message
-                pattern: {
-                  value: /^[0-9]{10}$/,
-                  message: t("signup.phone_invalid"), // Translated validation message
-                },
-              }}
-            />
-            <Text
-              style={[
-                styles.errorText,
-                {
-                  color: colors.error,
-                  opacity: errors.phone ? 1 : 0,
-                },
-              ]}
-            >
-              {errors.phone?.message as string}
-            </Text>
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Controller
-              control={control}
-              render={({ field: { onChange, value } }) => (
-                <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      borderColor: colors.border,
-                      backgroundColor: colors.surface,
-                      color: colors.textPrimary,
-                    },
-                  ]}
-                  placeholder={t("signup.referral_placeholder")} // Translated placeholder
-                  placeholderTextColor={colors.textSecondary}
-                  value={value}
-                  onChangeText={onChange}
-                />
-              )}
-              name="referral"
-            />
-            <Text style={[styles.errorText, { opacity: 0 }]}>
-              {t("signup.referral_optional_error_placeholder")}
-            </Text>
-          </View>
-
-          <View style={styles.checkboxContainer}>
-            <Controller
-              control={control}
-              name="agreeToTerms"
-              render={({ field: { onChange, value } }) => (
-                <>
-                  <View style={styles.checkboxWrapper}>
-                    <Checkbox
-                      value={value}
-                      onValueChange={onChange}
-                      style={styles.checkbox}
-                      color={value ? colors.primary : colors.textSecondary}
-                    />
-                    <Text
-                      style={[
-                        styles.checkboxLabel,
-                        { color: colors.textPrimary },
-                      ]}
-                    >
-                      {t("signup.agree_to_the")}
-                      <Text
-                        style={[styles.termsText, { color: colors.primary }]}
-                        onPress={handleOpenTerms}
-                      >
-                        {t("signup.terms_and_conditions")}
-                      </Text>
-                    </Text>
-                  </View>
-                  <Text
+            <View style={styles.inputContainer}>
+              <Controller
+                control={control}
+                render={({ field: { onChange, value } }) => (
+                  <TextInput
                     style={[
-                      styles.errorText,
+                      styles.input,
                       {
-                        color: colors.error,
-                        marginTop: 0,
-                        opacity: errors.agreeToTerms ? 1 : 0,
+                        borderColor: errors.name ? colors.error : colors.border,
+                        backgroundColor: colors.surface,
+                        color: colors.textPrimary,
                       },
                     ]}
-                  >
-                    {errors?.agreeToTerms?.message as string}
-                  </Text>
-                </>
+                    placeholder={t("signup.name_placeholder")} // Translated placeholder
+                    placeholderTextColor={colors.textSecondary}
+                    value={value}
+                    onChangeText={onChange}
+                  />
+                )}
+                name="name"
+                rules={{ required: t("signup.name_required") }} // Translated validation message
+              />
+              <Text
+                style={[
+                  styles.errorText,
+                  {
+                    color: colors.error,
+                    opacity: errors.name ? 1 : 0,
+                  },
+                ]}
+              >
+                {errors.name?.message as string}
+              </Text>
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Controller
+                control={control}
+                render={({ field: { onChange, value } }) => (
+                  <TextInput
+                    style={[
+                      styles.input,
+                      {
+                        borderColor: errors.phone
+                          ? colors.error
+                          : colors.border,
+                        backgroundColor: colors.surface,
+                        color: colors.textPrimary,
+                      },
+                    ]}
+                    placeholder={t("signup.phone_placeholder")} // Translated placeholder
+                    placeholderTextColor={colors.textSecondary}
+                    value={value}
+                    onChangeText={onChange}
+                    keyboardType="phone-pad"
+                    maxLength={10}
+                  />
+                )}
+                name="phone"
+                rules={{
+                  required: t("signup.phone_required"), // Translated validation message
+                  pattern: {
+                    value: /^[0-9]{10}$/,
+                    message: t("signup.phone_invalid"), // Translated validation message
+                  },
+                }}
+              />
+              <Text
+                style={[
+                  styles.errorText,
+                  {
+                    color: colors.error,
+                    opacity: errors.phone ? 1 : 0,
+                  },
+                ]}
+              >
+                {errors.phone?.message as string}
+              </Text>
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Controller
+                control={control}
+                render={({ field: { onChange, value } }) => (
+                  <TextInput
+                    style={[
+                      styles.input,
+                      {
+                        borderColor: colors.border,
+                        backgroundColor: colors.surface,
+                        color: colors.textPrimary,
+                      },
+                    ]}
+                    placeholder={t("signup.referral_placeholder")} // Translated placeholder
+                    placeholderTextColor={colors.textSecondary}
+                    value={value}
+                    onChangeText={onChange}
+                  />
+                )}
+                name="referral"
+              />
+              <Text style={[styles.errorText, { opacity: 0 }]}>
+                {t("signup.referral_optional_error_placeholder")}
+              </Text>
+            </View>
+
+            <View style={styles.checkboxContainer}>
+              <Controller
+                control={control}
+                name="agreeToTerms"
+                render={({ field: { onChange, value } }) => (
+                  <>
+                    <View style={styles.checkboxWrapper}>
+                      <Checkbox
+                        value={value}
+                        onValueChange={onChange}
+                        style={styles.checkbox}
+                        color={value ? colors.primary : colors.textSecondary}
+                      />
+                      <Text
+                        style={[
+                          styles.checkboxLabel,
+                          { color: colors.textPrimary },
+                        ]}
+                      >
+                        {t("signup.agree_to_the")}
+                        <Text
+                          style={[styles.termsText, { color: colors.primary }]}
+                          onPress={handleOpenTerms}
+                        >
+                          {t("signup.terms_and_conditions")}
+                        </Text>
+                      </Text>
+                    </View>
+                    <Text
+                      style={[
+                        styles.errorText,
+                        {
+                          color: colors.error,
+                          marginTop: 0,
+                          opacity: errors.agreeToTerms ? 1 : 0,
+                        },
+                      ]}
+                    >
+                      {errors?.agreeToTerms?.message as string}
+                    </Text>
+                  </>
+                )}
+                rules={{
+                  required: t("signup.terms_required"), // Translated validation message
+                }}
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.button,
+                { backgroundColor: loading ? colors.border : colors.primary },
+              ]}
+              onPress={handleSubmit(handleSignup)}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color={colors.surface} />
+              ) : (
+                <Text style={[styles.buttonText, { color: colors.surface }]}>
+                  {t("signup.button_text")} {/* Translated button text */}
+                </Text>
               )}
-              rules={{
-                required: t("signup.terms_required"), // Translated validation message
-              }}
-            />
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={handleSignInRedirect}>
+              <Text style={[styles.signInText, { color: colors.textPrimary }]}>
+                {t("signup.already_have_account_prompt")}{" "}
+                {/* Translated prompt */}
+                <Text style={[styles.signInLink, { color: colors.primary }]}>
+                  {t("signup.signin_link")} {/* Translated link */}
+                </Text>
+              </Text>
+            </TouchableOpacity>
           </View>
-
-          <TouchableOpacity
-            style={[
-              styles.button,
-              { backgroundColor: loading ? colors.border : colors.primary },
-            ]}
-            onPress={handleSubmit(handleSignup)}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color={colors.surface} />
-            ) : (
-              <Text style={[styles.buttonText, { color: colors.surface }]}>
-                {t("signup.button_text")} {/* Translated button text */}
-              </Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={handleSignInRedirect}>
-            <Text style={[styles.signInText, { color: colors.textPrimary }]}>
-              {t("signup.already_have_account_prompt")}{" "}
-              {/* Translated prompt */}
-              <Text style={[styles.signInLink, { color: colors.primary }]}>
-                {t("signup.signin_link")} {/* Translated link */}
-              </Text>
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaWrapper>
   );
 };
 

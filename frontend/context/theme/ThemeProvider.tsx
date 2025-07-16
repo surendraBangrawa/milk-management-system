@@ -9,29 +9,71 @@ interface ThemeProviderProps {
 
 const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const systemColorScheme = useColorScheme();
-  const [themeMode, setThemeMode] = useState<"light" | "dark">(
-    systemColorScheme === "dark" ? "dark" : "light"
+  const [themeMode, setThemeMode] = useState<"light" | "dark" | "system">(
+    "system"
   );
+  const [manualTheme, setManualTheme] = useState<"light" | "dark">("light");
 
+  // Determine the effective theme mode
+  const effectiveThemeMode = useMemo(() => {
+    if (themeMode === "system") {
+      return systemColorScheme === "dark" ? "dark" : "light";
+    }
+    return manualTheme;
+  }, [themeMode, systemColorScheme, manualTheme]);
+
+  // Update manual theme when system theme changes (if in system mode)
   useEffect(() => {
-    setThemeMode(systemColorScheme === "dark" ? "dark" : "light");
-  }, [systemColorScheme]);
+    if (themeMode === "system") {
+      setManualTheme(systemColorScheme === "dark" ? "dark" : "light");
+    }
+  }, [systemColorScheme, themeMode]);
 
   const colors = useMemo(() => {
-    return themePalettes[themeMode] || themePalettes.light;
-  }, [themeMode]);
+    return themePalettes[effectiveThemeMode] || themePalettes.light;
+  }, [effectiveThemeMode]);
 
   const toggleTheme = useCallback(() => {
-    setThemeMode((prevMode) => (prevMode === "light" ? "dark" : "light"));
-  }, []);
+    if (themeMode === "system") {
+      // If currently in system mode, switch to manual mode with opposite theme
+      setThemeMode("light");
+      setManualTheme(systemColorScheme === "dark" ? "light" : "dark");
+    } else {
+      // If in manual mode, toggle between light and dark
+      setManualTheme((prev) => (prev === "light" ? "dark" : "light"));
+    }
+  }, [themeMode, systemColorScheme]);
+
+  const setTheme = useCallback(
+    (mode: "light" | "dark" | "system") => {
+      if (mode === "system") {
+        setThemeMode("system");
+        setManualTheme(systemColorScheme === "dark" ? "dark" : "light");
+      } else {
+        setThemeMode("light");
+        setManualTheme(mode);
+      }
+    },
+    [systemColorScheme]
+  );
 
   const contextValue = useMemo(
     () => ({
+      themeMode: effectiveThemeMode,
+      systemThemeMode: systemColorScheme,
+      manualThemeMode: themeMode,
+      colors,
+      toggleTheme,
+      setTheme,
+    }),
+    [
+      effectiveThemeMode,
+      systemColorScheme,
       themeMode,
       colors,
       toggleTheme,
-    }),
-    [themeMode, colors, toggleTheme]
+      setTheme,
+    ]
   );
 
   return (

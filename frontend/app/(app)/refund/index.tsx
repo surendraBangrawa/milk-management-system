@@ -1,4 +1,3 @@
-import React from "react";
 import { useTranslation } from "react-i18next";
 import StaticInfoScreen from "@/components/StaticInfoScreen";
 import { Heading, Paragraph, Section } from "@/components/InfoPageComponents";

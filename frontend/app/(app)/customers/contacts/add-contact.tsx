@@ -23,7 +23,7 @@ const ProfileIcon = require("../../../../assets/images/avatar.jpg");
 
 const AddCustomerFormScreen = () => {
   const router = useRouter();
-  const { colors } = useTheme();
+  const { colors, themeMode } = useTheme();
   const scrollViewRef = useRef<ScrollView>(null);
 
   const { mobile, name } = useLocalSearchParams() as {
@@ -136,7 +136,9 @@ const AddCustomerFormScreen = () => {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
         >
-          <View style={styles.container}>
+          <View
+            style={[styles.container, { backgroundColor: colors.background }]}
+          >
             <Image source={ProfileIcon} style={styles.avatar} />
             <View style={styles.inputContainer}>
               <Controller
@@ -276,7 +278,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingTop: 20,
     paddingBottom: 40,
   },
   inputContainer: {

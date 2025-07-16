@@ -1,15 +1,5 @@
 import { useState, useEffect } from "react";
-import {
-  TextInput,
-  StyleSheet,
-  Text,
-  View,
-  TouchableOpacity,
-  Platform,
-  ActivityIndicator,
-  ScrollView,
-  KeyboardAvoidingView,
-} from "react-native";
+import { TextInput, StyleSheet, Text, View, TouchableOpacity, Platform, ActivityIndicator, ScrollView, KeyboardAvoidingView,  } from "react-native";
 import { useRouter, useLocalSearchParams, Stack } from "expo-router";
 import { format } from "date-fns";
 import { useForm, Controller } from "react-hook-form";
@@ -29,7 +19,7 @@ import { fetchSellerSummaries } from "@/redux/slice/transactions/transactionsSli
 const AddTransactionScreen = () => {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
-  const { colors } = useTheme();
+  const { colors, themeMode } = useTheme();
   const { t } = useTranslation();
 
   const params = useLocalSearchParams();
@@ -205,12 +195,14 @@ const AddTransactionScreen = () => {
             backgroundColor: colors.surface,
           },
           headerTintColor: colors.textPrimary,
+          headerTitleStyle: {
+            fontWeight: "600",
+          },
         }}
       />
       <KeyboardAvoidingView
         style={styles.keyboardAvoidingView}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
         <ScrollView
           style={styles.scrollView}
@@ -219,9 +211,18 @@ const AddTransactionScreen = () => {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
         >
-          <View style={styles.container}>
+          <View
+            style={[styles.container, { backgroundColor: colors.background }]}
+          >
             {isLoading && (
-              <View style={styles.overlayLoading}>
+              <View
+                style={[
+                  styles.overlayLoading,
+                  {
+                    backgroundColor: colors.overlay,
+                  },
+                ]}
+              >
                 <ActivityIndicator size="large" color={colors.primary} />
               </View>
             )}
@@ -258,7 +259,8 @@ const AddTransactionScreen = () => {
             />
             {errors?.amount && (
               <Text style={[styles.errorText, { color: colors.error }]}>
-                {errors?.amount?.message}
+                {" "}
+                {errors?.amount?.message}{" "}
               </Text>
             )}
 
@@ -292,7 +294,8 @@ const AddTransactionScreen = () => {
             />
             {errors?.description && (
               <Text style={[styles.errorText, { color: colors.error }]}>
-                {errors?.description?.message}
+                {" "}
+                {errors?.description?.message}{" "}
               </Text>
             )}
 
@@ -343,7 +346,8 @@ const AddTransactionScreen = () => {
             />
             {errors?.date && (
               <Text style={[styles.errorText, { color: colors.error }]}>
-                {errors?.date?.message}
+                {" "}
+                {errors?.date?.message}{" "}
               </Text>
             )}
 
@@ -355,6 +359,9 @@ const AddTransactionScreen = () => {
                     Object.keys(errors).length > 0 || isLoading
                       ? colors.textSecondary
                       : colors.primary,
+                  borderColor: colors.border,
+                  shadowColor: colors.shadow,
+                  borderWidth: 1.5,
                 },
               ]}
               onPress={handleSubmit(onSubmit)}
@@ -364,7 +371,8 @@ const AddTransactionScreen = () => {
                 <ActivityIndicator size="small" color={colors.surface} />
               ) : (
                 <Text style={[styles.buttonText, { color: colors.surface }]}>
-                  {effectiveId ? "Update Transaction" : "Add Transaction"}
+                  {" "}
+                  {effectiveId ? "Update Transaction" : "Add Transaction"}{" "}
                 </Text>
               )}
             </TouchableOpacity>
@@ -443,7 +451,6 @@ const styles = StyleSheet.create({
   },
   picker: {
     height: 55,
-    backgroundColor: "#fff",
   },
   rowContainer: {
     flexDirection: "row",
@@ -456,7 +463,7 @@ const styles = StyleSheet.create({
   },
   overlayLoading: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(255, 255, 255, 0.7)",
+    // Remove hardcoded backgroundColor here, set inline above
     justifyContent: "center",
     alignItems: "center",
     zIndex: 1,
