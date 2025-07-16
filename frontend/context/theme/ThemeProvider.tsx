@@ -50,7 +50,7 @@ const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         setThemeMode("system");
         setManualTheme(systemColorScheme === "dark" ? "dark" : "light");
       } else {
-        setThemeMode("light");
+        setThemeMode(mode);
         setManualTheme(mode);
       }
     },

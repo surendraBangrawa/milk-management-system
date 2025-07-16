@@ -12,12 +12,11 @@ import { getProfileApi } from "@/redux/slice/profile/profileApi";
 import Toast from "react-native-toast-message";
 import useTheme from "@/context/theme/useTheme";
 import { Ionicons } from "@expo/vector-icons";
+import SafeAreaWrapper from "@/components/SafeAreaWrapper";
 
 interface UserData {
   name: string;
-  email: string;
-  phone: string;
-  // Add other fields as needed
+  mobile: string;
 }
 
 export default function Profile() {
@@ -25,8 +24,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<null | string>(null);
 
-  const { colors, themeMode, systemThemeMode, manualThemeMode, setTheme } =
-    useTheme();
+  const { colors, systemThemeMode, manualThemeMode, setTheme } = useTheme();
 
   const fetchProfile = async () => {
     try {
@@ -81,7 +79,7 @@ export default function Profile() {
   ];
 
   return (
-    <>
+    <SafeAreaWrapper edges={["bottom", "left", "right"]}>
       <Stack.Screen
         options={{
           title: "Profile",
@@ -120,18 +118,10 @@ export default function Profile() {
               </View>
               <View style={styles.infoRow}>
                 <Text style={[styles.label, { color: colors.textSecondary }]}>
-                  Email:
-                </Text>
-                <Text style={[styles.value, { color: colors.textPrimary }]}>
-                  {userData.email}
-                </Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Text style={[styles.label, { color: colors.textSecondary }]}>
                   Phone:
                 </Text>
                 <Text style={[styles.value, { color: colors.textPrimary }]}>
-                  {userData.phone}
+                  {userData.mobile}
                 </Text>
               </View>
             </>
@@ -155,10 +145,7 @@ export default function Profile() {
           </Text>
 
           {themeOptions.map((option) => {
-            const isSelected =
-              (option.key === "system" && manualThemeMode === "system") ||
-              (option.key === "light" && manualThemeMode === "light") ||
-              (option.key === "dark" && manualThemeMode === "dark");
+            const isSelected = manualThemeMode === option.key;
 
             return (
               <TouchableOpacity
@@ -211,7 +198,7 @@ export default function Profile() {
           })}
         </View>
       </ScrollView>
-    </>
+    </SafeAreaWrapper>
   );
 }
 
