@@ -1,5 +1,15 @@
 import { useState, useEffect } from "react";
-import { TextInput, StyleSheet, Text, View, TouchableOpacity, Platform, ActivityIndicator, ScrollView, KeyboardAvoidingView,  } from "react-native";
+import {
+  TextInput,
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  Platform,
+  ActivityIndicator,
+  ScrollView,
+  KeyboardAvoidingView,
+} from "react-native";
 import { useRouter, useLocalSearchParams, Stack } from "expo-router";
 import { format } from "date-fns";
 import { useForm, Controller } from "react-hook-form";
@@ -15,6 +25,7 @@ import {
 import { useDispatch } from "react-redux";
 import { AppDispatch } from "@/redux/store";
 import { fetchSellerSummaries } from "@/redux/slice/transactions/transactionsSlice";
+import SafeAreaWrapper from "@/components/SafeAreaWrapper";
 
 const AddTransactionScreen = () => {
   const router = useRouter();
@@ -187,7 +198,7 @@ const AddTransactionScreen = () => {
   };
 
   return (
-    <>
+    <SafeAreaWrapper edges={["bottom", "left", "right"]}>
       <Stack.Screen
         options={{
           title: effectiveType === "GAVE" ? "You Gave" : "You Got",
@@ -379,7 +390,7 @@ const AddTransactionScreen = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </>
+    </SafeAreaWrapper>
   );
 };
 

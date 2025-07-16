@@ -340,7 +340,6 @@ const styles = StyleSheet.create({
     maxWidth: 260, // Slightly reduced max width for a less "blocky" feel
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,

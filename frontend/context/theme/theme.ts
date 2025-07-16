@@ -31,9 +31,9 @@ interface ColorPalette {
 
 // Define your light mode colors
 const lightColors: ColorPalette = {
-  primary: "#7e57c2", // Medium purple
-  primaryLight: "#b39ddb", // Lighter purple
-  primaryDark: "#4d2c91", // Darker purple
+  primary: "#8b5cf6", // Consistent purple (violet-500)
+  primaryLight: "#a78bfa", // Lighter purple (violet-400)
+  primaryDark: "#7c3aed", // Darker purple (violet-600)
   textPrimary: "#212121", // Very dark gray
   textSecondary: "#757575", // Medium gray
   background: "#f5f5f5", // Light gray background
@@ -55,14 +55,14 @@ const lightColors: ColorPalette = {
   statusBar: "#ffffff",
   tabBar: "#ffffff",
   tabBarInactive: "#757575",
-  tabBarActive: "#7e57c2",
+  tabBarActive: "#8b5cf6",
 };
 
 // Define your dark mode colors (Enhanced)
 const darkColors: ColorPalette = {
-  primary: "#bb86fc", // A common Material Design dark mode primary purple
-  primaryLight: "#6200ea", // A deeper purple, potentially for accents or interactive states
-  primaryDark: "#3700b3", // A very dark purple, for backgrounds or less prominent elements
+  primary: "#a78bfa", // Consistent purple (violet-400) - lighter for dark mode
+  primaryLight: "#c4b5fd", // Lighter purple (violet-300) for dark mode
+  primaryDark: "#8b5cf6", // Darker purple (violet-500) for dark mode
   textPrimary: "#e0e0e0", // Light gray for main text - good contrast on dark backgrounds
   textSecondary: "#a0a0a0", // Medium gray for secondary text - still readable but less prominent
   background: "#121212", // Standard very dark background
@@ -84,7 +84,7 @@ const darkColors: ColorPalette = {
   statusBar: "#121212",
   tabBar: "#1e1e1e",
   tabBarInactive: "#a0a0a0",
-  tabBarActive: "#bb86fc",
+  tabBarActive: "#a78bfa",
 };
 
 // Map mode names to color palettes

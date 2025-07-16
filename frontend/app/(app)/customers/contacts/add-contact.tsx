@@ -17,6 +17,7 @@ import Toast from "react-native-toast-message";
 import { saveContactApi } from "@/redux/slice/customers/customerApi";
 
 import useTheme from "@/context/theme/useTheme";
+import SafeAreaWrapper from "@/components/SafeAreaWrapper";
 
 // Assuming ProfileIcon is a static local image, it doesn't need theming
 const ProfileIcon = require("../../../../assets/images/avatar.jpg");
@@ -113,7 +114,7 @@ const AddCustomerFormScreen = () => {
   };
 
   return (
-    <>
+    <SafeAreaWrapper edges={["bottom", "left", "right"]}>
       <Stack.Screen
         options={{
           title: effectiveMobile ? "Edit Customer" : "Add Customer",
@@ -257,7 +258,7 @@ const AddCustomerFormScreen = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </>
+    </SafeAreaWrapper>
   );
 };
 
@@ -300,7 +301,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     ...Platform.select({
       ios: {
-        shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.15,
         shadowRadius: 4,

@@ -414,7 +414,6 @@ const styles = StyleSheet.create({
     padding: 18,
     marginBottom: 18,
     elevation: 2,
-    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.07,
     shadowRadius: 6,
@@ -460,7 +459,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   fetchButtonText: {
-    color: "#fff",
     fontWeight: "600",
     fontSize: 17,
     letterSpacing: 0.2,
@@ -480,7 +478,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     elevation: 2,
-    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 4,
@@ -519,8 +516,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderWidth: 1,
     borderRadius: 8,
-    borderColor: "#e0e0e0",
-    backgroundColor: "#f5f5f5",
     overflow: "hidden",
   },
 });

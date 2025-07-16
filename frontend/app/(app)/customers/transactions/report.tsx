@@ -23,6 +23,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchSellerTransactionsById } from "@/redux/slice/transactions/transactionsSlice";
 import { AppDispatch, RootState } from "@/redux/store";
 import { getMilkReportTransactionApi } from "@/redux/slice/transactions/transactionApi";
+import SafeAreaWrapper from "@/components/SafeAreaWrapper";
 
 const ReportScreen = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -311,7 +312,7 @@ const ReportScreen = () => {
   };
 
   return (
-    <>
+    <SafeAreaWrapper edges={["bottom", "left", "right"]}>
       <Stack.Screen
         options={{
           title: "Report",
@@ -428,10 +429,10 @@ const ReportScreen = () => {
           disabled={isGeneratingPdf}
         >
           {isGeneratingPdf ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={colors.surface} />
           ) : (
             <>
-              <FontAwesome name="download" size={20} color="#fff" />
+              <FontAwesome name="download" size={20} color={colors.surface} />
               <Text style={styles.pdfActionButtonText}>Download PDF</Text>
             </>
           )}
@@ -443,23 +444,23 @@ const ReportScreen = () => {
           disabled={isGeneratingPdf}
         >
           {isGeneratingPdf ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={colors.surface} />
           ) : (
             <>
-              <FontAwesome name="share-alt" size={20} color="#fff" />
+              <FontAwesome name="share-alt" size={20} color={colors.surface} />
               <Text style={styles.pdfActionButtonText}>Share PDF</Text>
             </>
           )}
         </TouchableOpacity>
       </View>
-    </>
+    </SafeAreaWrapper>
   );
 };
 
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    paddingHorizontal: 16,
+    padding: 16,
   },
   contentContainer: {
     flex: 1,
@@ -470,7 +471,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginBottom: 15,
     borderRadius: 8,
-    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 1.41,
@@ -529,7 +529,6 @@ const styles = StyleSheet.create({
     overflow: "visible",
   },
   pdfActionButtonText: {
-    color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
     marginLeft: 8,

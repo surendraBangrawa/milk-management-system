@@ -408,7 +408,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 5,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
     marginBottom: 10,
     borderRadius: 8,
     marginHorizontal: 16,
@@ -467,7 +466,6 @@ const styles = StyleSheet.create({
   bottomActionButtonText: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#fff",
   },
 });
 

@@ -191,7 +191,6 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   avatarText: {
-    color: "#fff",
     fontSize: 20,
     fontWeight: "bold",
     textAlign: "center",
@@ -263,7 +262,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   buttonText: {
-    color: "#fff",
     fontSize: 18,
     fontWeight: "600",
   },
