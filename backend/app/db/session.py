@@ -10,14 +10,13 @@ from sqlalchemy.pool import QueuePool
 engine = create_engine(
     DATABASE_URL,
     poolclass=QueuePool,
-    pool_size=10,
-    max_overflow=20,
+    pool_size=5,  # Reduced for free tier
+    max_overflow=10,  # Reduced for free tier
     pool_pre_ping=True,  # This will test connections before using them
     pool_recycle=3600,  # Recycle connections after 1 hour
     connect_args={
-        "connect_timeout": 60,
-        "read_timeout": 60,
-        "write_timeout": 60,
+        "connect_timeout": 30,
+        "application_name": "milk_management_api",
     },
 )
 
