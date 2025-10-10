@@ -39,19 +39,9 @@ if not GEMINI_API_KEY:
 # PostgreSQL Configuration
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Fallback to individual components if DATABASE_URL not provided
-if not DATABASE_URL:
-    DB_USER = os.getenv("DB_USER")
-    DB_PASSWORD = os.getenv("DB_PASSWORD")
-    DB_HOST = os.getenv("DB_HOST")
-    DB_NAME = os.getenv("DB_NAME")
-    DB_PORT = os.getenv("DB_PORT", "5432")
-    DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-
 print(f"DEBUG: TIME_ZONE = {TIME_ZONE}")
 print(f"DEBUG: SECRET_KEY = {SECRET_KEY}")
 print(f"DEBUG: GEMINI_API_KEY = {GEMINI_API_KEY}")
-print(f"DEBUG: DB_USER = {DB_USER}")
 print(f"DEBUG: DATABASE_URL = {DATABASE_URL}")
 
 # Razorpay Configuration
