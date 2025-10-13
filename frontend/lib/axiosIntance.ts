@@ -219,19 +219,7 @@ axiosInstance.interceptors.response.use(
   },
   async (error) => {
     // Dev logging for every error
-    const cfg = error?.config;
-    const start = cfg
-      ? (cfg as any)?.metadata?.startTime ?? Date.now()
-      : Date.now();
-    const durationMs = Date.now() - start;
-    console.log(
-      "[API ERROR]",
-      cfg?.method?.toUpperCase(),
-      cfg?.url,
-      error?.response?.status,
-      `${durationMs}ms`,
-      error?.message
-    );
+    console.log("[API ERROR]", error.response?.data);
 
     // Check if the error has a structured detail with error codes
     const errorDetail = error.response?.data?.detail;
