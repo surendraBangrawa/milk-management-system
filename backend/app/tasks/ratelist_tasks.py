@@ -21,8 +21,6 @@ inngest = Inngest(app_id="milk-management")
 @inngest.create_function(
     fn_id="process-rate-list-image",
     trigger=TriggerEvent(event="image.uploaded"),
-    event_key=os.getenv("INNGEST_EVENT_KEY"),
-    signing_key=os.getenv("INNGEST_SIGNING_KEY"),
 )
 async def process_rate_list_image_task(ctx: Context) -> dict:
     """
