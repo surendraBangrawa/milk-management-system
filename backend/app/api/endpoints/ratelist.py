@@ -18,6 +18,7 @@ from app.schemas.ratelist import (
 )
 from app.services.subscription_service import can_upload_ratelist
 from app.tasks.ratelist_tasks import inngest
+from inngest import Event
 
 import logging
 
@@ -171,16 +172,18 @@ async def upload_rate_list_image(
             db.add(new_rate_list)
             db.commit()
 
-        await inngest.send(
-            {
-                "name": "image.uploaded",
-                "data": {
-                    "file_path": file_path,
-                    "buyer_mobile": buyer_mobile,
-                    "original_filename": file.filename,
-                },
-            }
+        # Send event to Inngest for background processing
+        event = Event(
+            name="image.uploaded",
+            data={
+                "file_path": file_path,
+                "buyer_mobile": buyer_mobile,
+                "original_filename": file.filename,
+            },
         )
+
+        logger.info(f"Sending Inngest event: {event.name} with data: {event.data}")
+        await inngest.send(event)
 
         logger.info(f"Started Inngest processing for buyer: {buyer_mobile}")
 

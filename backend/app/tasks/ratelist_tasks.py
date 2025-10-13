@@ -22,7 +22,7 @@ inngest = Inngest(app_id="milk-management")
     fn_id="process-rate-list-image",
     trigger=TriggerEvent(event="image.uploaded"),
 )
-async def process_rate_list_image_task(ctx: Context) -> dict:
+async def process_rate_list_image_task(ctx: Context, step=None) -> dict:
     """
     Inngest function to process rate list images (replaces Celery task).
     """
