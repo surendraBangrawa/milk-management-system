@@ -18,6 +18,8 @@ from app.db.session import Base, engine
 from app.db.models import *
 from app.db.init_db import seed_subscription_plans
 from app.core.i18n import t, get_translations
+from inngest.fast_api import serve as inngest_serve
+from app.tasks.ratelist_tasks import inngest, process_rate_list_image_task
 import logging
 
 logger = logging.getLogger(__name__)
@@ -77,3 +79,4 @@ app.include_router(transactions.router)
 app.include_router(profile.router)
 app.include_router(subscriptions.router)
 app.include_router(i18n.router)
+inngest_serve(app, inngest, [process_rate_list_image_task], serve_path="/api/inngest")
