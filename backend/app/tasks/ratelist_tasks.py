@@ -99,8 +99,8 @@ async def process_rate_list_image_task(ctx: Context) -> dict:
             db.query(RateList).filter(RateList.buyer_mobile == buyer_mobile).first()
         )
         if existing_rate_list:
-            if existing_rate_list.is_deleted == 1:
-                existing_rate_list.is_deleted = 0
+            if existing_rate_list.is_deleted is True:
+                existing_rate_list.is_deleted = False
             existing_rate_list.rates = rate_list_for_api
             existing_rate_list.min_fat = min_fat
             existing_rate_list.max_fat = max_fat

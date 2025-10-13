@@ -29,7 +29,7 @@ def edit_profile(
                 .filter(
                     Customer.mobile == record.seller_mobile,
                     Customer.added_under == buyer_mobile,
-                    Customer.is_deleted == 0,
+                    Customer.is_deleted.is_(False),
                 )
                 .first()
             )
@@ -42,7 +42,7 @@ def edit_profile(
         else:
             old_own_record = (
                 db.query(User)
-                .filter(User.mobile == buyer_mobile, User.is_deleted == 0)
+                .filter(User.mobile == buyer_mobile, User.is_deleted.is_(False))
                 .first()
             )
 
@@ -76,7 +76,7 @@ def delete_profile(
     try:
         account_record = (
             db.query(User)
-            .filter(User.mobile == buyer_mobile, User.is_deleted == 0)
+            .filter(User.mobile == buyer_mobile, User.is_deleted.is_(False))
             .first()
         )
 
@@ -87,7 +87,9 @@ def delete_profile(
 
         rate_list_record = (
             db.query(RateList)
-            .filter(RateList.buyer_mobile == buyer_mobile, RateList.is_deleted == 0)
+            .filter(
+                RateList.buyer_mobile == buyer_mobile, RateList.is_deleted.is_(False)
+            )
             .first()
         )
 
@@ -96,7 +98,10 @@ def delete_profile(
 
         all_record_milk = (
             db.query(MilkRecord)
-            .filter(MilkRecord.buyer_mobile == buyer_mobile, MilkRecord.is_deleted == 0)
+            .filter(
+                MilkRecord.buyer_mobile == buyer_mobile,
+                MilkRecord.is_deleted.is_(False),
+            )
             .all()
         )
 
@@ -104,14 +109,16 @@ def delete_profile(
             db.query(ExpenseRecord)
             .filter(
                 ExpenseRecord.buyer_mobile == buyer_mobile,
-                ExpenseRecord.is_deleted == 0,
+                ExpenseRecord.is_deleted.is_(False),
             )
             .all()
         )
 
         all_record_customer = (
             db.query(Customer)
-            .filter(Customer.added_under == buyer_mobile, Customer.is_deleted == 0)
+            .filter(
+                Customer.added_under == buyer_mobile, Customer.is_deleted.is_(False)
+            )
             .all()
         )
 
@@ -145,7 +152,7 @@ def get_profile(
     try:
         user_info = (
             db.query(User)
-            .filter(User.mobile == buyer_mobile, User.is_deleted == 0)
+            .filter(User.mobile == buyer_mobile, User.is_deleted.is_(False))
             .first()
         )
 

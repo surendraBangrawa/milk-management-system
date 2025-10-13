@@ -84,7 +84,9 @@ def can_add_customer(db: Session, buyer_mobile: str) -> bool:
 
         current_count = (
             db.query(Customer)
-            .filter(Customer.added_under == buyer_mobile, Customer.is_deleted == 0)
+            .filter(
+                Customer.added_under == buyer_mobile, Customer.is_deleted.is_(False)
+            )
             .count()
         )
 
@@ -110,7 +112,7 @@ def can_add_transaction_today(db: Session, buyer_mobile: str) -> bool:
             db.query(MilkRecord)
             .filter(
                 MilkRecord.buyer_mobile == buyer_mobile,
-                MilkRecord.is_deleted == 0,
+                MilkRecord.is_deleted.is_(False),
                 MilkRecord.added_at >= start_of_day,
                 MilkRecord.added_at <= end_of_day,
             )
@@ -121,7 +123,7 @@ def can_add_transaction_today(db: Session, buyer_mobile: str) -> bool:
             db.query(ExpenseRecord)
             .filter(
                 ExpenseRecord.buyer_mobile == buyer_mobile,
-                ExpenseRecord.is_deleted == 0,
+                ExpenseRecord.is_deleted.is_(False),
                 ExpenseRecord.added_at >= start_of_day,
                 ExpenseRecord.added_at <= end_of_day,
             )
@@ -191,7 +193,9 @@ def can_upload_ratelist(db: Session, buyer_mobile: str) -> bool:
         # Check if user has already uploaded a ratelist
         existing_rate_list = (
             db.query(RateList)
-            .filter(RateList.buyer_mobile == buyer_mobile, RateList.is_deleted == 0)
+            .filter(
+                RateList.buyer_mobile == buyer_mobile, RateList.is_deleted.is_(False)
+            )
             .first()
         )
 

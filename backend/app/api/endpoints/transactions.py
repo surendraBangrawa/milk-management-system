@@ -49,7 +49,7 @@ def update_total_till_records(
         .filter(
             MilkRecord.buyer_mobile == buyer_mobile,
             MilkRecord.seller_mobile == seller_mobile,
-            MilkRecord.is_deleted == 0,
+            MilkRecord.is_deleted.is_(False),
             MilkRecord.added_at > added_at_date,
         )
         .order_by(MilkRecord.added_at.asc())
@@ -61,7 +61,7 @@ def update_total_till_records(
         .filter(
             ExpenseRecord.buyer_mobile == buyer_mobile,
             ExpenseRecord.seller_mobile == seller_mobile,
-            ExpenseRecord.is_deleted == 0,
+            ExpenseRecord.is_deleted.is_(False),
             ExpenseRecord.added_at > added_at_date,
         )
         .order_by(ExpenseRecord.added_at.asc())
@@ -99,7 +99,7 @@ def add_milk_record(
             .filter(
                 Customer.added_under == buyer_mobile,
                 Customer.mobile == record.seller_mobile,
-                Customer.is_deleted == 0,
+                Customer.is_deleted.is_(False),
             )
             .first()
         )
@@ -128,7 +128,7 @@ def add_milk_record(
             .filter(
                 MilkRecord.buyer_mobile == buyer_mobile,
                 MilkRecord.seller_mobile == record.seller_mobile,
-                MilkRecord.is_deleted == 0,
+                MilkRecord.is_deleted.is_(False),
             )
             .order_by(MilkRecord.added_at.desc())
             .first()
@@ -139,7 +139,7 @@ def add_milk_record(
             .filter(
                 ExpenseRecord.buyer_mobile == buyer_mobile,
                 ExpenseRecord.seller_mobile == record.seller_mobile,
-                ExpenseRecord.is_deleted == 0,
+                ExpenseRecord.is_deleted.is_(False),
             )
             .order_by(ExpenseRecord.added_at.desc())
             .first()
@@ -214,7 +214,7 @@ def add_expense(
             .filter(
                 Customer.added_under == buyer_mobile,
                 Customer.mobile == record.seller_mobile,
-                Customer.is_deleted == 0,
+                Customer.is_deleted.is_(False),
             )
             .first()
         )
@@ -237,7 +237,7 @@ def add_expense(
             .filter(
                 ExpenseRecord.buyer_mobile == buyer_mobile,
                 ExpenseRecord.seller_mobile == record.seller_mobile,
-                ExpenseRecord.is_deleted == 0,
+                ExpenseRecord.is_deleted.is_(False),
             )
             .order_by(ExpenseRecord.added_at.desc())
             .first()
@@ -248,7 +248,7 @@ def add_expense(
             .filter(
                 MilkRecord.buyer_mobile == buyer_mobile,
                 MilkRecord.seller_mobile == record.seller_mobile,
-                MilkRecord.is_deleted == 0,
+                MilkRecord.is_deleted.is_(False),
             )
             .order_by(MilkRecord.added_at.desc())
             .first()
@@ -482,7 +482,7 @@ def update_balances(
     milk_query = db.query(MilkRecord).filter(
         MilkRecord.buyer_mobile == buyer_mobile,
         MilkRecord.seller_mobile == seller_mobile,
-        MilkRecord.is_deleted == 0,
+        MilkRecord.is_deleted.is_(False),
     )
     if start_date:
         milk_query = milk_query.filter(
@@ -497,7 +497,7 @@ def update_balances(
     expense_query = db.query(ExpenseRecord).filter(
         ExpenseRecord.buyer_mobile == buyer_mobile,
         ExpenseRecord.seller_mobile == seller_mobile,
-        ExpenseRecord.is_deleted == 0,
+        ExpenseRecord.is_deleted.is_(False),
     )
     if start_date:
         expense_query = expense_query.filter(
@@ -578,7 +578,9 @@ def get_customer_summary(
         # --- 1. Get the total count of *active* sellers ---
         total_sellers_count = (
             db.query(Customer)
-            .filter(Customer.added_under == buyer_mobile, Customer.is_deleted == 0)
+            .filter(
+                Customer.added_under == buyer_mobile, Customer.is_deleted.is_(False)
+            )
             .count()
         )
 
@@ -596,7 +598,8 @@ def get_customer_summary(
             )
             .where(
                 and_(
-                    MilkRecord.buyer_mobile == buyer_mobile, MilkRecord.is_deleted == 0
+                    MilkRecord.buyer_mobile == buyer_mobile,
+                    MilkRecord.is_deleted.is_(False),
                 )
             )
             .cte("milk_sub")
@@ -611,7 +614,7 @@ def get_customer_summary(
             .where(
                 and_(
                     ExpenseRecord.buyer_mobile == buyer_mobile,
-                    ExpenseRecord.is_deleted == 0,
+                    ExpenseRecord.is_deleted.is_(False),
                 )
             )
             .cte("expense_sub")
@@ -670,7 +673,7 @@ def get_customer_summary(
                 and_(
                     latest_balance_per_seller.c.seller_mobile == Customer.mobile,
                     Customer.added_under == buyer_mobile,
-                    Customer.is_deleted == 0,
+                    Customer.is_deleted.is_(False),
                 ),
             )
             .filter(latest_balance_per_seller.c.rn == 1)
@@ -692,7 +695,9 @@ def get_customer_summary(
         # We re-use the 'latest_balance_per_seller' CTE for efficiency
         paginated_customers_only = (
             db.query(Customer)
-            .filter(Customer.added_under == buyer_mobile, Customer.is_deleted == 0)
+            .filter(
+                Customer.added_under == buyer_mobile, Customer.is_deleted.is_(False)
+            )
             .order_by(Customer.added_at.desc())
             .offset(offset)
             .limit(limit)
@@ -708,7 +713,7 @@ def get_customer_summary(
                 .filter(
                     MilkRecord.seller_mobile == seller_mobile,
                     MilkRecord.buyer_mobile == buyer_mobile,
-                    MilkRecord.is_deleted == 0,
+                    MilkRecord.is_deleted.is_(False),
                 )
                 .order_by(MilkRecord.added_at.desc())
                 .first()
@@ -719,7 +724,7 @@ def get_customer_summary(
                 .filter(
                     ExpenseRecord.seller_mobile == seller_mobile,
                     ExpenseRecord.buyer_mobile == buyer_mobile,
-                    ExpenseRecord.is_deleted == 0,
+                    ExpenseRecord.is_deleted.is_(False),
                 )
                 .order_by(ExpenseRecord.added_at.desc())
                 .first()
@@ -792,8 +797,8 @@ def get_supplier_summary(
             .join(Customer, User.mobile == Customer.added_under)
             .filter(
                 Customer.mobile == seller_mobile,
-                Customer.is_deleted == 0,
-                User.is_deleted == 0,
+                Customer.is_deleted.is_(False),
+                User.is_deleted.is_(False),
             )
             .count()
         )
@@ -811,7 +816,7 @@ def get_supplier_summary(
             .where(
                 and_(
                     MilkRecord.seller_mobile == seller_mobile,
-                    MilkRecord.is_deleted == 0,
+                    MilkRecord.is_deleted.is_(False),
                 )
             )
             .cte("milk_sub")
@@ -827,7 +832,7 @@ def get_supplier_summary(
             .where(
                 and_(
                     ExpenseRecord.seller_mobile == seller_mobile,
-                    ExpenseRecord.is_deleted == 0,
+                    ExpenseRecord.is_deleted.is_(False),
                 )
             )
             .cte("expense_sub")
@@ -1030,7 +1035,7 @@ def get_total_records(
         # Query for records within the specified date range (or all if no dates)
         milk_query = db.query(MilkRecord).filter(
             MilkRecord.buyer_mobile == buyer_mobile,
-            MilkRecord.is_deleted == 0,
+            MilkRecord.is_deleted.is_(False),
         )
         if adjusted_start_date:
             milk_query = milk_query.filter(MilkRecord.added_at >= adjusted_start_date)
@@ -1046,7 +1051,7 @@ def get_total_records(
 
         expense_query = db.query(ExpenseRecord).filter(
             ExpenseRecord.buyer_mobile == buyer_mobile,
-            ExpenseRecord.is_deleted == 0,
+            ExpenseRecord.is_deleted.is_(False),
         )
         if adjusted_start_date:
             expense_query = expense_query.filter(
@@ -1260,7 +1265,7 @@ def generate_milk_report(
             .filter(
                 Customer.mobile == request.seller_mobile,
                 Customer.added_under == buyer_mobile,
-                Customer.is_deleted == 0,
+                Customer.is_deleted.is_(False),
             )
             .first()
         )

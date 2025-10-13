@@ -1,10 +1,4 @@
 import os
-import shutil
-import re
-import pandas as pd
-from datetime import datetime
-from typing import List
-import httpx
 import tempfile
 
 from fastapi import APIRouter, Depends, File, UploadFile, HTTPException
@@ -20,12 +14,7 @@ from app.core.security import (
     get_current_user,
 )
 from app.schemas.ratelist import (
-    RateData,
     RateListRequest,
-)
-from app.services.ocr_parser import (
-    get_text_from_image_via_api,
-    parse_extracted_text_to_dataframe,
 )
 from app.services.subscription_service import can_upload_ratelist
 from app.tasks.ratelist_tasks import inngest
@@ -62,7 +51,7 @@ def store_rate_list(
         # Validate user existence (can potentially be part of get_current_user dependency)
         get_user = (
             db.query(User)
-            .filter(User.mobile == buyer_mobile, User.is_deleted == 0)
+            .filter(User.mobile == buyer_mobile, User.is_deleted.is_(False))
             .first()
         )
 
@@ -281,7 +270,9 @@ def delete_rate_list(
         logger.info(f"In delete_rate_list endpoint for buyer: {buyer_mobile}")
         rate_list_record = (
             db.query(RateList)
-            .filter(RateList.buyer_mobile == buyer_mobile, RateList.is_deleted == 0)
+            .filter(
+                RateList.buyer_mobile == buyer_mobile, RateList.is_deleted.is_(False)
+            )
             .first()
         )
 
@@ -315,7 +306,9 @@ def show_rate_list(
         logger.info(f"In show_rate_list_api")
         rate_list = (
             db.query(RateList)
-            .filter(RateList.buyer_mobile == buyer_mobile, RateList.is_deleted == 0)
+            .filter(
+                RateList.buyer_mobile == buyer_mobile, RateList.is_deleted.is_(False)
+            )
             .first()
         )
         if not rate_list:
@@ -344,7 +337,9 @@ def fetch_rate(
             )
         rate_list = (
             db.query(RateList)
-            .filter(RateList.buyer_mobile == buyer_mobile, RateList.is_deleted == 0)
+            .filter(
+                RateList.buyer_mobile == buyer_mobile, RateList.is_deleted.is_(False)
+            )
             .first()
         )
         if not rate_list:

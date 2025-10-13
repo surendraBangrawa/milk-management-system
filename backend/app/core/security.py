@@ -47,7 +47,9 @@ def get_current_user(
             )
 
         user = (
-            db.query(User).filter(User.mobile == mobile, User.is_deleted == 0).first()
+            db.query(User)
+            .filter(User.mobile == mobile, User.is_deleted.is_(False))
+            .first()
         )
         if not user:
             raise HTTPException(

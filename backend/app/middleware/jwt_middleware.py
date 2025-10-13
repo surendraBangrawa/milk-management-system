@@ -107,7 +107,7 @@ class JWTMiddleware(BaseHTTPMiddleware):
             try:
                 user = (
                     db.query(User)
-                    .filter(User.mobile == mobile, User.is_deleted == 0)
+                    .filter(User.mobile == mobile, User.is_deleted.is_(False))
                     .first()
                 )
             except Exception as query_error:
