@@ -65,7 +65,6 @@
   "signin": {
     "title": "Welcome Back",
     "subtitle": "Enter your phone number to continue",
-    "phone_label": "Phone Number",
     "phone_placeholder": "Enter phone number",
     "phone_required": "Phone number is required",
     "phone_invalid": "Please enter a valid 10-digit phone number",

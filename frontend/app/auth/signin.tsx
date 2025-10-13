@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   View,
   TextInput,
@@ -9,8 +9,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Animated,
+  Dimensions,
+  Vibration,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useForm, Controller } from "react-hook-form";
@@ -22,7 +26,7 @@ import {
   scaleHeight,
   getResponsiveFontSize,
 } from "@/utils/responsiveUtils";
-import { getShadowStyle, getKeyboardOffset } from "@/utils/platformUtils";
+import { getKeyboardOffset } from "@/utils/platformUtils";
 
 // Import your useTheme hook
 import useTheme from "@/context/theme/useTheme";
@@ -41,18 +45,79 @@ const Signin = () => {
   const [loading, setLoading] = useState(false); // Loading state
   const [isFocused, setIsFocused] = useState(false); // Focus state for input
   const [showSuccess, setShowSuccess] = useState(false); // Success state
+  const [isLandscape, setIsLandscape] = useState(false); // Landscape mode
+  const [isHighContrast, setIsHighContrast] = useState(false); // High contrast mode
 
-  // Auto-focus on input when component mounts
+  // Animation refs - simplified
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.95)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const buttonScaleAnim = useRef(new Animated.Value(1)).current;
+  const inputShakeAnim = useRef(new Animated.Value(0)).current;
+
+  // Enhanced useEffect with animations and responsive features
   useEffect(() => {
-    const timer = setTimeout(() => {
-      // Auto-focus will be handled by the TextInput ref
-    }, 500);
-    return () => clearTimeout(timer);
-  }, []);
+    // Initial entrance animation
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Landscape detection
+    const updateLayout = () => {
+      const { width, height } = Dimensions.get("window");
+      setIsLandscape(width > height);
+    };
+
+    const subscription = Dimensions.addEventListener("change", updateLayout);
+    updateLayout(); // Initial check
+
+    // High contrast detection (simplified)
+    setIsHighContrast(Platform.OS === "ios" && Platform.isPad);
+
+    return () => {
+      subscription?.remove();
+    };
+  }, [fadeAnim, scaleAnim, slideAnim]);
 
   const handleLogin = async (data: { phone: string }) => {
     // Added type for data
     const { phone } = data;
+
+    // Haptic feedback on button press
+    if (Platform.OS === "ios") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } else {
+      Vibration.vibrate(50);
+    }
+
+    // Button press animation
+    Animated.sequence([
+      Animated.timing(buttonScaleAnim, {
+        toValue: 0.95,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(buttonScaleAnim, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
     setLoading(true); // Show loading spinner
 
     try {
@@ -64,11 +129,33 @@ const Signin = () => {
 
       if (sendOtpResponse.status === 200) {
         setShowSuccess(true);
+
+        // Success haptic feedback
+        if (Platform.OS === "ios") {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } else {
+          Vibration.vibrate([100, 50, 100]);
+        }
+
+        // Success animation
+        Animated.sequence([
+          Animated.timing(buttonScaleAnim, {
+            toValue: 1.05,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(buttonScaleAnim, {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+        ]).start();
+
         Toast.show({ type: "success", text1: t("signin.otp_success") }); // Translated success toast
         // Small delay for success animation
         setTimeout(() => {
           router.push("/auth/otp");
-        }, 800);
+        }, 1000);
       } else {
         // Handle API errors with specific messages if available
         const errorData = sendOtpResponse.data; // Get data directly from axios response
@@ -78,6 +165,32 @@ const Signin = () => {
       }
     } catch (err: any) {
       console.error("Sign In Error:", err); // Log the actual error
+
+      // Error haptic feedback
+      if (Platform.OS === "ios") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      } else {
+        Vibration.vibrate([200, 100, 200]);
+      }
+
+      // Simple, fast error animation
+      Animated.sequence([
+        Animated.timing(inputShakeAnim, {
+          toValue: 5,
+          duration: 50,
+          useNativeDriver: true,
+        }),
+        Animated.timing(inputShakeAnim, {
+          toValue: -5,
+          duration: 50,
+          useNativeDriver: true,
+        }),
+        Animated.timing(inputShakeAnim, {
+          toValue: 0,
+          duration: 50,
+          useNativeDriver: true,
+        }),
+      ]).start();
 
       // Extract error message from axios error response
       let errorMessage = t("common.try_again"); // Default fallback
@@ -120,8 +233,17 @@ const Signin = () => {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
         >
-          <View
-            style={[styles.container, { backgroundColor: colors.background }]}
+          <Animated.View
+            style={[
+              styles.container,
+              {
+                backgroundColor: colors.background,
+                opacity: fadeAnim,
+                transform: [{ scale: scaleAnim }, { translateY: slideAnim }],
+              },
+              isLandscape && styles.landscapeContainer,
+              isHighContrast && styles.highContrastContainer,
+            ]}
           >
             <Text style={[styles.title, { color: colors.textPrimary }]}>
               {t("signin.title")}
@@ -131,10 +253,14 @@ const Signin = () => {
             </Text>
 
             <View style={styles.formContainer}>
-              <View style={styles.inputContainer}>
-                <Text style={[styles.label, { color: colors.textPrimary }]}>
-                  {t("signin.phone_label")}
-                </Text>
+              <Animated.View
+                style={[
+                  styles.inputContainer,
+                  {
+                    transform: [{ translateX: inputShakeAnim }],
+                  },
+                ]}
+              >
                 <View style={styles.inputWrapper}>
                   <Ionicons
                     name="call-outline"
@@ -167,16 +293,22 @@ const Signin = () => {
                           onBlur();
                           setIsFocused(false);
                         }}
-                        onFocus={() => setIsFocused(true)}
+                        onFocus={() => {
+                          setIsFocused(true);
+                        }}
                         keyboardType="phone-pad"
                         maxLength={10}
                         returnKeyType="done"
                         autoComplete="tel"
                         textContentType="telephoneNumber"
-                        accessibilityLabel={t("signin.phone_label")}
-                        accessibilityHint={t("signin.phone_placeholder")}
+                        accessibilityLabel={t("signin.phone_placeholder")}
+                        accessibilityHint={t("signin.send_otp_hint")}
+                        accessibilityRole="text"
+                        accessibilityState={{ disabled: loading }}
                         editable={!loading}
                         autoFocus={true}
+                        importantForAccessibility="yes"
+                        accessibilityLiveRegion="polite"
                       />
                     )}
                     name="phone"
@@ -200,59 +332,73 @@ const Signin = () => {
                 >
                   {errors.phone?.message || " "}
                 </Text>
-              </View>
+              </Animated.View>
 
-              <TouchableOpacity
-                style={[
-                  styles.button,
-                  {
-                    backgroundColor: showSuccess ? "#4CAF50" : colors.primary, // Keep primary color during loading
-                    opacity: loading ? 0.8 : 1, // Less opacity change
-                    transform: [
-                      { scale: loading ? 0.99 : showSuccess ? 1.02 : 1 }, // Subtle scale change
-                    ],
-                  },
-                ]}
-                onPress={handleSubmit(handleLogin)}
-                disabled={loading || showSuccess}
-                accessibilityRole="button"
-                accessibilityLabel={
-                  loading
-                    ? t("common.loading")
-                    : showSuccess
-                    ? t("common.success")
-                    : t("signin.send_otp")
-                }
-                accessibilityHint={t("signin.send_otp_hint")}
+              <Animated.View
+                style={{
+                  transform: [{ scale: buttonScaleAnim }],
+                }}
               >
-                {loading ? (
-                  <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="small" color={colors.surface} />
+                <TouchableOpacity
+                  style={[
+                    styles.button,
+                    {
+                      backgroundColor: showSuccess
+                        ? "#10B981" // Better success color (emerald-500)
+                        : colors.primary, // Keep primary color during loading
+                      opacity: loading ? 0.8 : 1, // Less opacity change
+                    },
+                    isHighContrast && styles.highContrastButton,
+                  ]}
+                  onPress={handleSubmit(handleLogin)}
+                  disabled={loading || showSuccess}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    loading
+                      ? t("common.loading")
+                      : showSuccess
+                      ? t("common.success")
+                      : t("signin.send_otp")
+                  }
+                  accessibilityHint={t("signin.send_otp_hint")}
+                  accessibilityState={{
+                    disabled: loading || showSuccess,
+                    busy: loading,
+                  }}
+                  accessibilityLiveRegion="polite"
+                  importantForAccessibility="yes"
+                >
+                  {loading ? (
+                    <View style={styles.loadingContainer}>
+                      <ActivityIndicator size="small" color={colors.surface} />
+                      <Text
+                        style={[styles.loadingText, { color: colors.surface }]}
+                      >
+                        {t("common.sending")}
+                      </Text>
+                    </View>
+                  ) : showSuccess ? (
+                    <View style={styles.successContainer}>
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={20}
+                        color={colors.surface}
+                      />
+                      <Text
+                        style={[styles.successText, { color: colors.surface }]}
+                      >
+                        {t("common.success")}
+                      </Text>
+                    </View>
+                  ) : (
                     <Text
-                      style={[styles.loadingText, { color: colors.surface }]}
+                      style={[styles.buttonText, { color: colors.surface }]}
                     >
-                      {t("common.sending")}
+                      {t("signin.send_otp")}
                     </Text>
-                  </View>
-                ) : showSuccess ? (
-                  <View style={styles.successContainer}>
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={20}
-                      color={colors.surface}
-                    />
-                    <Text
-                      style={[styles.successText, { color: colors.surface }]}
-                    >
-                      {t("common.success")}
-                    </Text>
-                  </View>
-                ) : (
-                  <Text style={[styles.buttonText, { color: colors.surface }]}>
-                    {t("signin.send_otp")}
-                  </Text>
-                )}
-              </TouchableOpacity>
+                  )}
+                </TouchableOpacity>
+              </Animated.View>
             </View>
 
             <View style={styles.spacer} />
@@ -265,7 +411,7 @@ const Signin = () => {
                 </Text>
               </Text>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaWrapper>
@@ -294,15 +440,17 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: getResponsiveFontSize(32),
-    fontWeight: "bold",
+    fontWeight: "700", // Extra bold
     marginBottom: scaleHeight(8),
     textAlign: "center",
+    letterSpacing: -0.5, // Tighter letter spacing for large text
   },
   subtitle: {
     fontSize: getResponsiveFontSize(16),
     marginBottom: scaleHeight(32),
     textAlign: "center",
-    opacity: 0.8,
+    opacity: 0.7, // Slightly more subtle
+    lineHeight: scaleHeight(22), // Better line height
   },
   formContainer: {
     width: "100%",
@@ -311,11 +459,6 @@ const styles = StyleSheet.create({
   inputContainer: {
     width: "100%",
     marginBottom: scaleHeight(12), // Reduced space between input and button
-  },
-  label: {
-    fontSize: getResponsiveFontSize(16),
-    marginBottom: scaleHeight(8),
-    textAlign: "left",
   },
   inputWrapper: {
     position: "relative",
@@ -332,11 +475,10 @@ const styles = StyleSheet.create({
     height: scaleHeight(50),
     borderWidth: 1,
     borderRadius: 8,
-    paddingHorizontal: scaleWidth(45), // More padding for icon
+    paddingHorizontal: scaleWidth(45),
     fontSize: getResponsiveFontSize(16),
-    textAlign: "center", // Center the phone number input
-    width: "100%", // Ensure full width
-    ...getShadowStyle("#000", 0, 0.1, 2, { width: 0, height: 1 }),
+    textAlign: "center",
+    width: "100%",
   },
   button: {
     paddingVertical: scaleHeight(15),
@@ -344,14 +486,14 @@ const styles = StyleSheet.create({
     width: "100%",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: scaleHeight(0), // No extra margin since inputContainer already has marginBottom
-    height: scaleHeight(50), // Fixed height instead of minHeight
-    minHeight: scaleHeight(50), // Ensure minimum height
-    ...getShadowStyle("#000", 2, 0.15, 4, { width: 0, height: 2 }),
+    marginTop: scaleHeight(0),
+    height: scaleHeight(50),
+    minHeight: scaleHeight(50),
   },
   buttonText: {
     fontSize: getResponsiveFontSize(18),
-    fontWeight: "500",
+    fontWeight: "600", // Slightly bolder
+    letterSpacing: 0.5, // Better letter spacing
   },
   loadingContainer: {
     flexDirection: "row",
@@ -394,6 +536,22 @@ const styles = StyleSheet.create({
   },
   signInLink: {
     fontWeight: "bold",
+  },
+  // Landscape mode styles
+  landscapeContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+    paddingHorizontal: scaleWidth(40),
+  },
+  // High contrast mode styles
+  highContrastContainer: {
+    borderWidth: 2,
+    borderColor: "#000",
+  },
+  highContrastButton: {
+    borderWidth: 2,
+    borderColor: "#000",
   },
 });
 
