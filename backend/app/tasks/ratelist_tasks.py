@@ -20,7 +20,9 @@ inngest = Inngest(app_id="milk-management")
 # CORRECT SYNTAX - Import TriggerEvent and use it properly
 @inngest.create_function(
     fn_id="process-rate-list-image",
-    trigger=TriggerEvent(event="image.uploaded"),  # CORRECT - import TriggerEvent
+    trigger=TriggerEvent(event="image.uploaded"),
+    event_key=os.getenv("INNGEST_EVENT_KEY"),
+    signing_key=os.getenv("INNGEST_SIGNING_KEY"),
 )
 async def process_rate_list_image_task(ctx: Context) -> dict:
     """
