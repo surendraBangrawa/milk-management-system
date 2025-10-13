@@ -34,6 +34,15 @@ async def process_rate_list_image_task(ctx: Context, step=None) -> dict:
         logger.info(f"Starting background processing for buyer: {buyer_mobile}")
         db = next(get_db())
 
+        # Update status to processing
+        existing_rate_list = (
+            db.query(RateList).filter(RateList.buyer_mobile == buyer_mobile).first()
+        )
+        if existing_rate_list:
+            existing_rate_list.status = "processing"
+            db.commit()
+            logger.info(f"Updated status to 'processing' for buyer: {buyer_mobile}")
+
         # Extract text from image
         extracted_text = get_text_from_image_via_api(file_path)
         if not extracted_text or len(extracted_text.strip()) < 250:
@@ -123,6 +132,12 @@ async def process_rate_list_image_task(ctx: Context, step=None) -> dict:
             db.commit()
             db.refresh(new_rate_list)
 
+        # Update status to complete
+        if existing_rate_list:
+            existing_rate_list.status = "complete"
+            db.commit()
+            logger.info(f"Updated status to 'complete' for buyer: {buyer_mobile}")
+
         return {
             "status": "success",
             "buyer_mobile": buyer_mobile,
@@ -130,7 +145,9 @@ async def process_rate_list_image_task(ctx: Context, step=None) -> dict:
         }
 
     except Exception as e:
-        logger.error(f"Background processing failed: {e}")
+        logger.error(
+            f"Background processing failed for buyer {buyer_mobile}: {e}", exc_info=True
+        )
         if db:
             try:
                 existing_rate_list = (
@@ -140,9 +157,18 @@ async def process_rate_list_image_task(ctx: Context, step=None) -> dict:
                 )
                 if existing_rate_list:
                     existing_rate_list.status = "failed"
+                    # Optionally store error details in a separate field if you have one
+                    # existing_rate_list.error_message = str(e)
                     db.commit()
+                    logger.info(f"Updated status to 'failed' for buyer: {buyer_mobile}")
+                else:
+                    logger.warning(
+                        f"No rate list record found for buyer: {buyer_mobile}"
+                    )
             except Exception as db_error:
-                logger.error(f"Failed to update database status: {db_error}")
+                logger.error(
+                    f"Failed to update database status for buyer {buyer_mobile}: {db_error}"
+                )
         return {"status": "error", "error": str(e), "buyer_mobile": buyer_mobile}
     finally:
         if db:
