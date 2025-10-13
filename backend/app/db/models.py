@@ -12,14 +12,15 @@ from sqlalchemy import (
     BigInteger,
 )
 from datetime import datetime
+from app.core.time_utils import now_utc
 import enum
 from app.core.config import local_timezone
 from app.db.session import Base
 
 
 def local_now():
-    """Returns the current time in the configured local timezone."""
-    return datetime.now(local_timezone)
+    """Returns the current time in UTC for storage and comparisons."""
+    return now_utc()
 
 
 # User Table Schema
