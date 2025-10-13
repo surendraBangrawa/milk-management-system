@@ -9,6 +9,7 @@ from app.db.session import get_db
 from app.db.models import (
     User,
     RateList,
+    RateListUploadHistory,
 )
 from app.core.security import (
     get_current_user,
@@ -151,6 +152,17 @@ async def upload_rate_list_image(
             content = await file.read()
             tmp_file.write(content)
             file_path = tmp_file.name
+
+        # Create upload history record
+        upload_history = RateListUploadHistory(
+            buyer_mobile=buyer_mobile,
+            filename=file.filename,
+            file_size=len(content),
+            status="processing",
+        )
+        db.add(upload_history)
+        db.commit()
+        db.refresh(upload_history)
 
         # Set status to processing
         existing_rate_list = (
@@ -448,3 +460,56 @@ def calculate_snf_diff(rate_list, fat_value):
     average_rate_diff = sum(rate_diffs) / len(rate_diffs) if rate_diffs else 0
 
     return average_rate_diff
+
+
+@router.get("/upload_history")
+def get_upload_history(
+    db: Session = Depends(get_db),
+    buyer_mobile: str = Depends(get_current_user),
+):
+    """
+    Get upload history for the current user.
+    """
+    try:
+        logger.info(f"Getting upload history for buyer: {buyer_mobile}")
+
+        # Get upload history ordered by most recent first
+        upload_history = (
+            db.query(RateListUploadHistory)
+            .filter(
+                RateListUploadHistory.buyer_mobile == buyer_mobile,
+                RateListUploadHistory.is_deleted.is_(False),
+            )
+            .order_by(RateListUploadHistory.created_at.desc())
+            .all()
+        )
+
+        # Convert to response format
+        history_data = []
+        for upload in upload_history:
+            history_data.append(
+                {
+                    "id": upload.id,
+                    "filename": upload.filename,
+                    "file_size": upload.file_size,
+                    "status": upload.status,
+                    "error_message": upload.error_message,
+                    "entries_processed": upload.entries_processed,
+                    "processing_time_seconds": upload.processing_time_seconds,
+                    "created_at": (
+                        upload.created_at.isoformat() if upload.created_at else None
+                    ),
+                    "completed_at": (
+                        upload.completed_at.isoformat() if upload.completed_at else None
+                    ),
+                }
+            )
+
+        return {
+            "upload_history": history_data,
+            "total_uploads": len(history_data),
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting upload history: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get upload history")

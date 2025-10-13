@@ -126,6 +126,26 @@ class RateList(Base):
     )  # processing, complete, failed
 
 
+class RateListUploadHistory(Base):
+    __tablename__ = "rate_list_upload_history"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    buyer_mobile = Column(String(10), nullable=False)
+    filename = Column(String(255), nullable=True)  # Original filename
+    file_size = Column(Integer, nullable=True)  # File size in bytes
+    status = Column(
+        String(20), nullable=False, default="processing"
+    )  # processing, complete, failed
+    error_message = Column(String(500), nullable=True)  # Error details if failed
+    entries_processed = Column(
+        Integer, nullable=True
+    )  # Number of rate entries processed
+    processing_time_seconds = Column(Float, nullable=True)  # Time taken to process
+    created_at = Column(DateTime, default=local_now)
+    completed_at = Column(DateTime, nullable=True)  # When processing completed
+    is_deleted = Column(Boolean, default=False, nullable=False)
+
+
 class Subscription(Base):
     __tablename__ = "subscription"
 

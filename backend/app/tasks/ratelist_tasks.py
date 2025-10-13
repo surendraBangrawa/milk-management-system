@@ -5,7 +5,7 @@ import logging
 from inngest import Inngest, TriggerEvent, Context
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.db.models import RateList
+from app.db.models import RateList, RateListUploadHistory
 from app.services.ocr_parser import (
     get_text_from_image_via_api,
     parse_extracted_text_to_dataframe,
@@ -47,11 +47,11 @@ async def process_rate_list_image_task(ctx: Context, step=None) -> dict:
         extracted_text = get_text_from_image_via_api(file_path)
         if not extracted_text:
             raise Exception("Failed to extract any text from the image.")
-        
+
         # Log the extracted text for debugging
         logger.info(f"Extracted text length: {len(extracted_text)}")
         logger.info(f"Extracted text preview: {extracted_text[:300]}...")
-        
+
         # More lenient text length requirement
         if len(extracted_text.strip()) < 50:
             raise Exception("Failed to extract sufficient text from the image.")
@@ -146,6 +146,30 @@ async def process_rate_list_image_task(ctx: Context, step=None) -> dict:
             db.commit()
             logger.info(f"Updated status to 'complete' for buyer: {buyer_mobile}")
 
+        # Update upload history record
+        from app.core.time_utils import now_utc
+
+        upload_history = (
+            db.query(RateListUploadHistory)
+            .filter(
+                RateListUploadHistory.buyer_mobile == buyer_mobile,
+                RateListUploadHistory.status == "processing",
+            )
+            .order_by(RateListUploadHistory.created_at.desc())
+            .first()
+        )
+        if upload_history:
+            upload_history.status = "complete"
+            upload_history.entries_processed = len(rate_list_for_api)
+            upload_history.completed_at = now_utc()
+            # Calculate processing time
+            if upload_history.created_at:
+                processing_time = (
+                    now_utc() - upload_history.created_at
+                ).total_seconds()
+                upload_history.processing_time_seconds = processing_time
+            db.commit()
+
         return {
             "status": "success",
             "buyer_mobile": buyer_mobile,
@@ -173,6 +197,30 @@ async def process_rate_list_image_task(ctx: Context, step=None) -> dict:
                     logger.warning(
                         f"No rate list record found for buyer: {buyer_mobile}"
                     )
+
+                # Update upload history record for failure
+                from app.core.time_utils import now_utc
+
+                upload_history = (
+                    db.query(RateListUploadHistory)
+                    .filter(
+                        RateListUploadHistory.buyer_mobile == buyer_mobile,
+                        RateListUploadHistory.status == "processing",
+                    )
+                    .order_by(RateListUploadHistory.created_at.desc())
+                    .first()
+                )
+                if upload_history:
+                    upload_history.status = "failed"
+                    upload_history.error_message = str(e)
+                    upload_history.completed_at = now_utc()
+                    # Calculate processing time
+                    if upload_history.created_at:
+                        processing_time = (
+                            now_utc() - upload_history.created_at
+                        ).total_seconds()
+                        upload_history.processing_time_seconds = processing_time
+                    db.commit()
             except Exception as db_error:
                 logger.error(
                     f"Failed to update database status for buyer {buyer_mobile}: {db_error}"

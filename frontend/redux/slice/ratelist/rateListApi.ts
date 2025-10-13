@@ -19,6 +19,23 @@ export interface RateListRequest {
   rates: RateData[];
 }
 
+export interface UploadHistoryItem {
+  id: number;
+  filename: string | null;
+  file_size: number | null;
+  status: string;
+  error_message: string | null;
+  entries_processed: number | null;
+  processing_time_seconds: number | null;
+  created_at: string | null;
+  completed_at: string | null;
+}
+
+export interface UploadHistoryResponse {
+  upload_history: UploadHistoryItem[];
+  total_uploads: number;
+}
+
 export const getRate = async (data: Rate) => {
   try {
     return await axiosInstance.get("/ratelist/get_rate", { params: data });
@@ -66,6 +83,15 @@ export const uploadRatelist = async (data: FormData) => {
 export const getUploadStatus = async () => {
   try {
     return await axiosInstance.get("/ratelist/upload_status");
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getUploadHistory = async (): Promise<UploadHistoryResponse> => {
+  try {
+    const response = await axiosInstance.get("/ratelist/upload_history");
+    return response.data;
   } catch (error) {
     throw error;
   }

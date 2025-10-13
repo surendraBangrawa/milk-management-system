@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
-  Alert,
   ActivityIndicator,
   ScrollView,
 } from "react-native";
@@ -19,10 +18,8 @@ import {
   uploadComplete,
   resetUploadStatus,
 } from "@/redux/slice/ratelist/uploadStatusSlice";
-import { uploadStatusService } from "@/services/uploadStatusService";
 import useTheme from "@/context/theme/useTheme";
 import Toast from "react-native-toast-message";
-import { Ionicons } from "@expo/vector-icons";
 
 const UploadRateListScreen = () => {
   const router = useRouter();
@@ -105,9 +102,6 @@ const UploadRateListScreen = () => {
 
       // Update Redux state with task ID and start processing
       dispatch(uploadComplete({ taskId }));
-
-      // Start background polling
-      uploadStatusService.startPolling(taskId);
 
       Toast.show({
         type: "success",
