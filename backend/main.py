@@ -12,6 +12,7 @@ from app.api.endpoints import (
     profile,
     subscriptions,
     i18n,
+    ocr_debug,
 )
 from app.core.logging_config import configure_logging
 from app.db.session import Base, engine
@@ -79,4 +80,5 @@ app.include_router(transactions.router)
 app.include_router(profile.router)
 app.include_router(subscriptions.router)
 app.include_router(i18n.router)
+app.include_router(ocr_debug.router, prefix="/debug", tags=["debug"])
 inngest_serve(app, inngest, [process_rate_list_image_task], serve_path="/api/inngest")

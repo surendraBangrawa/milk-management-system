@@ -45,7 +45,15 @@ async def process_rate_list_image_task(ctx: Context, step=None) -> dict:
 
         # Extract text from image
         extracted_text = get_text_from_image_via_api(file_path)
-        if not extracted_text or len(extracted_text.strip()) < 250:
+        if not extracted_text:
+            raise Exception("Failed to extract any text from the image.")
+        
+        # Log the extracted text for debugging
+        logger.info(f"Extracted text length: {len(extracted_text)}")
+        logger.info(f"Extracted text preview: {extracted_text[:300]}...")
+        
+        # More lenient text length requirement
+        if len(extracted_text.strip()) < 50:
             raise Exception("Failed to extract sufficient text from the image.")
 
         logger.info(f"Text extracted successfully, length: {len(extracted_text)}")
