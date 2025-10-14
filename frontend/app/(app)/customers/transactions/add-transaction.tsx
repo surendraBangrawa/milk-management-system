@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   TextInput,
   StyleSheet,
@@ -64,6 +64,16 @@ const AddTransactionScreen = () => {
 
   // Local loading state for API calls (will be replaced by Redux state later)
   const [isLoading, setIsLoading] = useState(false);
+  const [isFocused, setIsFocused] = useState(false); // Focus state for amount input
+
+  // Memoized focus handlers to prevent unnecessary re-renders
+  const handleFocus = useCallback(() => {
+    setIsFocused(true);
+  }, []);
+
+  const handleBlur = useCallback(() => {
+    setIsFocused(false);
+  }, []);
 
   const {
     control,
@@ -252,19 +262,32 @@ const AddTransactionScreen = () => {
                   style={[
                     styles.input,
                     {
-                      borderColor: errors.amount ? colors.error : colors.border,
+                      borderColor: errors.amount
+                        ? colors.error
+                        : isFocused
+                        ? colors.primary
+                        : colors.border,
                       backgroundColor: colors.surface,
                       color: colors.textPrimary,
+                      borderWidth: isFocused ? 2 : 1,
                     },
                   ]}
                   placeholder="Enter amount (INR)"
                   placeholderTextColor={colors.textSecondary}
                   value={value}
                   onChangeText={onChange}
+                  onBlur={() => {
+                    onBlur();
+                    handleBlur();
+                  }}
+                  onFocus={handleFocus}
                   keyboardType="numeric"
-                  onBlur={onBlur}
                   editable={!isLoading}
                   returnKeyType="next"
+                  autoComplete="off"
+                  accessibilityLabel="Enter amount"
+                  accessibilityRole="text"
+                  accessibilityState={{ disabled: isLoading }}
                 />
               )}
             />

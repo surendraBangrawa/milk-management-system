@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   View,
   TextInput,
@@ -29,6 +29,16 @@ const OTP = () => {
   const [canResend, setCanResend] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isResending, setIsResending] = useState(false);
+  const [isFocused, setIsFocused] = useState(false); // Focus state for OTP input
+
+  // Memoized focus handlers to prevent unnecessary re-renders
+  const handleFocus = useCallback(() => {
+    setIsFocused(true);
+  }, []);
+
+  const handleBlur = useCallback(() => {
+    setIsFocused(false);
+  }, []);
 
   const router = useRouter();
   const {
@@ -162,22 +172,39 @@ const OTP = () => {
             <View style={styles.inputContainer}>
               <Controller
                 control={control}
-                render={({ field: { onChange, value } }) => (
+                render={({ field: { onChange, value, onBlur } }) => (
                   <TextInput
                     style={[
                       styles.input,
                       {
-                        borderColor: errors.otp ? colors.error : colors.border,
+                        borderColor: errors.otp
+                          ? colors.error
+                          : isFocused
+                          ? colors.primary
+                          : colors.border,
                         backgroundColor: colors.surface,
                         color: colors.textPrimary,
+                        borderWidth: isFocused ? 2 : 1,
                       },
                     ]}
                     placeholder={t("otp.otp_placeholder")} // Translated placeholder
                     placeholderTextColor={colors.textSecondary}
                     value={value}
                     onChangeText={onChange}
+                    onBlur={() => {
+                      onBlur();
+                      handleBlur();
+                    }}
+                    onFocus={handleFocus}
                     keyboardType="number-pad"
                     maxLength={6}
+                    autoComplete="one-time-code"
+                    textContentType="oneTimeCode"
+                    accessibilityLabel={t("otp.otp_placeholder")}
+                    accessibilityRole="text"
+                    accessibilityState={{ disabled: isVerifying }}
+                    editable={!isVerifying}
+                    autoFocus={true}
                   />
                 )}
                 name="otp"

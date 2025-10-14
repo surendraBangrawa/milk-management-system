@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   TextInput,
   StyleSheet,
@@ -69,6 +69,16 @@ const AddMilk = () => {
   const router = useRouter();
   const [rate, setRate] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [isFocused, setIsFocused] = useState(false); // Focus state for inputs
+
+  // Memoized focus handlers to prevent unnecessary re-renders
+  const handleFocus = useCallback(() => {
+    setIsFocused(true);
+  }, []);
+
+  const handleBlur = useCallback(() => {
+    setIsFocused(false);
+  }, []);
   const currentHour = new Date().getHours();
   const defaultShift = currentHour >= 3 && currentHour < 15 ? "M" : "E";
 
@@ -301,17 +311,29 @@ const AddMilk = () => {
             style={[
               styles.input,
               {
-                borderColor: errors.quantity ? colors.error : colors.border,
+                borderColor: errors.quantity
+                  ? colors.error
+                  : isFocused
+                  ? colors.primary
+                  : colors.border,
                 backgroundColor: colors.surface,
                 color: colors.textPrimary,
+                borderWidth: isFocused ? 2 : 1,
               },
             ]}
             placeholder="Enter quantity (kg)"
             placeholderTextColor={colors.textSecondary}
             value={value}
             onChangeText={onChange}
-            onBlur={onBlur}
+            onBlur={() => {
+              onBlur();
+              handleBlur();
+            }}
+            onFocus={handleFocus}
             keyboardType="numeric"
+            autoComplete="off"
+            accessibilityLabel="Enter quantity"
+            accessibilityRole="text"
           />
         )}
       />
@@ -335,17 +357,29 @@ const AddMilk = () => {
             style={[
               styles.input,
               {
-                borderColor: errors.fat ? colors.error : colors.border,
+                borderColor: errors.fat
+                  ? colors.error
+                  : isFocused
+                  ? colors.primary
+                  : colors.border,
                 backgroundColor: colors.surface,
                 color: colors.textPrimary,
+                borderWidth: isFocused ? 2 : 1,
               },
             ]}
             placeholder="Enter fat %"
             placeholderTextColor={colors.textSecondary}
             value={value}
             onChangeText={onChange}
-            onBlur={onBlur}
+            onBlur={() => {
+              onBlur();
+              handleBlur();
+            }}
+            onFocus={handleFocus}
             keyboardType="numeric"
+            autoComplete="off"
+            accessibilityLabel="Enter fat percentage"
+            accessibilityRole="text"
           />
         )}
       />
@@ -369,17 +403,29 @@ const AddMilk = () => {
             style={[
               styles.input,
               {
-                borderColor: errors.snf ? colors.error : colors.border,
+                borderColor: errors.snf
+                  ? colors.error
+                  : isFocused
+                  ? colors.primary
+                  : colors.border,
                 backgroundColor: colors.surface,
                 color: colors.textPrimary,
+                borderWidth: isFocused ? 2 : 1,
               },
             ]}
             placeholder="Enter SNF %"
             placeholderTextColor={colors.textSecondary}
             value={value}
             onChangeText={onChange}
-            onBlur={onBlur}
+            onBlur={() => {
+              onBlur();
+              handleBlur();
+            }}
+            onFocus={handleFocus}
             keyboardType="numeric"
+            autoComplete="off"
+            accessibilityLabel="Enter SNF percentage"
+            accessibilityRole="text"
           />
         )}
       />
@@ -397,18 +443,26 @@ const AddMilk = () => {
               styles.input,
               styles.multilineInput,
               {
-                borderColor: colors.border,
+                borderColor: isFocused ? colors.primary : colors.border,
                 backgroundColor: colors.surface,
                 color: colors.textPrimary,
+                borderWidth: isFocused ? 2 : 1,
               },
             ]}
             value={value}
             onChangeText={onChange}
-            onBlur={onBlur}
+            onBlur={() => {
+              onBlur();
+              handleBlur();
+            }}
+            onFocus={handleFocus}
             placeholder="Enter any notes (optional)"
             placeholderTextColor={colors.textSecondary}
             multiline
             numberOfLines={4}
+            autoComplete="off"
+            accessibilityLabel="Enter notes"
+            accessibilityRole="text"
           />
         )}
       />

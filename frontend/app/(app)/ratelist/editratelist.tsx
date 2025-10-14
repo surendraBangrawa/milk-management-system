@@ -50,16 +50,22 @@ const EditRateListScreen: React.FC = () => {
   const [saving, setSaving] = useState<boolean>(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [isFocused, setIsFocused] = useState(false); // Focus state for search input
+
+  // Memoized focus handlers to prevent unnecessary re-renders
+  const handleFocus = useCallback(() => {
+    setIsFocused(true);
+  }, []);
+
+  const handleBlur = useCallback(() => {
+    setIsFocused(false);
+  }, []);
 
   // Debounce state for search query
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>("");
 
   // --- React Hook Form Setup ---
-  const {
-    control,
-    handleSubmit,
-    formState: { isDirty, isValid },
-  } = useForm<RateFormData>({
+  const { control, handleSubmit } = useForm<RateFormData>({
     defaultValues: {
       rateItems: [],
     },
@@ -71,7 +77,7 @@ const EditRateListScreen: React.FC = () => {
 
   // Get errors and dirtyFields using useFormState
   // This is global for the form, individual row errors are accessed via useFormState within memo()
-  const { errors, dirtyFields } = useFormState({ control });
+  const { errors } = useFormState({ control });
 
   const { fields, replace, append, remove } = useFieldArray<RateFormData>({
     control,
@@ -464,6 +470,9 @@ const EditRateListScreen: React.FC = () => {
     }
   );
 
+  // Add display name
+  RenderRateItem.displayName = "RenderRateItem";
+
   // Pass necessary props to the memoized component
   const renderItem = useCallback(
     ({ item }: { item: VisibleFieldItem }) => (
@@ -518,7 +527,7 @@ const EditRateListScreen: React.FC = () => {
           style={[styles.retryButton, { backgroundColor: colors.primary }]}
           accessibilityLabel="Retry fetching rate list"
         >
-          <Text style={[styles.retryButtonText, { color: colors.onPrimary }]}>
+          <Text style={[styles.retryButtonText, { color: colors.surface }]}>
             Retry
           </Text>
         </TouchableOpacity>
@@ -540,7 +549,7 @@ const EditRateListScreen: React.FC = () => {
           ]}
           accessibilityLabel="Add first row to rate list"
         >
-          <Text style={[styles.retryButtonText, { color: colors.onPrimary }]}>
+          <Text style={[styles.retryButtonText, { color: colors.surface }]}>
             Add First Row
           </Text>
         </TouchableOpacity>
@@ -579,19 +588,27 @@ const EditRateListScreen: React.FC = () => {
         style={[
           styles.searchInput,
           {
-            borderColor: colors.border,
+            borderColor: isFocused ? colors.primary : colors.border,
             color: colors.textPrimary,
             backgroundColor: colors.surface,
+            borderWidth: isFocused ? 2 : 1,
           },
         ]}
         placeholder="Search by Fat, SNF, or Rate..."
         placeholderTextColor={colors.textSecondary}
         value={searchQuery}
         onChangeText={setSearchQuery} // Updates immediate searchQuery, which then debounces
+        onFocus={handleFocus}
+        onBlur={handleBlur}
         clearButtonMode="while-editing"
         editable={!saving} // Disable search while saving
         accessibilityLabel="Search rate list"
         accessibilityHint="Filter rows by Fat, SNF, or Rate values"
+        accessibilityRole="search"
+        accessibilityState={{ disabled: saving }}
+        autoComplete="off"
+        autoCorrect={false}
+        autoCapitalize="none"
       />
 
       <View
@@ -674,7 +691,7 @@ const EditRateListScreen: React.FC = () => {
           disabled={saving} // Disable add button while saving
           accessibilityLabel="Add new row"
         >
-          <Text style={[styles.appendButtonText, { color: colors.onPrimary }]}>
+          <Text style={[styles.appendButtonText, { color: colors.surface }]}>
             Add New Row
           </Text>
         </TouchableOpacity>
