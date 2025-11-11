@@ -1,6 +1,7 @@
 import {
   Text,
   Pressable,
+  TouchableOpacity,
   View,
   StyleSheet,
   ActivityIndicator,
@@ -9,14 +10,22 @@ import {
   ScrollView,
   Dimensions,
   Image,
-  // SafeAreaView, // Remove this line
+  Animated,
+  Vibration,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import SafeAreaWrapper from "@/components/SafeAreaWrapper";
 import React, { useRef, useEffect } from "react"; // Import useEffect
 import { useSession } from "@/context/AuthProvider";
 import { Redirect, useRouter } from "expo-router";
 import useTheme from "@/context/theme/useTheme";
 import { useTranslation } from "react-i18next";
+import {
+  scaleWidth,
+  scaleHeight,
+  getResponsiveFontSize,
+} from "@/utils/responsiveUtils";
 
 const { width: viewportWidth } = Dimensions.get("window");
 
@@ -48,11 +57,53 @@ const marketingSlides: CarouselItem[] = [
 const HeroScreen = () => {
   const router = useRouter();
   const { session, isLoading } = useSession();
-  const { colors, themeMode } = useTheme();
+  const { colors } = useTheme();
   const { t } = useTranslation();
 
   const carouselScrollViewRef = useRef<ScrollView>(null);
   const [activeSlide, setActiveSlide] = React.useState(0);
+  const [isLandscape, setIsLandscape] = React.useState(false);
+
+  // Animation refs
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.95)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const buttonScaleAnim = useRef(new Animated.Value(1)).current;
+
+  // Entrance animations and landscape detection
+  useEffect(() => {
+    // Initial entrance animation
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Landscape detection
+    const updateLayout = () => {
+      const { width, height } = Dimensions.get("window");
+      setIsLandscape(width > height);
+    };
+
+    const subscription = Dimensions.addEventListener("change", updateLayout);
+    updateLayout(); // Initial check
+
+    return () => {
+      subscription?.remove();
+    };
+  }, [fadeAnim, scaleAnim, slideAnim]);
 
   // Auto-scroll logic for carousel
   useEffect(() => {
@@ -68,7 +119,7 @@ const HeroScreen = () => {
     }, 3000); // Change slide every 3 seconds
 
     return () => clearInterval(interval); // Clear interval on unmount
-  }, [activeSlide, marketingSlides.length]); // Re-run effect if activeSlide or number of slides changes
+  }, [activeSlide]); // Re-run effect if activeSlide changes
 
   const onScroll = (event: any) => {
     const slide = Math.round(event.nativeEvent.contentOffset.x / viewportWidth);
@@ -77,7 +128,14 @@ const HeroScreen = () => {
     }
   };
 
-  const scrollToSlide = (index: number) => {
+  const scrollToSlide = async (index: number) => {
+    // Haptic feedback on dot press
+    if (Platform.OS === "ios") {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } else {
+      Vibration.vibrate(30);
+    }
+
     if (carouselScrollViewRef.current) {
       carouselScrollViewRef.current.scrollTo({
         x: index * viewportWidth,
@@ -85,6 +143,31 @@ const HeroScreen = () => {
       });
     }
     setActiveSlide(index);
+  };
+
+  const handleButtonPress = async (route: "/auth/signin" | "/auth/signup") => {
+    // Haptic feedback on button press
+    if (Platform.OS === "ios") {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } else {
+      Vibration.vibrate(50);
+    }
+
+    // Button press animation (same as signin screen)
+    Animated.sequence([
+      Animated.timing(buttonScaleAnim, {
+        toValue: 0.95,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(buttonScaleAnim, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    router.push(route);
   };
 
   if (isLoading) {
@@ -120,7 +203,16 @@ const HeroScreen = () => {
         style={[styles.container, { backgroundColor: colors.background }]}
         resizeMode="cover"
       >
-        <View style={styles.heroContent}>
+        <Animated.View
+          style={[
+            styles.heroContent,
+            {
+              opacity: fadeAnim,
+              transform: [{ scale: scaleAnim }, { translateY: slideAnim }],
+            },
+            isLandscape && styles.landscapeContent,
+          ]}
+        >
           <Text style={[styles.appLogoText, { color: colors.textPrimary }]}>
             {t("app_name")}
           </Text>
@@ -184,62 +276,63 @@ const HeroScreen = () => {
           </View>
 
           {/* Action Buttons */}
-          <View style={styles.buttonGroup}>
-            <Pressable
-              style={({ pressed }) => [
-                styles.button,
-                { backgroundColor: colors.primary },
-                Platform.select({
-                  ios: {
-                    shadowOpacity: pressed ? 0.2 : 0.1,
-                    shadowRadius: pressed ? 3 : 4,
-                  },
-                  android: {
-                    elevation: pressed ? 2 : 3,
-                  },
-                }),
-              ]}
-              onPress={() => {
-                router.push("/auth/signin");
-              }}
+          <Animated.View
+            style={[
+              styles.buttonGroup,
+              {
+                transform: [{ scale: buttonScaleAnim }],
+              },
+            ]}
+          >
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: colors.primary }]}
+              onPress={() => handleButtonPress("/auth/signin")}
               accessibilityLabel={t("hero.signin_button")}
+              accessibilityRole="button"
             >
-              <Text style={[styles.buttonText, { color: colors.textPrimary }]}>
-                {t("hero.signin_button")}
-              </Text>
-            </Pressable>
+              <View style={styles.buttonContent}>
+                <Ionicons
+                  name="log-in-outline"
+                  size={20}
+                  color={colors.surface}
+                />
+                <Text style={[styles.buttonText, { color: colors.surface }]}>
+                  {t("hero.signin_button")}
+                </Text>
+              </View>
+            </TouchableOpacity>
 
-            <Pressable
-              style={({ pressed }) => [
+            <TouchableOpacity
+              style={[
                 styles.button,
                 styles.secondaryButton,
                 {
                   backgroundColor: colors.surface,
                   borderColor: colors.primary,
                 },
-                Platform.select({
-                  ios: {
-                    shadowOpacity: pressed ? 0.2 : 0.1,
-                    shadowRadius: pressed ? 3 : 4,
-                  },
-                  android: {
-                    elevation: pressed ? 2 : 3,
-                  },
-                }),
               ]}
-              onPress={() => {
-                router.push("/auth/signup");
-              }}
+              onPress={() => handleButtonPress("/auth/signup")}
               accessibilityLabel={t("hero.signup_button")}
+              accessibilityRole="button"
             >
-              <Text
-                style={[styles.secondaryButtonText, { color: colors.primary }]}
-              >
-                {t("hero.signup_button")}
-              </Text>
-            </Pressable>
-          </View>
-        </View>
+              <View style={styles.buttonContent}>
+                <Ionicons
+                  name="person-add-outline"
+                  size={20}
+                  color={colors.primary}
+                />
+                <Text
+                  style={[
+                    styles.secondaryButtonText,
+                    { color: colors.primary },
+                  ]}
+                >
+                  {t("hero.signup_button")}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </Animated.View>
+        </Animated.View>
       </ImageBackground>
     </SafeAreaWrapper>
   );
@@ -260,15 +353,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center", // Keep centered within its own space
     width: "100%",
-    maxWidth: 400, // Max width for content on larger screens
+    maxWidth: scaleWidth(400), // Max width for content on larger screens
     flex: 1, // Allow hero content to take available space
   },
+  landscapeContent: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+    paddingHorizontal: scaleWidth(40),
+  },
   appLogoText: {
-    fontSize: 42, // Slightly reduced for better balance, still prominent
+    fontSize: getResponsiveFontSize(42), // Responsive font size
     fontWeight: "800", // Bolder font weight
-    marginBottom: 20, // Reduced margin
+    marginBottom: scaleHeight(20), // Responsive margin
     textAlign: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: scaleWidth(20),
     letterSpacing: 0.5, // Subtle letter spacing
   },
   subtitle: {
@@ -280,64 +379,62 @@ const styles = StyleSheet.create({
   },
   // --- Carousel Styles ---
   carouselScrollView: {
-    height: 320, // Slightly increased height for more image/text room
+    height: scaleHeight(320), // Responsive height
     width: viewportWidth,
-    marginBottom: 25, // Increased space below carousel
+    marginBottom: scaleHeight(25), // Responsive margin
   },
   carouselItem: {
     width: viewportWidth,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 15, // Slightly reduced vertical padding for tighter fit
+    paddingHorizontal: scaleWidth(20),
+    paddingVertical: scaleHeight(15), // Responsive padding
   },
   carouselImage: {
     width: "90%",
-    height: 180, // Kept same
-    marginBottom: 20, // Increased margin to separate image from title
-    // If your images have transparent backgrounds, and you want a solid background
-    // backgroundColor: 'transparent', // Ensure no unwanted background
+    height: scaleHeight(180), // Responsive height
+    marginBottom: scaleHeight(20), // Responsive margin
   },
   carouselTitle: {
-    fontSize: 24, // Slightly increased title size
+    fontSize: getResponsiveFontSize(24), // Responsive font size
     fontWeight: "700", // Bolder
     textAlign: "center",
-    marginBottom: 8, // Reduced margin to bring description closer
+    marginBottom: scaleHeight(8), // Responsive margin
   },
   carouselDescription: {
-    fontSize: 15, // Slightly reduced for better hierarchy with title
+    fontSize: getResponsiveFontSize(15), // Responsive font size
     textAlign: "center",
-    lineHeight: 22, // Adjusted line height
-    paddingHorizontal: 10, // Added padding to description
+    lineHeight: scaleHeight(22), // Responsive line height
+    paddingHorizontal: scaleWidth(10), // Responsive padding
   },
   paginationDotsContainer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 40, // Increased space below dots
+    marginBottom: scaleHeight(40), // Responsive margin
   },
   dot: {
-    width: 8, // Slightly smaller dots
-    height: 8,
-    borderRadius: 4, // Fully rounded
-    marginHorizontal: 5, // Slightly less margin
+    width: scaleWidth(8), // Responsive dot size
+    height: scaleHeight(8),
+    borderRadius: scaleWidth(4), // Responsive border radius
+    marginHorizontal: scaleWidth(5), // Responsive margin
   },
   // --- Button Group ---
   buttonGroup: {
     width: "100%",
     alignItems: "center",
-    paddingHorizontal: 20, // Padding for the group itself
+    paddingHorizontal: scaleWidth(20), // Responsive padding
     marginTop: "auto", // Push button group to the bottom (within heroContent)
-    marginBottom: 20, // Space from the bottom of the screen
+    marginBottom: scaleHeight(20), // Responsive margin
   },
   // --- Button Styles ---
   button: {
-    paddingVertical: 14, // Slightly reduced button height
-    paddingHorizontal: 30,
+    paddingVertical: scaleHeight(14), // Responsive button height
+    paddingHorizontal: scaleWidth(30), // Responsive padding
     borderRadius: 8, // Slightly less rounded for a more modern look
-    marginBottom: 12, // Reduced space between buttons
+    marginBottom: scaleHeight(12), // Responsive margin
     width: "100%",
-    maxWidth: 260, // Slightly reduced max width for a less "blocky" feel
+    maxWidth: scaleWidth(260), // Responsive max width
     alignItems: "center",
     justifyContent: "center",
     shadowOffset: { width: 0, height: 2 },
@@ -345,19 +442,26 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  buttonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   buttonText: {
-    fontSize: 17, // Slightly smaller text
+    fontSize: getResponsiveFontSize(17), // Responsive font size
     fontWeight: "700", // Bolder
+    marginLeft: scaleWidth(8), // Space between icon and text
   },
   secondaryButton: {
     borderWidth: 1.5, // Slightly thinner border
   },
   secondaryButtonText: {
-    fontSize: 17,
+    fontSize: getResponsiveFontSize(17), // Responsive font size
     fontWeight: "700",
+    marginLeft: scaleWidth(8), // Space between icon and text
   },
   loadingText: {
-    fontSize: 18,
+    fontSize: getResponsiveFontSize(18), // Responsive font size
     textAlign: "center",
   },
 });

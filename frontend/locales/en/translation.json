@@ -39,7 +39,9 @@
     "premium_activated": "Your Premium subscription has been activated.",
     "payment_failed": "Payment Failed",
     "payment_could_not_complete": "Payment could not be completed. Please try again.",
-    "to": "to"
+    "to": "to",
+    "loading": "Loading...",
+    "sending": "Sending..."
   },
   "signup": {
     "title": "Sign Up",
@@ -61,10 +63,13 @@
     "signin_link": "Sign In"
   },
   "signin": {
-    "title": "Sign In",
+    "title": "Welcome Back",
+    "subtitle": "Enter your phone number to continue",
     "phone_placeholder": "Enter phone number",
     "phone_required": "Phone number is required",
     "phone_invalid": "Please enter a valid 10-digit phone number",
+    "send_otp": "Send OTP",
+    "send_otp_hint": "Tap to send OTP to your phone number",
     "login_button": "Login",
     "otp_success": "OTP sent successfully!",
     "otp_failed_fallback": "Failed to send OTP. Please try again.",

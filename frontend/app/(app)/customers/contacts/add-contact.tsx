@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import {
   View,
   TextInput,
@@ -49,6 +49,16 @@ const AddCustomerFormScreen = () => {
     },
   });
   const [loading, setLoading] = useState(false);
+  const [isFocused, setIsFocused] = useState(false); // Focus state for mobile input
+
+  // Memoized focus handlers to prevent unnecessary re-renders
+  const handleFocus = useCallback(() => {
+    setIsFocused(true);
+  }, []);
+
+  const handleBlur = useCallback(() => {
+    setIsFocused(false);
+  }, []);
 
   const handleAddCustomer = async (data: { name: string; mobile: string }) => {
     const { name, mobile } = data;
@@ -195,21 +205,33 @@ const AddCustomerFormScreen = () => {
                       {
                         borderColor: errors.mobile
                           ? colors.error
+                          : isFocused
+                          ? colors.primary
                           : colors.border,
                         backgroundColor: colors.surface,
                         color: colors.textPrimary,
+                        borderWidth: isFocused ? 2 : 1,
                       },
                     ]}
                     placeholder="Enter mobile number"
                     placeholderTextColor={colors.textSecondary}
                     value={value}
                     onChangeText={onChange}
+                    onBlur={() => {
+                      onBlur();
+                      handleBlur();
+                    }}
+                    onFocus={handleFocus}
                     keyboardType="phone-pad"
                     maxLength={10}
-                    onBlur={onBlur}
                     editable={!loading}
                     returnKeyType="done"
                     onSubmitEditing={scrollToButton}
+                    autoComplete="tel"
+                    textContentType="telephoneNumber"
+                    accessibilityLabel="Enter mobile number"
+                    accessibilityRole="text"
+                    accessibilityState={{ disabled: loading }}
                   />
                 )}
                 name="mobile"

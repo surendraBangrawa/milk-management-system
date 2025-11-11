@@ -12,14 +12,15 @@ from sqlalchemy import (
     BigInteger,
 )
 from datetime import datetime
+from app.core.time_utils import now_utc
 import enum
 from app.core.config import local_timezone
 from app.db.session import Base
 
 
 def local_now():
-    """Returns the current time in the configured local timezone."""
-    return datetime.now(local_timezone)
+    """Returns the current time in UTC for storage and comparisons."""
+    return now_utc()
 
 
 # User Table Schema
@@ -37,7 +38,7 @@ class User(Base):
 class Customer(Base):
     __tablename__ = "customers"
 
-    customer_id = Column(Integer, primary_key=True, autoincrement=True)
+    customer_id = Column(Integer, primary_key=True)
     mobile = Column(String(10), nullable=False)
     name = Column(String(100), nullable=False)
     added_under = Column(String(255), nullable=False)  # Comma-separated list of sellers
@@ -65,7 +66,10 @@ class ShiftEnum(str, enum.Enum):
 class MilkRecord(Base):
     __tablename__ = "milk_records"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(
+        Integer,
+        primary_key=True,
+    )
     buyer_mobile = Column(String(10), nullable=False)
     seller_mobile = Column(String(10), nullable=False)
     quantity = Column(Float, nullable=False)
@@ -90,7 +94,10 @@ class MilkRecord(Base):
 class ExpenseRecord(Base):
     __tablename__ = "Expenses"
 
-    expense_id = Column(Integer, primary_key=True, autoincrement=True)
+    expense_id = Column(
+        Integer,
+        primary_key=True,
+    )
     buyer_mobile = Column(String(10), nullable=False)
     seller_mobile = Column(String(10), nullable=False)
     amount = Column(Float, nullable=False)
@@ -119,10 +126,33 @@ class RateList(Base):
     )  # processing, complete, failed
 
 
+class RateListUploadHistory(Base):
+    __tablename__ = "rate_list_upload_history"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    buyer_mobile = Column(String(10), nullable=False)
+    filename = Column(String(255), nullable=True)  # Original filename
+    file_size = Column(Integer, nullable=True)  # File size in bytes
+    status = Column(
+        String(20), nullable=False, default="processing"
+    )  # processing, complete, failed
+    error_message = Column(String(500), nullable=True)  # Error details if failed
+    entries_processed = Column(
+        Integer, nullable=True
+    )  # Number of rate entries processed
+    processing_time_seconds = Column(Float, nullable=True)  # Time taken to process
+    created_at = Column(DateTime, default=local_now)
+    completed_at = Column(DateTime, nullable=True)  # When processing completed
+    is_deleted = Column(Boolean, default=False, nullable=False)
+
+
 class Subscription(Base):
     __tablename__ = "subscription"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(
+        Integer,
+        primary_key=True,
+    )
     buyer_mobile = Column(String(10), nullable=False)
     subscription_type = Column(String(10), nullable=False)
     start_date = Column(Date, nullable=False)  # Date only
@@ -139,7 +169,10 @@ class AccessType(str, enum.Enum):
 class SubscriptionPlan(Base):
     __tablename__ = "subscription_plan"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(
+        Integer,
+        primary_key=True,
+    )
     plan_name = Column(String(20), nullable=False, unique=True)  # Free, Trial, Premium
     price = Column(Float, nullable=False)
     validity = Column(Integer, nullable=False)  # in days
@@ -202,31 +235,14 @@ class SubscriptionPlan(Base):
 
 
 class Otp_Table(Base):
-    __tablename__ = "OTP_TABLE"
+    __tablename__ = "otp_table"
 
-    otp_id = Column(
-        BigInteger, primary_key=True, index=True, autoincrement=True, name="OTP_ID"
-    )
-    mobile_number = Column(
-        String(12), unique=False, name="MOBILE_NUMBER", nullable=False
-    )
-    otp = Column(String(6), unique=False, name="OTP", nullable=True)
-    count = Column(BigInteger, unique=False, name="COUNT", nullable=True, default=1)
-    time = Column(
-        DateTime, unique=False, name="TIME", nullable=False, default=local_now
-    )
-    CREATE_DATE = Column(
-        DateTime,
-        unique=False,
-        name="CREATE_DATE",
-        nullable=False,
-        default=local_now,
-    )
-    UPDATE_DATE = Column(
-        DateTime,
-        unique=False,
-        name="UPDATE_DATE",
-        nullable=False,
-        default=local_now,
-        onupdate=local_now,
+    otp_id = Column(BigInteger, primary_key=True, index=True)
+    mobile_number = Column(String(12), nullable=False)
+    otp = Column(String(6), nullable=True)
+    count = Column(BigInteger, nullable=True, default=1)
+    time = Column(DateTime, nullable=False, default=local_now)
+    create_date = Column(DateTime, nullable=False, default=local_now)
+    update_date = Column(
+        DateTime, nullable=False, default=local_now, onupdate=local_now
     )

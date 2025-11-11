@@ -155,6 +155,23 @@ axiosInstance.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
+    // mark start time for duration
+    (config as any).metadata = { startTime: Date.now() };
+
+    const { method, url, params, data } = config;
+    const redactedHeaders: Record<string, unknown> | undefined = config.headers
+      ? { ...(config.headers as Record<string, unknown>) }
+      : undefined;
+    if (redactedHeaders && "Authorization" in redactedHeaders) {
+      (redactedHeaders as Record<string, unknown>).Authorization = "***";
+    }
+
+    console.log("[API REQUEST]", method?.toUpperCase(), url, {
+      params,
+      data,
+      headers: redactedHeaders,
+    });
+
     // Add language header
     try {
       const userLanguage = await AsyncStorage.getItem("user-language");
@@ -185,9 +202,25 @@ axiosInstance.interceptors.request.use(
 
 axiosInstance.interceptors.response.use(
   (response) => {
+    // Dev logging for every response
+    const { config, status, statusText } = response;
+    const start = (config as any)?.metadata?.startTime ?? Date.now();
+    const durationMs = Date.now() - start;
+    console.log(
+      "[API RESPONSE]",
+      config.method?.toUpperCase(),
+      config.url,
+      status,
+      statusText,
+      `${durationMs}ms`
+    );
+
     return response;
   },
   async (error) => {
+    // Dev logging for every error
+    console.log("[API ERROR]", error.response?.data);
+
     // Check if the error has a structured detail with error codes
     const errorDetail = error.response?.data?.detail;
 

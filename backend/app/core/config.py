@@ -36,18 +36,12 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
     print("Warning: GEMINI_API_KEY is not set. AI features may not work.")
 
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_HOST = os.getenv("DB_HOST")
-DB_NAME = os.getenv("DB_NAME")
-DB_PORT = os.getenv("DB_PORT")
-
-DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+# PostgreSQL Configuration
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 print(f"DEBUG: TIME_ZONE = {TIME_ZONE}")
 print(f"DEBUG: SECRET_KEY = {SECRET_KEY}")
 print(f"DEBUG: GEMINI_API_KEY = {GEMINI_API_KEY}")
-print(f"DEBUG: DB_USER = {DB_USER}")
 print(f"DEBUG: DATABASE_URL = {DATABASE_URL}")
 
 # Razorpay Configuration
@@ -65,13 +59,18 @@ if not RAZORPAY_WEBHOOK_SECRET:
     )
 
 # Redis Configuration for Celery
-REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
-REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
-REDIS_DB = int(os.getenv("REDIS_DB", "0"))
+REDIS_URL = os.getenv("REDIS_URL")
+
+# Fallback to individual components if REDIS_URL not provided
+if not REDIS_URL:
+    REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+    REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
+    REDIS_DB = int(os.getenv("REDIS_DB", "0"))
+    REDIS_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
 
 # Celery Configuration
-CELERY_BROKER_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
-CELERY_RESULT_BACKEND = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
+CELERY_BROKER_URL = REDIS_URL
+CELERY_RESULT_BACKEND = REDIS_URL
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_ACCEPT_CONTENT = ["json"]

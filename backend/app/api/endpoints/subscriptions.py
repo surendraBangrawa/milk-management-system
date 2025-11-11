@@ -34,7 +34,7 @@ def take_subscription(
         plan_id = subscription_request.plan_id
         user_info = (
             db.query(User)
-            .filter(User.mobile == buyer_mobile, User.is_deleted == 0)
+            .filter(User.mobile == buyer_mobile, User.is_deleted.is_(False))
             .first()
         )
 
@@ -160,7 +160,7 @@ def check_subscription(
         logger.info(f"In check_subscription")
         user_info = (
             db.query(User)
-            .filter(User.mobile == buyer_mobile, User.is_deleted == 0)
+            .filter(User.mobile == buyer_mobile, User.is_deleted.is_(False))
             .first()
         )
 
@@ -210,7 +210,9 @@ def fetch_plans(
     try:
         logger.info("In fetch_plans")
         all_plans = (
-            db.query(SubscriptionPlan).filter(SubscriptionPlan.is_deleted == 0).all()
+            db.query(SubscriptionPlan)
+            .filter(SubscriptionPlan.is_deleted.is_(False))
+            .all()
         )
         if not all_plans:
             raise HTTPException(status_code=404, detail="No plan found")
@@ -231,7 +233,9 @@ def create_premium_payment_intent(
     Create a Razorpay payment intent for the Premium plan and return payment details.
     """
     user = (
-        db.query(User).filter(User.mobile == buyer_mobile, User.is_deleted == 0).first()
+        db.query(User)
+        .filter(User.mobile == buyer_mobile, User.is_deleted.is_(False))
+        .first()
     )
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -443,7 +447,7 @@ async def razorpay_webhook(request: Request, db: Session = Depends(get_db)):
 
             user = (
                 db.query(User)
-                .filter(User.mobile == buyer_mobile, User.is_deleted == 0)
+                .filter(User.mobile == buyer_mobile, User.is_deleted.is_(False))
                 .first()
             )
             plan = (
@@ -527,7 +531,9 @@ async def debug_subscription(mobile: str, db: Session = Depends(get_db)):
     """
     try:
         user = (
-            db.query(User).filter(User.mobile == mobile, User.is_deleted == 0).first()
+            db.query(User)
+            .filter(User.mobile == mobile, User.is_deleted.is_(False))
+            .first()
         )
         if not user:
             return {"error": "User not found"}

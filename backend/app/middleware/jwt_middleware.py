@@ -33,6 +33,7 @@ class JWTMiddleware(BaseHTTPMiddleware):
             "/subscriptions/debug-subscription",  # Debug endpoint
             "/payment-callback",  # Payment callback doesn't need JWT auth
             "/favicon.ico",  # Browser favicon requests
+            "/api/inngest",
         ]
         if request.url.path in excluded_paths or request.url.path.startswith("/static"):
             return await call_next(request)
@@ -106,7 +107,7 @@ class JWTMiddleware(BaseHTTPMiddleware):
             try:
                 user = (
                     db.query(User)
-                    .filter(User.mobile == mobile, User.is_deleted == 0)
+                    .filter(User.mobile == mobile, User.is_deleted.is_(False))
                     .first()
                 )
             except Exception as query_error:

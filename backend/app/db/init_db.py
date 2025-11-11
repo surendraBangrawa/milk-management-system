@@ -20,6 +20,7 @@ def add_ratelist_upload_limit_column():
             FROM information_schema.columns 
             WHERE table_name = 'subscription_plan' 
             AND column_name = 'ratelist_upload_limit'
+            AND table_schema = 'public'
         """
             )
         )

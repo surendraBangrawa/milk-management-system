@@ -1,42 +1,22 @@
-# Stage 1: Builder
-FROM python:3.10-slim-buster AS builder
-
-ENV PYTHONUNBUFFERED 1
-ENV PYTHONDONTWRITEBYTECODE 1
+FROM python:3.11-slim
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements file and install dependencies
-COPY ./requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
+# Copy requirements and install Python dependencies
+COPY backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY . /app
+COPY backend/ .
 
-# Stage 2: Production
-FROM python:3.10-slim-buster
-
-ENV PYTHONUNBUFFERED 1
-ENV PYTHONDONTWRITEBYTECODE 1
-
-WORKDIR /app
-
-# Create a non-root user and switch to it for enhanced security
-RUN adduser --system --group appuser && chown -R appuser:appuser /app
-USER appuser
-RUN mkdir -p /app/logs && chown -R appuser:appuser /app/logs
-
-# Copy dependencies from builder stage
-COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
-COPY --from=builder /app /app
-
-# Expose the port the app will be listening on
+# Expose port
 EXPOSE 8000
 
-# Run the FastAPI app using Gunicorn with Uvicorn workers
-CMD ["gunicorn", "main:app", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000"]
+# Run the application
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

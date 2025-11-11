@@ -1,9 +1,5 @@
 import os
-import shutil
-import re
-import pandas as pd
-from datetime import datetime
-from typing import List
+import tempfile
 
 from fastapi import APIRouter, Depends, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
@@ -13,20 +9,17 @@ from app.db.session import get_db
 from app.db.models import (
     User,
     RateList,
+    RateListUploadHistory,
 )
 from app.core.security import (
     get_current_user,
 )
 from app.schemas.ratelist import (
-    RateData,
     RateListRequest,
 )
-from app.services.ocr_parser import (
-    get_text_from_image_via_api,
-    parse_extracted_text_to_dataframe,
-)
-from app.tasks.ratelist_tasks import process_rate_list_image_task
 from app.services.subscription_service import can_upload_ratelist
+from app.tasks.ratelist_tasks import inngest
+from inngest import Event
 
 import logging
 
@@ -60,7 +53,7 @@ def store_rate_list(
         # Validate user existence (can potentially be part of get_current_user dependency)
         get_user = (
             db.query(User)
-            .filter(User.mobile == buyer_mobile, User.is_deleted == 0)
+            .filter(User.mobile == buyer_mobile, User.is_deleted.is_(False))
             .first()
         )
 
@@ -128,158 +121,6 @@ def store_rate_list(
         )
 
 
-# Background processing function
-async def process_rate_list_image(file_path, db, buyer_mobile):
-    try:
-        import pandas as pd
-        import re
-        import os
-        import logging
-
-        logger = logging.getLogger(__name__)
-        logger.info(f"Starting background processing for buyer: {buyer_mobile}")
-
-        # Process the image to extract text
-        extracted_text = get_text_from_image_via_api(file_path)
-        if not extracted_text or len(extracted_text.strip()) < 250:
-            raise Exception("Failed to extract sufficient text from the image.")
-
-        logger.info(f"Text extracted successfully, length: {len(extracted_text)}")
-
-        success, extracted_df = parse_extracted_text_to_dataframe(extracted_text)
-        if not success or extracted_df.empty:
-            raise Exception("Failed to parse data from the extracted text.")
-
-        logger.info(f"DataFrame created successfully with {len(extracted_df)} rows")
-
-        rate_list_for_api = []
-        snf_columns = [
-            col for col in extracted_df.columns if re.match(r"^\d+(\.\d+)?$", str(col))
-        ]
-
-        logger.info(f"Found {len(snf_columns)} SNF columns: {snf_columns}")
-
-        for index, row in extracted_df.iterrows():
-            fat_col_name = extracted_df.columns[0]
-            fat_snf_value = row.get(fat_col_name)
-            if fat_snf_value is None:
-                continue
-            try:
-                fat_value = float(fat_snf_value)
-            except (ValueError, TypeError):
-                continue
-            for snf_col in snf_columns:
-                rate_value = row.get(snf_col)
-                if rate_value is None:
-                    continue
-                try:
-                    snf_value = float(snf_col)
-                    if pd.notna(rate_value):
-                        rate_entry = RateData(
-                            fat=fat_value, snf=snf_value, rate=float(rate_value)
-                        )
-                        rate_list_for_api.append(rate_entry)
-                        logger.debug(
-                            f"Added rate entry: Fat={fat_value}, SNF={snf_value}, Rate={rate_value}"
-                        )
-                except (ValueError, TypeError):
-                    continue
-
-        if not rate_list_for_api:
-            raise Exception(
-                "No valid rate data could be extracted and parsed from the image."
-            )
-
-        logger.info(f"Processed {len(rate_list_for_api)} valid rate entries")
-
-        # Calculate min/max values from the extracted data
-        fat_values = [rate.fat for rate in rate_list_for_api]
-        snf_values = [rate.snf for rate in rate_list_for_api]
-
-        min_fat = min(fat_values) if fat_values else 0.0
-        max_fat = max(fat_values) if fat_values else 0.0
-        min_snf = min(snf_values) if snf_values else 0.0
-        max_snf = max(snf_values) if snf_values else 0.0
-
-        logger.info(
-            f"Calculated ranges: Fat({min_fat}-{max_fat}), SNF({min_snf}-{max_snf})"
-        )
-
-        # Validate the calculated values
-        if min_fat < 0 or max_fat < 0 or min_snf < 0 or max_snf < 0:
-            raise Exception("Invalid fat or SNF values detected in the image.")
-
-        if min_fat > max_fat or min_snf > max_snf:
-            raise Exception("Invalid range values detected in the image.")
-
-        # Convert to database format (list of dicts)
-        rates_for_db = [rate.model_dump() for rate in rate_list_for_api]
-
-        # Validate the data structure matches what get_rate expects
-        for rate in rates_for_db:
-            if not all(key in rate for key in ["fat", "snf", "rate"]):
-                raise Exception("Invalid rate data structure detected.")
-            if (
-                not isinstance(rate["fat"], (int, float))
-                or not isinstance(rate["snf"], (int, float))
-                or not isinstance(rate["rate"], (int, float))
-            ):
-                raise Exception("Invalid data types in rate entries.")
-
-        logger.info(f"Data structure validation passed for {len(rates_for_db)} entries")
-
-        existing_rate_list = (
-            db.query(RateList).filter(RateList.buyer_mobile == buyer_mobile).first()
-        )
-        if existing_rate_list:
-            if bool(existing_rate_list.is_deleted):
-                setattr(existing_rate_list, "is_deleted", False)
-            setattr(existing_rate_list, "rates", rates_for_db)
-            setattr(existing_rate_list, "min_fat", min_fat)
-            setattr(existing_rate_list, "max_fat", max_fat)
-            setattr(existing_rate_list, "min_snf", min_snf)
-            setattr(existing_rate_list, "max_snf", max_snf)
-            setattr(existing_rate_list, "status", "complete")
-            db.commit()
-            db.refresh(existing_rate_list)
-            logger.info(f"Updated existing rate list for buyer: {buyer_mobile}")
-        else:
-            new_rate_list = RateList(
-                buyer_mobile=buyer_mobile,
-                rates=rates_for_db,
-                min_fat=min_fat,
-                max_fat=max_fat,
-                min_snf=min_snf,
-                max_snf=max_snf,
-                status="complete",
-            )
-            db.add(new_rate_list)
-            db.commit()
-            db.refresh(new_rate_list)
-            logger.info(f"Created new rate list for buyer: {buyer_mobile}")
-
-        logger.info(
-            f"Background processing completed successfully for buyer: {buyer_mobile}"
-        )
-
-    except Exception as e:
-        # Set status to failed
-        existing_rate_list = (
-            db.query(RateList).filter(RateList.buyer_mobile == buyer_mobile).first()
-        )
-        if existing_rate_list:
-            existing_rate_list.status = "failed"
-            db.commit()
-        logger = logging.getLogger(__name__)
-        logger.error(f"Background processing failed: {e}")
-    finally:
-        if file_path and os.path.exists(file_path):
-            try:
-                os.remove(file_path)
-            except OSError:
-                pass
-
-
 @router.post("/upload_image")
 async def upload_rate_list_image(
     file: UploadFile = File(...),
@@ -288,7 +129,7 @@ async def upload_rate_list_image(
 ):
     """
     API endpoint to receive an uploaded image file containing a rate list,
-    process it asynchronously using Celery, and store the rate list in the database.
+    process it asynchronously using Inngest, and store the rate list in the database.
     """
     file_path = None
     try:
@@ -306,19 +147,22 @@ async def upload_rate_list_image(
                 detail="Rate list upload limit reached for your subscription plan. You can upload up to 3 rate lists on the free plan. Upgrade to upload unlimited rate lists.",
             )
 
-        upload_folder = "temp_uploads"
-        os.makedirs(upload_folder, exist_ok=True)
-        logger.info(f"Created upload folder: {upload_folder}")
+        # Save file to temporary location
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
+            content = await file.read()
+            tmp_file.write(content)
+            file_path = tmp_file.name
 
-        file_extension = os.path.splitext(file.filename)[1] or ".tmp"
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-        new_filename = f"{timestamp}{file_extension}"
-        file_path = os.path.join(upload_folder, new_filename)
-
-        logger.info(f"Saving file to: {file_path}")
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        logger.info(f"File saved successfully: {file_path}")
+        # Create upload history record
+        upload_history = RateListUploadHistory(
+            buyer_mobile=buyer_mobile,
+            filename=file.filename,
+            file_size=len(content),
+            status="processing",
+        )
+        db.add(upload_history)
+        db.commit()
+        db.refresh(upload_history)
 
         # Set status to processing
         existing_rate_list = (
@@ -340,16 +184,26 @@ async def upload_rate_list_image(
             db.add(new_rate_list)
             db.commit()
 
-        # Launch Celery task for background processing
-        logger.info(f"Creating Celery task for file: {file_path}")
-        task = process_rate_list_image_task.delay(file_path, buyer_mobile)
-        logger.info(f"Started Celery task {task.id} for buyer: {buyer_mobile}")
+        # Send event to Inngest for background processing
+        event = Event(
+            name="image.uploaded",
+            data={
+                "file_path": file_path,
+                "buyer_mobile": buyer_mobile,
+                "original_filename": file.filename,
+            },
+        )
+
+        logger.info(f"Sending Inngest event: {event.name} with data: {event.data}")
+        await inngest.send(event)
+
+        logger.info(f"Started Inngest processing for buyer: {buyer_mobile}")
 
         return JSONResponse(
             status_code=202,
             content={
                 "message": "Upload received. Processing in background.",
-                "task_id": task.id,
+                "status": "processing",
             },
         )
     except HTTPException as http_exc:
@@ -378,48 +232,46 @@ def get_upload_status(
 
 
 @router.get("/task_status/{task_id}")
-async def get_task_status(task_id: str):
+async def get_task_status(
+    task_id: str,
+    buyer_mobile: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """
-    Get the status of a Celery task by its ID.
+    Legacy endpoint for backward compatibility.
+    Now uses database status instead of Celery task ID.
     """
-    try:
-        from app.celery_app import celery_app
+    # Just redirect to upload_status since we don't use task IDs anymore
+    rate_list = db.query(RateList).filter(RateList.buyer_mobile == buyer_mobile).first()
+    if not rate_list:
+        return {
+            "state": "FAILURE",
+            "status": "No rate list found",
+            "error": "Not found",
+        }
 
-        task_result = celery_app.AsyncResult(task_id)
+    # Map database status to Celery-like response for compatibility
+    status_mapping = {
+        "processing": {
+            "state": "PROGRESS",
+            "status": "Processing image...",
+            "progress": 50,
+        },
+        "complete": {
+            "state": "SUCCESS",
+            "status": "Task completed successfully",
+            "progress": 100,
+        },
+        "failed": {
+            "state": "FAILURE",
+            "status": "Task failed",
+            "error": "Processing failed",
+        },
+    }
 
-        if task_result.state == "PENDING":
-            response = {"state": task_result.state, "status": "Task is pending..."}
-        elif task_result.state == "STARTED":
-            response = {
-                "state": task_result.state,
-                "status": task_result.info.get("status", "Task is running..."),
-                "progress": task_result.info.get("progress", 0),
-            }
-        elif task_result.state == "PROGRESS":
-            response = {
-                "state": task_result.state,
-                "status": task_result.info.get("status", "Task is running..."),
-                "progress": task_result.info.get("progress", 0),
-            }
-        elif task_result.state == "SUCCESS":
-            response = {
-                "state": task_result.state,
-                "status": "Task completed successfully",
-                "result": task_result.info.get("result", {}),
-            }
-        elif task_result.state == "FAILURE":
-            response = {
-                "state": task_result.state,
-                "status": "Task failed",
-                "error": task_result.info.get("error", "Unknown error"),
-            }
-        else:
-            response = {"state": task_result.state, "status": "Unknown task state"}
-
-        return response
-    except Exception as e:
-        logger.error(f"Error getting task status for {task_id}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get task status")
+    return status_mapping.get(
+        rate_list.status, {"state": "PENDING", "status": "Unknown status"}
+    )
 
 
 @router.delete("/delete")  # Changed path slightly to fit prefix pattern if used
@@ -433,7 +285,9 @@ def delete_rate_list(
         logger.info(f"In delete_rate_list endpoint for buyer: {buyer_mobile}")
         rate_list_record = (
             db.query(RateList)
-            .filter(RateList.buyer_mobile == buyer_mobile, RateList.is_deleted == 0)
+            .filter(
+                RateList.buyer_mobile == buyer_mobile, RateList.is_deleted.is_(False)
+            )
             .first()
         )
 
@@ -467,7 +321,9 @@ def show_rate_list(
         logger.info(f"In show_rate_list_api")
         rate_list = (
             db.query(RateList)
-            .filter(RateList.buyer_mobile == buyer_mobile, RateList.is_deleted == 0)
+            .filter(
+                RateList.buyer_mobile == buyer_mobile, RateList.is_deleted.is_(False)
+            )
             .first()
         )
         if not rate_list:
@@ -496,7 +352,9 @@ def fetch_rate(
             )
         rate_list = (
             db.query(RateList)
-            .filter(RateList.buyer_mobile == buyer_mobile, RateList.is_deleted == 0)
+            .filter(
+                RateList.buyer_mobile == buyer_mobile, RateList.is_deleted.is_(False)
+            )
             .first()
         )
         if not rate_list:
@@ -602,3 +460,56 @@ def calculate_snf_diff(rate_list, fat_value):
     average_rate_diff = sum(rate_diffs) / len(rate_diffs) if rate_diffs else 0
 
     return average_rate_diff
+
+
+@router.get("/upload_history")
+def get_upload_history(
+    db: Session = Depends(get_db),
+    buyer_mobile: str = Depends(get_current_user),
+):
+    """
+    Get upload history for the current user.
+    """
+    try:
+        logger.info(f"Getting upload history for buyer: {buyer_mobile}")
+
+        # Get upload history ordered by most recent first
+        upload_history = (
+            db.query(RateListUploadHistory)
+            .filter(
+                RateListUploadHistory.buyer_mobile == buyer_mobile,
+                RateListUploadHistory.is_deleted.is_(False),
+            )
+            .order_by(RateListUploadHistory.created_at.desc())
+            .all()
+        )
+
+        # Convert to response format
+        history_data = []
+        for upload in upload_history:
+            history_data.append(
+                {
+                    "id": upload.id,
+                    "filename": upload.filename,
+                    "file_size": upload.file_size,
+                    "status": upload.status,
+                    "error_message": upload.error_message,
+                    "entries_processed": upload.entries_processed,
+                    "processing_time_seconds": upload.processing_time_seconds,
+                    "created_at": (
+                        upload.created_at.isoformat() if upload.created_at else None
+                    ),
+                    "completed_at": (
+                        upload.completed_at.isoformat() if upload.completed_at else None
+                    ),
+                }
+            )
+
+        return {
+            "upload_history": history_data,
+            "total_uploads": len(history_data),
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting upload history: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get upload history")

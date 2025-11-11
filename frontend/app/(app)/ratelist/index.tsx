@@ -6,18 +6,17 @@ import {
   ScrollView,
   ActivityIndicator,
   Pressable,
-  Alert,
+  RefreshControl,
 } from "react-native";
 import { useIsFocused } from "@react-navigation/native";
 import { Stack, useRouter } from "expo-router";
-import { useSelector } from "react-redux";
-import { RootState } from "@/redux/store";
 import {
   deleteRatelist,
   getRatelist,
+  getUploadHistory,
+  UploadHistoryItem,
 } from "@/redux/slice/ratelist/rateListApi";
 import useTheme from "@/context/theme/useTheme";
-import UploadStatusBanner from "@/components/UploadStatusBanner";
 import ThemedAlert from "@/components/ThemedAlert";
 import Toast from "react-native-toast-message";
 import { checkRatelistUploadLimit } from "@/lib/subscriptionUtils";
@@ -27,12 +26,13 @@ import SafeAreaWrapper from "@/components/SafeAreaWrapper";
 const RateListViewer = () => {
   const router = useRouter();
   const isFocused = useIsFocused();
-  const { colors, themeMode } = useTheme();
+  const { colors } = useTheme();
   const { t } = useTranslation();
-  const uploadStatus = useSelector((state: RootState) => state.uploadStatus);
 
   const [existingRateList, setExistingRateList] = useState([]);
+  const [uploadHistory, setUploadHistory] = useState<UploadHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [deleting, setDeleting] = useState(false); // State for delete loading
   const isFetchingRef = useRef(false);
 
@@ -45,25 +45,19 @@ const RateListViewer = () => {
   useEffect(() => {
     if (isFocused && !isFetchingRef.current) {
       fetchExistingRateList();
+      fetchUploadHistory();
     }
   }, [isFocused]);
 
-  // Refresh rate list when upload completes
-  useEffect(() => {
-    if (isFocused && uploadStatus.status === "complete") {
-      // Small delay to ensure backend has processed the data
-      const timer = setTimeout(() => {
-        fetchExistingRateList();
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [uploadStatus.status, isFocused]);
-
-  const fetchExistingRateList = async () => {
+  const fetchExistingRateList = async (isRefresh = false) => {
     if (isFetchingRef.current) return; // Prevent duplicate calls
 
     isFetchingRef.current = true;
-    setLoading(true);
+    if (isRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     try {
       const data = await getRatelist();
       // Check if data and data.data.rates is a non-empty array
@@ -78,12 +72,28 @@ const RateListViewer = () => {
       } else {
         setExistingRateList([]); // Treat as no list found or empty list
       }
-    } catch (error) {
+    } catch {
       setExistingRateList([]); // Assume no list on error
     } finally {
       setLoading(false);
+      setRefreshing(false);
       isFetchingRef.current = false;
     }
+  };
+
+  const fetchUploadHistory = async () => {
+    try {
+      const response = await getUploadHistory();
+      setUploadHistory(response.upload_history);
+    } catch (error) {
+      console.error("Error fetching upload history:", error);
+      setUploadHistory([]);
+    }
+  };
+
+  const onRefresh = () => {
+    fetchExistingRateList(true);
+    fetchUploadHistory();
   };
 
   const handleDeleteRateList = async () => {
@@ -151,9 +161,6 @@ const RateListViewer = () => {
     container: {
       flex: 1,
       padding: 20, // Consistent padding
-      // Add bottom padding when banner is visible
-      paddingBottom:
-        uploadStatus.isUploading || uploadStatus.isProcessing ? 100 : 20,
     },
     loadingContainer: {
       flex: 1,
@@ -227,6 +234,48 @@ const RateListViewer = () => {
       textAlign: "center",
       lineHeight: 24, // Improved readability
     },
+    // Upload History Styles
+    historyItem: {
+      padding: 15,
+      borderRadius: 8,
+      borderWidth: 1,
+      marginBottom: 10,
+    },
+    historyHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 8,
+    },
+    historyFilename: {
+      fontSize: 16,
+      fontWeight: "600",
+      flex: 1,
+      marginRight: 10,
+    },
+    statusBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+    },
+    statusText: {
+      color: "white",
+      fontSize: 12,
+      fontWeight: "bold",
+    },
+    historyDate: {
+      fontSize: 14,
+      marginBottom: 4,
+    },
+    historyDetails: {
+      fontSize: 12,
+      marginBottom: 2,
+    },
+    errorMessage: {
+      fontSize: 12,
+      fontStyle: "italic",
+      marginTop: 4,
+    },
   });
 
   const renderContent = () => {
@@ -246,16 +295,20 @@ const RateListViewer = () => {
       <ScrollView
         style={themedStyles.container}
         contentContainerStyle={{ paddingBottom: 30 }} // Add padding at the bottom
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary]} // Android
+            tintColor={colors.primary} // iOS
+          />
+        }
       >
         <Pressable
           style={({ pressed }) => [
             themedStyles.button,
             themedStyles.primaryButton,
-            (deleting ||
-              loading ||
-              uploadStatus.isUploading ||
-              uploadStatus.isProcessing) &&
-              themedStyles.buttonDisabled,
+            (deleting || loading) && themedStyles.buttonDisabled,
             {
               backgroundColor: pressed
                 ? colors.primaryDark || darkenColor(colors.primary, 20)
@@ -263,12 +316,7 @@ const RateListViewer = () => {
             },
           ]}
           onPress={navigateToUploadRateList}
-          disabled={
-            deleting ||
-            loading ||
-            uploadStatus.isUploading ||
-            uploadStatus.isProcessing
-          } // Disable during processing
+          disabled={deleting || loading}
           android_ripple={{
             color: colors.primaryDark || darkenColor(colors.primary, 30),
           }}
@@ -276,110 +324,197 @@ const RateListViewer = () => {
           <Text
             style={[themedStyles.buttonText, themedStyles.primaryButtonText]}
           >
-            {uploadStatus.isUploading || uploadStatus.isProcessing
-              ? t("ratelist.processing")
-              : t("ratelist.upload_new_rate_list")}
+            {t("ratelist.upload_new_rate_list")}
           </Text>
         </Pressable>
 
-        {existingRateList.length > 0 &&
-          !uploadStatus.isUploading &&
-          !uploadStatus.isProcessing && (
-            <>
+        {existingRateList.length > 0 && (
+          <>
+            <Text
+              style={{
+                fontSize: 16,
+                fontWeight: "bold",
+                color: colors.textPrimary,
+                marginBottom: 10,
+                marginTop: 10,
+              }}
+            >
+              {t("ratelist.rate_list_actions")}
+            </Text>
+
+            <Pressable
+              style={({ pressed }) => [
+                themedStyles.button,
+                themedStyles.secondaryButton, // Secondary style
+                (deleting || loading) && themedStyles.buttonDisabled,
+                { opacity: pressed ? 0.8 : 1 }, // Simple opacity feedback for secondary
+              ]}
+              onPress={navigateToViewTable}
+              disabled={deleting || loading}
+            >
               <Text
-                style={{
-                  fontSize: 16,
-                  fontWeight: "bold",
-                  color: colors.textPrimary,
-                  marginBottom: 10,
-                  marginTop: 10,
-                }}
+                style={[
+                  themedStyles.buttonText,
+                  themedStyles.secondaryButtonText,
+                ]}
               >
-                {t("ratelist.rate_list_actions")}
+                View Rate List (Table)
               </Text>
+            </Pressable>
 
-              <Pressable
-                style={({ pressed }) => [
-                  themedStyles.button,
-                  themedStyles.secondaryButton, // Secondary style
-                  (deleting || loading) && themedStyles.buttonDisabled,
-                  { opacity: pressed ? 0.8 : 1 }, // Simple opacity feedback for secondary
+            <Pressable
+              style={({ pressed }) => [
+                themedStyles.button,
+                themedStyles.secondaryButton,
+                (deleting || loading) && themedStyles.buttonDisabled,
+                { opacity: pressed ? 0.8 : 1 },
+              ]}
+              onPress={navigateToEditRateList}
+              disabled={deleting || loading}
+            >
+              <Text
+                style={[
+                  themedStyles.buttonText,
+                  themedStyles.secondaryButtonText,
                 ]}
-                onPress={navigateToViewTable}
-                disabled={deleting || loading}
               >
+                Edit Rate List
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [
+                themedStyles.button,
+                themedStyles.deleteButton,
+                (deleting || loading) && themedStyles.buttonDisabled,
+                {
+                  backgroundColor: pressed
+                    ? darkenColor(colors.error, 20)
+                    : colors.error,
+                },
+              ]}
+              onPress={handleDeleteRateList}
+              disabled={deleting || loading} // Disable while deleting or initial loading
+              android_ripple={{
+                color: darkenColor(colors.error, 30),
+              }}
+            >
+              {deleting ? (
+                <ActivityIndicator size="small" color={colors.surface} />
+              ) : (
                 <Text
                   style={[
                     themedStyles.buttonText,
-                    themedStyles.secondaryButtonText,
+                    themedStyles.deleteButtonText,
                   ]}
                 >
-                  View Rate List (Table)
+                  Delete Rate List
                 </Text>
-              </Pressable>
+              )}
+            </Pressable>
+          </>
+        )}
 
-              <Pressable
-                style={({ pressed }) => [
-                  themedStyles.button,
-                  themedStyles.secondaryButton,
-                  (deleting || loading) && themedStyles.buttonDisabled,
-                  { opacity: pressed ? 0.8 : 1 },
-                ]}
-                onPress={navigateToEditRateList}
-                disabled={deleting || loading}
-              >
-                <Text
-                  style={[
-                    themedStyles.buttonText,
-                    themedStyles.secondaryButtonText,
-                  ]}
-                >
-                  Edit Rate List
-                </Text>
-              </Pressable>
-
-              <Pressable
-                style={({ pressed }) => [
-                  themedStyles.button,
-                  themedStyles.deleteButton,
-                  (deleting || loading) && themedStyles.buttonDisabled,
+        {/* Upload History Section */}
+        {uploadHistory.length > 0 && (
+          <>
+            <Text
+              style={{
+                fontSize: 16,
+                fontWeight: "bold",
+                color: colors.textPrimary,
+                marginBottom: 10,
+                marginTop: 20,
+              }}
+            >
+              Upload History
+            </Text>
+            {uploadHistory.map((item, index) => (
+              <View
+                key={item.id}
+                style={[
+                  themedStyles.historyItem,
                   {
-                    backgroundColor: pressed
-                      ? darkenColor(colors.error, 20)
-                      : colors.error,
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
                   },
                 ]}
-                onPress={handleDeleteRateList}
-                disabled={deleting || loading} // Disable while deleting or initial loading
-                android_ripple={{
-                  color: darkenColor(colors.error, 30),
-                }}
               >
-                {deleting ? (
-                  <ActivityIndicator size="small" color={colors.surface} />
-                ) : (
+                <View style={themedStyles.historyHeader}>
                   <Text
                     style={[
-                      themedStyles.buttonText,
-                      themedStyles.deleteButtonText,
+                      themedStyles.historyFilename,
+                      { color: colors.textPrimary },
                     ]}
                   >
-                    Delete Rate List
+                    {item.filename || "Unknown file"}
+                  </Text>
+                  <View
+                    style={[
+                      themedStyles.statusBadge,
+                      {
+                        backgroundColor:
+                          item.status === "complete"
+                            ? "#4CAF50"
+                            : item.status === "failed"
+                            ? "#F44336"
+                            : "#FF9800",
+                      },
+                    ]}
+                  >
+                    <Text style={themedStyles.statusText}>
+                      {item.status.toUpperCase()}
+                    </Text>
+                  </View>
+                </View>
+                <Text
+                  style={[
+                    themedStyles.historyDate,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  {item.created_at
+                    ? new Date(item.created_at).toLocaleString()
+                    : "Unknown date"}
+                </Text>
+                {item.entries_processed && (
+                  <Text
+                    style={[
+                      themedStyles.historyDetails,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Processed {item.entries_processed} entries
                   </Text>
                 )}
-              </Pressable>
-            </>
-          )}
+                {item.processing_time_seconds && (
+                  <Text
+                    style={[
+                      themedStyles.historyDetails,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Processing time: {item.processing_time_seconds.toFixed(1)}s
+                  </Text>
+                )}
+                {item.error_message && (
+                  <Text
+                    style={[themedStyles.errorMessage, { color: colors.error }]}
+                  >
+                    Error: {item.error_message}
+                  </Text>
+                )}
+              </View>
+            ))}
+          </>
+        )}
 
-        {(existingRateList.length === 0 ||
-          uploadStatus.isUploading ||
-          uploadStatus.isProcessing) && (
+        {existingRateList.length === 0 && uploadHistory.length === 0 && (
           // Empty State View
           <View style={themedStyles.emptyStateContainer}>
             <Text style={themedStyles.emptyStateText}>
-              {uploadStatus.isUploading || uploadStatus.isProcessing
-                ? "Processing new rate list... Please wait."
-                : "No existing rate list found. Please upload a new rate list to get started."}
+              No existing rate list found. Please upload a new rate list to get
+              started.
             </Text>
           </View>
         )}
@@ -418,7 +553,6 @@ const RateListViewer = () => {
           },
         }}
       />
-      <UploadStatusBanner />
       {renderContent()}
 
       {/* Themed Alerts */}
