@@ -20,6 +20,7 @@ import {
 } from "@/redux/slice/ratelist/uploadStatusSlice";
 import useTheme from "@/context/theme/useTheme";
 import Toast from "react-native-toast-message";
+import logger from "@/lib/logger";
 
 const UploadRateListScreen = () => {
   const router = useRouter();
@@ -62,7 +63,7 @@ const UploadRateListScreen = () => {
         setSelectedImageUri(result.assets[0].uri);
       }
     } catch (error) {
-      console.error("Error picking image:", error);
+      logger.error("Error picking image", error as Error);
       Toast.show({
         type: "error",
         text1: "Error",
@@ -112,7 +113,7 @@ const UploadRateListScreen = () => {
       // Navigate back to rate list screen
       router.back();
     } catch (error: any) {
-      console.error("Error uploading image:", error);
+      logger.error("Error uploading image", error as Error);
       const errorMessage =
         error.response?.data?.detail ||
         error.message ||

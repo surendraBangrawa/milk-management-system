@@ -17,6 +17,7 @@ import Toast from "react-native-toast-message";
 import { useSession } from "@/context/AuthProvider";
 import { loginApi, sendOtpApi } from "@/redux/slice/auth/authApi";
 import SafeAreaWrapper from "@/components/SafeAreaWrapper";
+import logger from "@/lib/logger";
 
 import useTheme from "@/context/theme/useTheme";
 import { useTranslation } from "react-i18next"; // Import useTranslation
@@ -71,10 +72,11 @@ const OTP = () => {
 
     setIsVerifying(true);
     const { otp } = data;
+    let phone: string | undefined;
     try {
       const userString = await SecureStore.getItemAsync("user");
       const user = userString ? JSON.parse(userString) : null;
-      const phone = user?.phone;
+      phone = user?.phone;
 
       if (!phone) {
         Toast.show({ type: "error", text1: t("otp.phone_not_found") }); // Translated
@@ -100,7 +102,7 @@ const OTP = () => {
         Toast.show({ type: "error", text1: errorMessage });
       }
     } catch (error: any) {
-      console.error("Verify OTP Error:", error);
+      logger.error("OTP verification failed", error, { phone });
       Toast.show({
         type: "error",
         text1: t("common.error_verifying_otp"), // Translated generic error
@@ -115,10 +117,11 @@ const OTP = () => {
     if (!canResend || isResending) return;
 
     setIsResending(true);
+    let phone: string | undefined;
     try {
       const userString = await SecureStore.getItemAsync("user");
       const user = userString ? JSON.parse(userString) : null;
-      const phone = user?.phone;
+      phone = user?.phone;
 
       if (!phone) {
         Toast.show({ type: "error", text1: t("otp.phone_not_found") }); // Translated
@@ -137,7 +140,7 @@ const OTP = () => {
         Toast.show({ type: "error", text1: errorMessage });
       }
     } catch (error: any) {
-      console.error("Resend OTP Error:", error);
+      logger.error("Resend OTP failed", error, { phone });
       Toast.show({
         type: "error",
         text1: t("common.error_sending_otp"), // Translated generic error

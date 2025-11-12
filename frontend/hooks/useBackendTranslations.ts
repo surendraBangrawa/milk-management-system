@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { i18nApi, TranslationResponse } from "../lib/api";
+import logger from "../lib/logger";
 
 export const useBackendTranslations = () => {
   const { i18n } = useTranslation();
@@ -32,7 +33,7 @@ export const useBackendTranslations = () => {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to load translations";
       setError(errorMessage);
-      console.error("Error loading backend translations:", err);
+      logger.error("Error loading backend translations", err as Error);
       return null;
     } finally {
       setIsLoading(false);
@@ -50,7 +51,7 @@ export const useBackendTranslations = () => {
       // Update language preference in backend
       await i18nApi.updateLanguage(language);
     } catch (err) {
-      console.error("Error updating language:", err);
+      logger.error("Error updating language", err as Error);
       throw err;
     }
   };

@@ -10,6 +10,7 @@ import { useRouter } from "expo-router";
 import { Pressable, Text, View, StyleSheet, Alert } from "react-native";
 import Toast from "react-native-toast-message";
 import { useDispatch, useSelector } from "react-redux";
+import logger from "@/lib/logger";
 
 const CustomerTransaction = ({
   item,
@@ -59,7 +60,7 @@ const CustomerTransaction = ({
                 });
               })
               .catch((error) => {
-                console.error("Deletion failed:", error);
+                logger.error("Deletion failed", error as Error);
               });
           },
         },
@@ -75,7 +76,7 @@ const CustomerTransaction = ({
       item.type === undefined ||
       item.seller_mobile === undefined
     ) {
-      console.error("Missing required details for edit navigation:", item);
+      logger.error("Missing required details for edit navigation", new Error("Missing details"), { item });
       Toast.show({
         type: "error",
         text1: "Error",
@@ -93,7 +94,7 @@ const CustomerTransaction = ({
         typeof item.custom_date !== "string" ||
         typeof item.expense_detail !== "string"
       ) {
-        console.error("Missing expense details for edit navigation:", item);
+        logger.error("Missing expense details for edit navigation", new Error("Missing expense details"), { item });
         Toast.show({
           type: "error",
           text1: "Error",
@@ -119,7 +120,7 @@ const CustomerTransaction = ({
         typeof item.custom_date !== "string" ||
         typeof item.milk_detail !== "string"
       ) {
-        console.error("Missing milk details for edit navigation:", item);
+        logger.error("Missing milk details for edit navigation", new Error("Missing milk details"), { item });
         Toast.show({
           type: "error",
           text1: "Error",
@@ -135,7 +136,7 @@ const CustomerTransaction = ({
         item.quantity
       }&snf=${item.snf}&fat=${item.fat}&type=${item.type}`;
     } else {
-      console.warn("Unknown transaction type for edit:", item.type);
+      logger.warning("Unknown transaction type for edit", { type: item.type });
       Toast.show({
         type: "warning",
         text1: "Warning",
@@ -162,7 +163,7 @@ const CustomerTransaction = ({
       }
       return formatDistanceToNow(date, { addSuffix: true });
     } catch (e) {
-      console.error("Error formatting date:", dateString, e);
+      logger.error("Error formatting date", e as Error, { dateString });
       return "Invalid date format";
     }
   };

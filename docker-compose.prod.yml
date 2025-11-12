@@ -1,0 +1,414 @@
+services:
+  # ==================== DATABASE ====================
+
+  postgres:
+    image: postgres:17
+    container_name: milk_postgres_prod
+    env_file:
+      - .env.prod
+    environment:
+      # PostgreSQL requires POSTGRES_PASSWORD, map from DB_PASSWORD
+      # IMPORTANT: Create .env.prod file with DB_PASSWORD, DB_USER, DB_NAME variables
+      # If DB_PASSWORD is empty, use a default (CHANGE THIS IN PRODUCTION!)
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-changeme_in_production}
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_DB=${DB_NAME:-milk_management}
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    networks:
+      - milk_network
+    restart: always
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=postgres,env=prod"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          cpus: "1"
+          memory: 1G
+
+  # ==================== REDIS ====================
+
+  redis:
+    image: redis/redis-stack:7.2.0-v18
+    container_name: milk_redis_prod
+    restart: always
+    volumes:
+      - redis_data_prod:/data
+    command:
+      [
+        "redis-server",
+        "--appendonly",
+        "yes",
+        "--appendfsync",
+        "everysec",
+        "--maxmemory",
+        "512mb",
+        "--maxmemory-policy",
+        "allkeys-lru",
+        "--protected-mode",
+        "no",
+        "--bind",
+        "0.0.0.0",
+      ]
+    networks:
+      - milk_network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=redis,env=prod"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512M
+        reservations:
+          cpus: "0.5"
+          memory: 256M
+
+  # ==================== BACKEND API ====================
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.prod
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env.prod
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - backend_logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - milk_network
+    restart: always
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=backend,env=prod"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+
+  # ==================== CELERY WORKER ====================
+
+  celery_worker:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile.prod
+    container_name: milk_celery_worker_prod
+    env_file:
+      - .env.prod
+    environment:
+      - LOG_FORMAT=${LOG_FORMAT:-json}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - TZ=Asia/Kolkata
+    volumes:
+      - celery_logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    networks:
+      - milk_network
+    restart: always
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=celery,env=prod"
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          cpus: "1"
+          memory: 1G
+
+  # ==================== ADMIN PANEL ====================
+
+  admin:
+    build:
+      context: ./admin
+      dockerfile: Dockerfile.prod
+      args:
+        - DB_USER=${DB_USER}
+        - DB_PASSWORD=${DB_PASSWORD}
+        - DB_HOST=postgres
+        - DB_PORT=5432
+        - DB_NAME=${DB_NAME}
+    container_name: milk_admin_prod
+    ports:
+      - "1002:1002"
+    env_file:
+      - .env.prod
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+    volumes:
+      - admin_logs:/app/logs
+      - admin_static:/app/static_collected
+      - admin_media:/app/media_collected
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - milk_network
+    restart: always
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=admin,env=prod"
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+
+  # ==================== WEBSITE ====================
+
+  website:
+    build:
+      context: ./website
+      dockerfile: Dockerfile.prod
+    container_name: milk_website_prod
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.prod
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - website_logs:/app/logs
+    networks:
+      - milk_network
+    restart: always
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=website,env=prod"
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+
+  # ==================== NGINX PROXY MANAGER ====================
+
+  nginx-proxy-manager:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: milk_npm_prod
+    ports:
+      - "80:80"
+      - "443:443"
+      - "81:81"
+    volumes:
+      - npm_data_prod:/data
+      - npm_letsencrypt_prod:/etc/letsencrypt
+      - npm_logs:/var/log/nginx
+    env_file:
+      - .env.prod
+    depends_on:
+      - backend
+      - admin
+      - website
+    networks:
+      - milk_network
+    restart: always
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=nginx-proxy-manager,env=prod"
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512M
+        reservations:
+          cpus: "0.5"
+          memory: 256M
+
+  # ==================== LOGGING STACK ====================
+
+  # Loki - Log Aggregation
+  loki:
+    image: grafana/loki:3.4.1
+    container_name: milk_loki_prod
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki/loki.prod.yml:/etc/loki/local-config.yaml:ro
+      - loki_data_prod:/loki
+    command: -config.file=/etc/loki/local-config.yaml -config.expand-env=true
+    networks:
+      - milk_network
+    restart: always
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3100/ready",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+
+  # Promtail - Log Collector
+  promtail:
+    image: grafana/promtail:3.4.1
+    container_name: milk_promtail_prod
+    volumes:
+      - ./promtail/promtail.prod.yml:/etc/promtail/config.yml:ro
+      - backend_logs:/var/log/backend:ro
+      - admin_logs:/var/log/admin:ro
+      - website_logs:/var/log/website:ro
+      - celery_logs:/var/log/celery:ro
+      - npm_logs:/var/log/nginx:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      loki:
+        condition: service_healthy
+    networks:
+      - milk_network
+    restart: always
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  # Grafana - Visualization
+  grafana:
+    image: grafana/grafana:11.4.0
+    container_name: milk_grafana_prod
+    ports:
+      - "3001:3000"
+    env_file:
+      - .env.prod
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL:-http://localhost:3001}
+      - GF_INSTALL_PLUGINS=redis-datasource,grafana-piechart-panel
+    volumes:
+      - grafana_data_prod:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      loki:
+        condition: service_healthy
+    networks:
+      - milk_network
+    restart: always
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+
+volumes:
+  postgres_data_prod:
+  redis_data_prod:
+  loki_data_prod:
+  grafana_data_prod:
+  backend_logs:
+  admin_logs:
+  website_logs:
+  celery_logs:
+  npm_logs:
+  npm_data_prod:
+  npm_letsencrypt_prod:
+  admin_static:
+  admin_media:
+
+networks:
+  milk_network:
+    driver: bridge

@@ -22,6 +22,7 @@ import Toast from "react-native-toast-message";
 import { checkRatelistUploadLimit } from "@/lib/subscriptionUtils";
 import { useTranslation } from "react-i18next";
 import SafeAreaWrapper from "@/components/SafeAreaWrapper";
+import logger from "@/lib/logger";
 
 const RateListViewer = () => {
   const router = useRouter();
@@ -86,7 +87,7 @@ const RateListViewer = () => {
       const response = await getUploadHistory();
       setUploadHistory(response.upload_history);
     } catch (error) {
-      console.error("Error fetching upload history:", error);
+      logger.error("Error fetching upload history", error as Error);
       setUploadHistory([]);
     }
   };
@@ -109,7 +110,7 @@ const RateListViewer = () => {
       setExistingRateList([]); // Clear the local state
       fetchExistingRateList(); // Re-fetch to confirm state
     } catch (error) {
-      console.error("Error deleting rate list:", error);
+      logger.error("Error deleting rate list", error as Error);
       setErrorAlertVisible(true);
     } finally {
       setDeleting(false); // Reset delete loading

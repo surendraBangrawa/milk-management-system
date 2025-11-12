@@ -9,6 +9,7 @@ import { setGlobalSignOut } from "@/lib/axiosIntance";
 import * as SecureStore from "expo-secure-store";
 import { router } from "expo-router";
 import Toast from "react-native-toast-message";
+import logger from "@/lib/logger";
 
 const AuthContext = createContext<{
   signIn: (token: string) => void;
@@ -43,7 +44,9 @@ export function SessionProvider({ children }: PropsWithChildren) {
       // Clear user data from SecureStore (async but we don't wait)
       SecureStore.deleteItemAsync("user")
         .then(() => {})
-        .catch((error) => {});
+        .catch((error) => {
+          logger.error("Failed to clear user data from SecureStore", error);
+        });
 
       // Show logout message
       Toast.show({
@@ -56,12 +59,12 @@ export function SessionProvider({ children }: PropsWithChildren) {
       try {
         router.replace("/auth/signin");
       } catch (navError) {
-        console.error("AuthProvider: Navigation error:", navError);
+        logger.error("AuthProvider: Navigation error during signout", navError as Error);
         // Fallback navigation
         router.push("/auth/signin");
       }
     } catch (error) {
-      console.error("AuthProvider: Error during signOut:", error);
+      logger.error("AuthProvider: Error during signOut", error as Error);
     }
   };
 

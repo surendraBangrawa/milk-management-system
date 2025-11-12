@@ -22,6 +22,7 @@ import { useForm, Controller } from "react-hook-form";
 import Toast from "react-native-toast-message";
 import Checkbox from "expo-checkbox"; // Import Checkbox from expo-checkbox
 import { sendOtpApi, signUpApi } from "@/redux/slice/auth/authApi";
+import logger from "@/lib/logger";
 
 import useTheme from "@/context/theme/useTheme";
 import { useTranslation } from "react-i18next";
@@ -189,6 +190,10 @@ const Signup = () => {
         }
       }
     } catch (err: any) {
+      logger.error("Signup failed", err, {
+        phone: data.phone,
+        name: data.name,
+      });
       // Error haptic feedback
       if (Platform.OS === "ios") {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -250,7 +255,7 @@ const Signup = () => {
     // Replace with your actual Terms and Conditions URL
     const termsUrl = "https://www.example.com/terms";
     Linking.openURL(termsUrl).catch((err) =>
-      console.error("Failed to open URL:", err)
+      logger.error("Failed to open URL", err as Error)
     );
   };
 

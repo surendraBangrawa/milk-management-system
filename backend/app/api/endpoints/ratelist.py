@@ -18,8 +18,7 @@ from app.schemas.ratelist import (
     RateListRequest,
 )
 from app.services.subscription_service import can_upload_ratelist
-from app.tasks.ratelist_tasks import inngest
-from inngest import Event
+from app.tasks.ratelist_tasks import process_rate_list_image_task
 
 import logging
 
@@ -129,7 +128,7 @@ async def upload_rate_list_image(
 ):
     """
     API endpoint to receive an uploaded image file containing a rate list,
-    process it asynchronously using Inngest, and store the rate list in the database.
+    process it asynchronously using Celery, and store the rate list in the database.
     """
     file_path = None
     try:
@@ -184,20 +183,15 @@ async def upload_rate_list_image(
             db.add(new_rate_list)
             db.commit()
 
-        # Send event to Inngest for background processing
-        event = Event(
-            name="image.uploaded",
-            data={
-                "file_path": file_path,
-                "buyer_mobile": buyer_mobile,
-                "original_filename": file.filename,
-            },
+        # Send task to Celery for background processing
+        logger.info(
+            f"Starting Celery task for buyer: {buyer_mobile}, file: {file_path}"
         )
+        task = process_rate_list_image_task.delay(file_path, buyer_mobile)
 
-        logger.info(f"Sending Inngest event: {event.name} with data: {event.data}")
-        await inngest.send(event)
-
-        logger.info(f"Started Inngest processing for buyer: {buyer_mobile}")
+        logger.info(
+            f"Started Celery processing for buyer: {buyer_mobile}, task_id: {task.id}"
+        )
 
         return JSONResponse(
             status_code=202,

@@ -1,11 +1,12 @@
 # admin/Dockerfile.prod
 
 # Use the appropriate base image for your Django app
-FROM python:3.10-slim-buster
+FROM python:3.10-slim
 
 # Set environment variables for non-interactive commands
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PIP_NO_CACHE_DIR=1
 
 # Define build arguments that will be passed from docker-compose.yml
 ARG DB_USER
@@ -24,9 +25,16 @@ ENV DB_NAME=$DB_NAME
 # Set the working directory inside the container
 WORKDIR /app
 
+# Install system dependencies if needed
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    default-libmysqlclient-dev \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # Copy the entire Django project into the container
 COPY . /app

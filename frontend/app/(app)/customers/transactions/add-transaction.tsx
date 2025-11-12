@@ -26,6 +26,7 @@ import { useDispatch } from "react-redux";
 import { AppDispatch } from "@/redux/store";
 import { fetchSellerSummaries } from "@/redux/slice/transactions/transactionsSlice";
 import SafeAreaWrapper from "@/components/SafeAreaWrapper";
+import logger from "@/lib/logger";
 
 const AddTransactionScreen = () => {
   const router = useRouter();
@@ -127,7 +128,7 @@ const AddTransactionScreen = () => {
     clearErrors("amount"); // Clear amount error if valid
 
     if (!effectiveSellerMobile || !effectiveType || !effectiveName) {
-      console.error("Missing required params for API call or navigation:", {
+      logger.error("Missing required params for API call or navigation", new Error("Missing params"), {
         seller_mobile: effectiveSellerMobile,
         type: effectiveType,
         name: effectiveName,
@@ -194,7 +195,7 @@ const AddTransactionScreen = () => {
         text1: t("add_transaction.error"),
         text2: error?.message || t("add_transaction.something_went_wrong"),
       });
-      console.error("Submit form error:", error);
+      logger.error("Submit form error", error as Error);
     } finally {
       setIsLoading(false); // Stop loading
     }
