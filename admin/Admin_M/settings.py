@@ -159,8 +159,9 @@ STATICFILES_FINDERS = [
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
 ]
 
-# Use default static files storage
-STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
+# Use custom static files storage to suppress duplicate warnings
+# Duplicate warnings are normal when multiple apps provide static files with the same paths
+STATICFILES_STORAGE = "Admin_M.staticfiles_storage.QuietStaticFilesStorage"
 
 LOGIN_URL = "/"
 

@@ -48,4 +48,4 @@ RUN mkdir -p /app/static_collected /app/media_collected && \
 # as they are set via ENV instructions above, which come from ARG.
 # The `command` in docker-compose.yml will override this `CMD` if it's set.
 # This `CMD` is here just as a placeholder if you run the container directly without compose.
-CMD ["sh", "-c", "python manage.py collectstatic --noinput && python manage.py migrate && gunicorn Admin_M.wsgi:application --bind 0.0.0.0:1002"]
+CMD ["sh", "-c", "python manage.py collectstatic_quiet --noinput && python manage.py migrate && gunicorn Admin_M.wsgi:application --bind 0.0.0.0:1002"]
