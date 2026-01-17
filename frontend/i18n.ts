@@ -2,6 +2,7 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import logger from "./lib/logger";
 
 // Import shared translation files
 import enTranslation from "./locales/en/translation.json";
@@ -24,7 +25,7 @@ const fetchBackendTranslations = async (language: string) => {
     const response = await i18nApi.getTranslations(language);
     return response.translations;
   } catch (error) {
-    console.error("Failed to fetch translations from backend:", error);
+    logger.error("Failed to fetch translations from backend", error as Error);
     return null;
   }
 };
@@ -38,7 +39,7 @@ const languageDetector = {
       const language = await AsyncStorage.getItem("user-language");
       callback(language || undefined);
     } catch (error) {
-      console.error("Failed to detect language from AsyncStorage", error);
+      logger.error("Failed to detect language from AsyncStorage", error as Error);
       callback(undefined);
     }
   },
@@ -47,7 +48,7 @@ const languageDetector = {
     try {
       await AsyncStorage.setItem("user-language", language);
     } catch (error) {
-      console.error("Failed to cache language to AsyncStorage", error);
+      logger.error("Failed to cache language to AsyncStorage", error as Error);
     }
   },
 };

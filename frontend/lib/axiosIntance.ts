@@ -3,6 +3,7 @@ import * as SecureStore from "expo-secure-store";
 import Constants from "expo-constants";
 import Toast from "react-native-toast-message";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import logger from "./logger";
 
 const { API_BASE_URL } = Constants.expoConfig?.extra || {};
 
@@ -44,7 +45,7 @@ const getSubscriptionStatus = async () => {
     lastStatusCheck = now;
     return subscriptionStatus;
   } catch (error) {
-    console.error("Error fetching subscription status:", error);
+    logger.error("Error fetching subscription status", error as Error);
     return null;
   }
 };
@@ -78,7 +79,7 @@ const canPerformAction = async (endpoint: string) => {
         return false;
       }
     } catch (error) {
-      console.error("Error checking customer count:", error);
+      logger.error("Error checking customer count", error as Error);
       return true; // Allow if can't check
     }
   }
@@ -102,7 +103,7 @@ const canPerformAction = async (endpoint: string) => {
         return false;
       }
     } catch (error) {
-      console.error("Error checking transaction count:", error);
+      logger.error("Error checking transaction count", error as Error);
       return true; // Allow if can't check
     }
   }
@@ -124,7 +125,7 @@ const canPerformAction = async (endpoint: string) => {
         return false;
       }
     } catch (error) {
-      console.error("Error checking ratelist upload limit:", error);
+      logger.error("Error checking ratelist upload limit", error as Error);
       return true; // Allow if can't check
     }
   }
@@ -143,7 +144,7 @@ const handleLogout = async () => {
       }
     }
   } catch (error) {
-    console.error("Error during logout:", error);
+    logger.error("Error during logout", error as Error);
   }
 };
 
@@ -166,7 +167,8 @@ axiosInstance.interceptors.request.use(
       (redactedHeaders as Record<string, unknown>).Authorization = "***";
     }
 
-    console.log("[API REQUEST]", method?.toUpperCase(), url, {
+    // Log to central logger (Grafana)
+    logger.debug(`API Request: ${method?.toUpperCase()} ${url}`, {
       params,
       data,
       headers: redactedHeaders,
@@ -179,7 +181,7 @@ axiosInstance.interceptors.request.use(
         config.headers["Accept-Language"] = userLanguage;
       }
     } catch (error) {
-      console.error("Error getting user language:", error);
+      logger.error("Error getting user language", error as Error);
     }
 
     // Check subscription limits for specific endpoints
@@ -206,20 +208,29 @@ axiosInstance.interceptors.response.use(
     const { config, status, statusText } = response;
     const start = (config as any)?.metadata?.startTime ?? Date.now();
     const durationMs = Date.now() - start;
-    console.log(
-      "[API RESPONSE]",
-      config.method?.toUpperCase(),
-      config.url,
-      status,
-      statusText,
-      `${durationMs}ms`
+    // Log to central logger (Grafana)
+    logger.debug(
+      `API Response: ${config.method?.toUpperCase()} ${config.url}`,
+      {
+        status,
+        statusText,
+        duration: `${durationMs}ms`,
+      }
     );
 
     return response;
   },
   async (error) => {
-    // Dev logging for every error
-    console.log("[API ERROR]", error.response?.data);
+    // Log error to central logger (Grafana)
+    logger.error(
+      `API Error: ${error.config?.method?.toUpperCase()} ${error.config?.url}`,
+      error,
+      {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        responseData: error.response?.data,
+      }
+    );
 
     // Check if the error has a structured detail with error codes
     const errorDetail = error.response?.data?.detail;

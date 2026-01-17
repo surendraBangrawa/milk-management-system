@@ -13,20 +13,28 @@ from app.api.endpoints import (
     subscriptions,
     i18n,
     ocr_debug,
+    logs,
 )
-from app.core.logging_config import configure_logging
+import os
+from app.core.central_logger import setup_central_logging
 from app.db.session import Base, engine
 from app.db.models import *
 from app.db.init_db import seed_subscription_plans
 from app.core.i18n import t, get_translations
-from inngest.fast_api import serve as inngest_serve
-from app.tasks.ratelist_tasks import inngest, process_rate_list_image_task
 import logging
 
-logger = logging.getLogger(__name__)
-
-configure_logging()
+# Setup central logging BEFORE any other imports that might log
 load_dotenv()
+log_level = os.getenv("LOG_LEVEL", "INFO")
+# Auto-detects environment: dev = console + Grafana, prod = Grafana only
+setup_central_logging(
+    service_name="backend",
+    use_json=True,  # Always JSON for Grafana/Loki
+    log_level=log_level,
+    also_console=None,  # Auto-detect based on environment
+)
+
+logger = logging.getLogger(__name__)
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -81,4 +89,4 @@ app.include_router(profile.router)
 app.include_router(subscriptions.router)
 app.include_router(i18n.router)
 app.include_router(ocr_debug.router, prefix="/debug", tags=["debug"])
-inngest_serve(app, inngest, [process_rate_list_image_task], serve_path="/api/inngest")
+app.include_router(logs.router)

@@ -1,4 +1,5 @@
 import axiosInstance from "./axiosIntance";
+import logger from "./logger";
 
 // Global subscription status cache
 let subscriptionStatus: any = null;
@@ -22,7 +23,7 @@ export const getSubscriptionStatus = async (forceRefresh = false) => {
     lastStatusCheck = now;
     return subscriptionStatus;
   } catch (error) {
-    console.error("Error fetching subscription status:", error);
+    logger.error("Error fetching subscription status", error as Error);
     return null;
   }
 };
@@ -77,7 +78,7 @@ export const checkCustomerLimit = async () => {
     if (limits?.customers === null) return true; // Unlimited
     return currentCount < (limits?.customers || 5);
   } catch (error) {
-    console.error("Error checking customer limit:", error);
+    logger.error("Error checking customer limit", error as Error);
     return true; // Allow if can't check
   }
 };
@@ -94,7 +95,7 @@ export const checkTransactionLimit = async () => {
     if (limits?.dailyTransactions === null) return true; // Unlimited
     return todayCount < (limits?.dailyTransactions || 3);
   } catch (error) {
-    console.error("Error checking transaction limit:", error);
+    logger.error("Error checking transaction limit", error as Error);
     return true; // Allow if can't check
   }
 };
@@ -109,7 +110,7 @@ export const checkRatelistUploadLimit = async () => {
     if (limits?.ratelistUploads === null) return true; // Unlimited
     return !hasExistingRatelist; // Can upload if no existing ratelist
   } catch (error) {
-    console.error("Error checking ratelist upload limit:", error);
+    logger.error("Error checking ratelist upload limit", error as Error);
     return true; // Allow if can't check
   }
 };

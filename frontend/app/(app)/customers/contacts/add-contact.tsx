@@ -18,6 +18,7 @@ import { saveContactApi } from "@/redux/slice/customers/customerApi";
 
 import useTheme from "@/context/theme/useTheme";
 import SafeAreaWrapper from "@/components/SafeAreaWrapper";
+import logger from "@/lib/logger";
 
 // Assuming ProfileIcon is a static local image, it doesn't need theming
 const ProfileIcon = require("../../../../assets/images/avatar.jpg");
@@ -106,7 +107,7 @@ const AddCustomerFormScreen = () => {
       });
       router.replace("/(app)/(tabs)/(home)");
     } catch (err: any) {
-      console.error("Error saving customer:", err.response || err);
+      logger.error("Error saving customer", err as Error, { response: err.response });
       Toast.show({
         type: "error",
         text1: "Failed to Save Customer",

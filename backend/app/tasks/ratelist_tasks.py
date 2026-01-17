@@ -2,7 +2,6 @@ import os
 import re
 import pandas as pd
 import logging
-from inngest import Inngest, TriggerEvent, Context
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.db.models import RateList, RateListUploadHistory
@@ -10,24 +9,19 @@ from app.services.ocr_parser import (
     get_text_from_image_via_api,
     parse_extracted_text_to_dataframe,
 )
+from app.core.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
 
-# Initialize Inngest client - CORRECT SYNTAX
-inngest = Inngest(app_id="milk-management")
 
-
-# CORRECT SYNTAX - Import TriggerEvent and use it properly
-@inngest.create_function(
-    fn_id="process-rate-list-image",
-    trigger=TriggerEvent(event="image.uploaded"),
+@celery_app.task(
+    name="app.tasks.ratelist_tasks.process_rate_list_image_task", bind=True
 )
-async def process_rate_list_image_task(ctx: Context, step=None) -> dict:
+def process_rate_list_image_task(self, file_path: str, buyer_mobile: str) -> dict:
     """
-    Inngest function to process rate list images (replaces Celery task).
+    Celery task to process rate list images.
+    Replaces Inngest with Celery for background processing.
     """
-    file_path = ctx.event.data["file_path"]
-    buyer_mobile = ctx.event.data["buyer_mobile"]
     db: Session = None
 
     try:
@@ -225,7 +219,8 @@ async def process_rate_list_image_task(ctx: Context, step=None) -> dict:
                 logger.error(
                     f"Failed to update database status for buyer {buyer_mobile}: {db_error}"
                 )
-        return {"status": "error", "error": str(e), "buyer_mobile": buyer_mobile}
+        # Re-raise exception for Celery to handle retries
+        raise
     finally:
         if db:
             db.close()

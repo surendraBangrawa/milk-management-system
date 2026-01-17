@@ -1,35 +1,21 @@
-import logging
-import sys
-
-
-# Hardcoded values for logging configuration
-LOG_LEVEL = "INFO"  # Set the log level (e.g., "INFO", "DEBUG", "WARNING")
-
+"""
+Legacy logging configuration - kept for backward compatibility
+This now uses the central logger
+"""
+from app.core.central_logger import setup_central_logging
+import os
 
 def configure_logging():
     """
     Configures the central logger for the application.
-    Sets up console handler to stdout (no file logging).
+    This is a wrapper around setup_central_logging for backward compatibility.
     """
-    # Get the root logger
-    root_logger = logging.getLogger()
-    root_logger.setLevel(LOG_LEVEL)  # Set the overall minimum log level
-
-    # Always ensure a stdout console handler exists; avoid duplicates
-    has_stdout_handler = any(
-        isinstance(h, logging.StreamHandler)
-        and getattr(h, "stream", None) is sys.stdout
-        for h in root_logger.handlers
+    use_json = os.getenv("LOG_FORMAT", "text").lower() == "json"
+    log_level = os.getenv("LOG_LEVEL", "INFO")
+    setup_central_logging(
+        service_name="backend",
+        use_json=use_json,
+        log_level=log_level,
+        also_console=True
     )
 
-    if not has_stdout_handler:
-        console_handler = logging.StreamHandler(sys.stdout)
-        console_formatter = logging.Formatter(
-            "%(levelname)s | %(asctime)s | %(name)s | %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S %Z",
-        )
-        console_handler.setFormatter(console_formatter)
-        console_handler.setLevel(logging.DEBUG)
-        root_logger.addHandler(console_handler)
-
-    # Intentionally no file handler; logs go to stdout for platforms like Render

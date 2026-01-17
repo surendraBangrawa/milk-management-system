@@ -1,11 +1,12 @@
 # admin/Dockerfile.prod
 
 # Use the appropriate base image for your Django app
-FROM python:3.10-slim-buster
+FROM python:3.10-slim
 
 # Set environment variables for non-interactive commands
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PIP_NO_CACHE_DIR=1
 
 # Define build arguments that will be passed from docker-compose.yml
 ARG DB_USER
@@ -24,9 +25,16 @@ ENV DB_NAME=$DB_NAME
 # Set the working directory inside the container
 WORKDIR /app
 
+# Install system dependencies if needed
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    default-libmysqlclient-dev \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # Copy the entire Django project into the container
 COPY . /app
@@ -40,4 +48,4 @@ RUN mkdir -p /app/static_collected /app/media_collected && \
 # as they are set via ENV instructions above, which come from ARG.
 # The `command` in docker-compose.yml will override this `CMD` if it's set.
 # This `CMD` is here just as a placeholder if you run the container directly without compose.
-CMD ["sh", "-c", "python manage.py collectstatic --noinput && python manage.py migrate && gunicorn Admin_M.wsgi:application --bind 0.0.0.0:1002"]
+CMD ["sh", "-c", "python manage.py collectstatic_quiet --noinput && python manage.py migrate && gunicorn Admin_M.wsgi:application --bind 0.0.0.0:1002"]
