@@ -13,6 +13,7 @@ import useTheme from "@/context/theme/useTheme"; // Assuming this hook provides 
 import { Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useBackendTranslations } from "@/hooks/useBackendTranslations";
+import logger from "@/lib/logger";
 
 // A more flexible and customizable button component
 interface LanguageOptionButtonProps {
@@ -94,7 +95,7 @@ function LanguageSettingsScreen() {
       // Optional: Show a toast/snackbar confirmation
       // Toast.show({ text: t("language_screen.change_success"), type: "success" });
     } catch (error) {
-      console.error("Failed to change language:", error);
+      logger.error("Failed to change language", error as Error);
       // Use correct translation keys for error messages
       Alert.alert(t("common.error"), t("language_screen.change_error"));
     }

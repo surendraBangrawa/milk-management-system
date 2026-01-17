@@ -23,6 +23,7 @@ import {
 import { useDispatch } from "react-redux";
 import { AppDispatch } from "@/redux/store";
 import { fetchSellerSummaries } from "@/redux/slice/transactions/transactionsSlice";
+import logger from "@/lib/logger";
 
 const fetchRate = async (data: Rate) => {
   try {
@@ -33,7 +34,7 @@ const fetchRate = async (data: Rate) => {
       return null;
     }
   } catch (error) {
-    console.error("Error fetching rate:", error);
+    logger.error("Error fetching rate", error as Error);
     return null;
   }
 };
@@ -248,10 +249,10 @@ const AddMilk = () => {
             )}`
           );
         } else {
-          console.error(
-            "Missing seller mobile or name for navigation:",
-            effectiveSellerMobile,
-            effectiveName
+          logger.error(
+            "Missing seller mobile or name for navigation",
+            new Error("Missing navigation params"),
+            { effectiveSellerMobile, effectiveName }
           );
           Toast.show({
             type: "error",
@@ -273,7 +274,7 @@ const AddMilk = () => {
         text1: "Error",
         text2: error?.message || "Something went wrong.",
       });
-      console.error("Submit form error:", error);
+      logger.error("Submit form error", error as Error);
     }
   };
 

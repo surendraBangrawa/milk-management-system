@@ -12,6 +12,7 @@ import { useFonts } from "expo-font";
 import Toast from "react-native-toast-message";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { loadPersistedUploadStatus } from "@/redux/slice/ratelist/uploadStatusSlice";
+import logger from "@/lib/logger";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -50,7 +51,7 @@ const checkPendingUploadNotifications = async () => {
       await AsyncStorage.removeItem("pendingUploadNotification");
     }
   } catch (error) {
-    console.error("Error checking pending upload notifications:", error);
+    logger.error("Error checking pending upload notifications", error as Error);
   }
 };
 

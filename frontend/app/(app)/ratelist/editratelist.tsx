@@ -15,6 +15,7 @@ import { Stack, useRouter } from "expo-router";
 import { getRatelist, saveRatelist } from "@/redux/slice/ratelist/rateListApi";
 import useTheme from "@/context/theme/useTheme";
 import Toast from "react-native-toast-message";
+import logger from "@/lib/logger";
 
 import {
   useForm,
@@ -124,9 +125,9 @@ const EditRateListScreen: React.FC = () => {
         // but RHF handles type coercion for inputs well.
         replace(data.data.rates); // Populate the field array with fetched RateItem[]
       } else {
-        console.warn(
-          "API returned non-array data or unexpected structure for Edit:",
-          data
+        logger.warning(
+          "API returned non-array data or unexpected structure for Edit",
+          { data }
         );
         replace([]);
         const errorMessage = "Received unexpected data format from the server.";
@@ -134,7 +135,7 @@ const EditRateListScreen: React.FC = () => {
         Toast.show({ type: "error", text1: "Data Error", text2: errorMessage });
       }
     } catch (err: any) {
-      console.error("Error fetching rate list for edit:", err);
+      logger.error("Error fetching rate list for edit", err as Error);
       const errorMessage = `Failed to load rate list for editing. ${
         err.message || "Please check your network."
       }`;
@@ -224,7 +225,7 @@ const EditRateListScreen: React.FC = () => {
         // Removed setTimeout for potentially faster navigation after Toast shows
         router.back();
       } catch (err: any) {
-        console.error("Error saving rate list:", err);
+        logger.error("Error saving rate list", err as Error);
         const errorMessage = `Failed to save rate list: ${
           err.message || "Please try again."
         }`;

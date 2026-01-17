@@ -1,5 +1,6 @@
 import enTranslations from "../../shared/translations/en.json";
 import hiTranslations from "../../shared/translations/hi.json";
+import logger from "./logger";
 
 export const sharedTranslations = {
   en: enTranslations,
@@ -10,7 +11,7 @@ export const getSharedTranslation = (key: string, language: string = "en") => {
   const translations =
     sharedTranslations[language as keyof typeof sharedTranslations];
   if (!translations) {
-    console.warn(`Translation not found for language: ${language}`);
+    logger.warning(`Translation not found for language: ${language}`);
     return key;
   }
 
@@ -26,11 +27,11 @@ export const getSharedTranslation = (key: string, language: string = "en") => {
     if (typeof value === "string") {
       return value;
     } else {
-      console.warn(`Translation key "${key}" is not a string`);
+      logger.warning(`Translation key "${key}" is not a string`);
       return key;
     }
   } catch (error) {
-    console.warn(`Translation key "${key}" not found in ${language}`);
+    logger.warning(`Translation key "${key}" not found in ${language}`);
     return key;
   }
 };

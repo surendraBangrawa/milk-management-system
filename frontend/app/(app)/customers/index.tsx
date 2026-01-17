@@ -17,6 +17,7 @@ import { AppDispatch, RootState } from "@/redux/store";
 import useTheme from "@/context/theme/useTheme";
 import { useTranslation } from "react-i18next";
 import SafeAreaWrapper from "@/components/SafeAreaWrapper";
+import logger from "@/lib/logger";
 
 interface Customer {
   mobile: string;
@@ -94,7 +95,7 @@ const CustomerScreen = () => {
       }
       return formatDistanceToNow(date, { addSuffix: true });
     } catch (e) {
-      console.error("Error formatting date:", dateString, e);
+      logger.error("Error formatting date", e as Error, { dateString });
       return t("customers.invalid_date_format");
     }
   };
@@ -112,9 +113,9 @@ const CustomerScreen = () => {
               `/(app)/customers/transactions/${item.mobile}?name=${item.name}`
             );
           } else {
-            console.warn(
+            logger.warning(
               "Cannot navigate: Mobile or Name is missing/invalid",
-              item
+              { item }
             );
           }
         }}

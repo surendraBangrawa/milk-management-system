@@ -15,6 +15,7 @@ import axios from "@/lib/axiosIntance";
 import { refreshSubscriptionStatus } from "@/lib/subscriptionUtils";
 import PaymentWebView from "@/components/PaymentWebView";
 import { useTranslation } from "react-i18next";
+import logger from "@/lib/logger";
 
 export default function Subscription() {
   const { colors, themeMode } = useTheme();
@@ -52,7 +53,7 @@ export default function Subscription() {
         );
         usageData.customers = customersRes.data?.total_sellers_count || 0;
       } catch (error) {
-        console.error("Error fetching customers count:", error);
+        logger.error("Error fetching customers count", error as Error);
         // Continue with default value
       }
 
@@ -65,7 +66,7 @@ export default function Subscription() {
         usageData.dailyTransactions =
           transactionsRes.data?.total_entries_count || 0;
       } catch (error) {
-        console.error("Error fetching daily transactions:", error);
+        logger.error("Error fetching daily transactions", error as Error);
         // Continue with default value
       }
 
@@ -76,13 +77,13 @@ export default function Subscription() {
           ratelistRes.data?.rates && ratelistRes.data.rates.length > 0;
         usageData.ratelistUploads = hasRatelist ? 1 : 0;
       } catch (error) {
-        console.error("Error fetching ratelist status:", error);
+        logger.error("Error fetching ratelist status", error as Error);
         // Continue with default value
       }
 
       setUsage(usageData);
     } catch (e: any) {
-      console.error("Error fetching subscription data:", e);
+      logger.error("Error fetching subscription data", e as Error);
       Toast.show({
         type: "error",
         text1: "Connection Error",
@@ -122,7 +123,7 @@ export default function Subscription() {
         });
       }
     } catch (e: any) {
-      console.error("Payment error:", e);
+      logger.error("Payment error", e as Error);
       const errorMessage =
         e?.response?.data?.detail || "Payment failed. Please try again.";
       Toast.show({

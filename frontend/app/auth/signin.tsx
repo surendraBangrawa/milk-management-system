@@ -21,6 +21,7 @@ import { useForm, Controller } from "react-hook-form";
 import Toast from "react-native-toast-message";
 import { sendOtpApi } from "@/redux/slice/auth/authApi";
 import SafeAreaWrapper from "@/components/SafeAreaWrapper";
+import logger from "@/lib/logger";
 import {
   scaleWidth,
   scaleHeight,
@@ -164,7 +165,8 @@ const Signin = () => {
         Toast.show({ type: "error", text1: errorMessage });
       }
     } catch (err: any) {
-      console.error("Sign In Error:", err); // Log the actual error
+      // Log to central logger (Grafana)
+      logger.error("Sign in failed", err, { phone });
 
       // Error haptic feedback
       if (Platform.OS === "ios") {

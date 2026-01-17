@@ -1,5 +1,6 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import logger from "../../../lib/logger";
 
 export interface UploadStatus {
   isUploading: boolean;
@@ -109,7 +110,7 @@ export const persistUploadStatus =
     try {
       await AsyncStorage.setItem("uploadStatus", JSON.stringify(status));
     } catch (error) {
-      console.error("Error persisting upload status:", error);
+      logger.error("Error persisting upload status", error as Error);
     }
   };
 
@@ -130,7 +131,7 @@ export const loadPersistedUploadStatus = () => async (dispatch: any) => {
       }
     }
   } catch (error) {
-    console.error("Error loading persisted upload status:", error);
+    logger.error("Error loading persisted upload status", error as Error);
   }
 };
 

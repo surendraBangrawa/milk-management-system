@@ -20,6 +20,7 @@ import {
 } from "@/redux/slice/ratelist/rateListApi";
 import useTheme from "@/context/theme/useTheme";
 import Toast from "react-native-toast-message";
+import logger from "@/lib/logger";
 
 interface TableItem {
   fat: number;
@@ -103,14 +104,14 @@ const InputTable = () => {
   // Function to save the current rates state to AsyncStorage
   const saveDraft = async () => {
     if (!(sf && ef && ss && es)) {
-      console.warn("Cannot save draft: Ranges not available.");
+      logger.warning("Cannot save draft: Ranges not available");
       return;
     }
     const key = getStorageKey();
     try {
       await AsyncStorage.setItem(key, JSON.stringify(latestRatesRef.current));
     } catch (error) {
-      console.error(`Failed to save draft for key ${key}:`, error);
+      logger.error(`Failed to save draft for key ${key}`, error as Error);
     }
   };
 
@@ -193,7 +194,7 @@ const InputTable = () => {
           loadedRates = JSON.parse(draft);
         }
       } catch (error) {
-        console.error(`Failed to load draft for key ${key}:`, error);
+        logger.error(`Failed to load draft for key ${key}`, error as Error);
       }
 
       // Merge loaded rates with the initial structure
@@ -209,9 +210,9 @@ const InputTable = () => {
             ) {
               mergedRates[key] = String(loadedValue).replace(/[^0-9.]/g, "");
             } else {
-              console.warn(
-                `Skipping invalid loaded value for key ${key}:`,
-                loadedValue
+              logger.warning(
+                `Skipping invalid loaded value for key ${key}`,
+                { loadedValue }
               );
             }
           }
@@ -287,7 +288,7 @@ const InputTable = () => {
 
       if (rateString === "" || isNaN(numericRate) || numericRate < 0) {
         validationError = true;
-        console.warn(`Invalid or empty rate for row ${key}: "${rateString}"`);
+        logger.warning(`Invalid or empty rate for row ${key}`, { rateString });
       }
 
       if (!isNaN(numericRate) && numericRate >= 0) {
@@ -337,14 +338,14 @@ const InputTable = () => {
         try {
           await AsyncStorage.removeItem(key);
         } catch (removeError) {
-          console.error(`Failed to clear draft for key ${key}:`, removeError);
+          logger.error(`Failed to clear draft for key ${key}`, removeError as Error);
         }
       }
 
       // Navigate back to the main RateListViewer screen
       router.replace("/(app)/ratelist");
     } catch (error: any) {
-      console.error("Error saving rate list:", error);
+      logger.error("Error saving rate list", error as Error);
       const errorMessage =
         error.response?.data?.detail ||
         error.message ||

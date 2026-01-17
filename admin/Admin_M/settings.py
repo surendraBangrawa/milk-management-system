@@ -159,8 +159,9 @@ STATICFILES_FINDERS = [
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
 ]
 
-# Use default static files storage
-STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
+# Use custom static files storage to suppress duplicate warnings
+# Duplicate warnings are normal when multiple apps provide static files with the same paths
+STATICFILES_STORAGE = "Admin_M.staticfiles_storage.QuietStaticFilesStorage"
 
 LOGIN_URL = "/"
 
@@ -170,7 +171,19 @@ LOGIN_URL = "/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
-CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", default="").split(",")
+# CSRF_TRUSTED_ORIGINS - Django 4.0+ requires scheme (http:// or https://)
+csrf_origins = config("CSRF_TRUSTED_ORIGINS", default="")
+if csrf_origins:
+    CSRF_TRUSTED_ORIGINS = [
+        origin.strip() for origin in csrf_origins.split(",") if origin.strip()
+    ]
+else:
+    # Default to localhost and common production domains if not set
+    CSRF_TRUSTED_ORIGINS = [
+        "http://localhost:1002",
+        "http://localhost",
+        "https://localhost",
+    ]
 CORS_ORIGIN_WHITELIST = config("CORS_ORIGIN_WHITELIST", default="").split(",")
 
 # Temporarily disable some security settings for development

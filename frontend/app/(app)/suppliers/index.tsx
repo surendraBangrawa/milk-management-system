@@ -16,6 +16,7 @@ import { getSupplierSummaryApi } from "@/redux/slice/supplier/supplierApi";
 import { useTranslation } from "react-i18next";
 
 import useTheme from "@/context/theme/useTheme";
+import logger from "@/lib/logger";
 
 interface SupplierSummary {
   mobile: string;
@@ -103,9 +104,9 @@ const SupplierScreen = () => {
           res.status === 200 &&
           (!res?.data?.buyer_details || !Array.isArray(res.data.buyer_details))
         ) {
-          console.warn(
-            "API returned 200 but buyer_details is missing or not an array:",
-            res.data
+          logger.warning(
+            "API returned 200 but buyer_details is missing or not an array",
+            { data: res.data }
           );
           setPeople([]);
         } else {
@@ -118,9 +119,10 @@ const SupplierScreen = () => {
           });
         }
       } catch (err: any) {
-        console.error(
-          "Error fetching supplier data:",
-          err.response?.data || err
+        logger.error(
+          "Error fetching supplier data",
+          err as Error,
+          { response: err.response?.data }
         );
         const errorMessage = err?.response?.data?.detail
           ? err?.response?.data?.detail
@@ -148,7 +150,7 @@ const SupplierScreen = () => {
       }
       return formatDistanceToNow(date, { addSuffix: true });
     } catch (e) {
-      console.error("Error formatting date:", dateString, e);
+      logger.error("Error formatting date", e as Error, { dateString });
       return t("suppliers.invalid_date_format");
     }
   };
@@ -174,9 +176,9 @@ const SupplierScreen = () => {
               }?name=${encodeURIComponent(item.name)}`
             );
           } else {
-            console.warn(
+            logger.warning(
               "Cannot navigate: Mobile or Name is missing/invalid",
-              item
+              { item }
             );
           }
         }}
