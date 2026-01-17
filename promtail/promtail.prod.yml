@@ -10,7 +10,7 @@ clients:
     tenant_id: ""
 
 scrape_configs:
-  # Backend logs
+  # Backend logs (includes frontend logs sent via API)
   - job_name: backend
     static_configs:
       - targets:
@@ -27,6 +27,9 @@ scrape_configs:
             message: message
             timestamp: timestamp
             service: service
+            platform: platform
+            userId: userId
+            sessionId: sessionId
 
   # Admin logs
   - job_name: admin
@@ -96,14 +99,15 @@ scrape_configs:
       - host: unix:///var/run/docker.sock
         refresh_interval: 5s
     relabel_configs:
-      - source_labels: ['__meta_docker_container_name']
-        regex: '/(.*)'
-        target_label: 'container'
-      - source_labels: ['__meta_docker_container_log_stream']
-        target_label: 'logstream'
-      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
-        target_label: 'service'
-      - source_labels: ['__meta_docker_container_label_com_docker_compose_project']
-        target_label: 'project'
-        replacement: 'milk-management'
-
+      - source_labels: ["__meta_docker_container_name"]
+        regex: "/(.*)"
+        target_label: "container"
+      - source_labels: ["__meta_docker_container_log_stream"]
+        target_label: "logstream"
+      - source_labels:
+          ["__meta_docker_container_label_com_docker_compose_service"]
+        target_label: "service"
+      - source_labels:
+          ["__meta_docker_container_label_com_docker_compose_project"]
+        target_label: "project"
+        replacement: "milk-management"

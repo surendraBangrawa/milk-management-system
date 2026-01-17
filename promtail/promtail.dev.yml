@@ -9,7 +9,7 @@ clients:
   - url: http://loki:3100/loki/api/v1/push
 
 scrape_configs:
-  # Backend logs
+  # Backend logs (includes frontend logs sent via API)
   - job_name: backend
     static_configs:
       - targets:
@@ -19,6 +19,16 @@ scrape_configs:
           service: milk-management
           environment: development
           __path__: /var/log/backend/*.log
+    pipeline_stages:
+      - json:
+          expressions:
+            level: level
+            message: message
+            timestamp: timestamp
+            service: service
+            platform: platform
+            userId: userId
+            sessionId: sessionId
 
   # Admin logs
   - job_name: admin
@@ -30,6 +40,13 @@ scrape_configs:
           service: milk-management
           environment: development
           __path__: /var/log/admin/*.log
+    pipeline_stages:
+      - json:
+          expressions:
+            level: level
+            message: message
+            timestamp: timestamp
+            service: service
 
   # Website logs
   - job_name: website
@@ -41,6 +58,13 @@ scrape_configs:
           service: milk-management
           environment: development
           __path__: /var/log/website/*.log
+    pipeline_stages:
+      - json:
+          expressions:
+            level: level
+            message: message
+            timestamp: timestamp
+            service: service
 
   # Celery logs
   - job_name: celery
@@ -52,6 +76,14 @@ scrape_configs:
           service: milk-management
           environment: development
           __path__: /var/log/celery/*.log
+    pipeline_stages:
+      - json:
+          expressions:
+            level: level
+            message: message
+            timestamp: timestamp
+            service: service
+            task_id: task_id
 
   # Nginx Proxy Manager logs
   - job_name: nginx-proxy-manager
@@ -70,14 +102,15 @@ scrape_configs:
       - host: unix:///var/run/docker.sock
         refresh_interval: 5s
     relabel_configs:
-      - source_labels: ['__meta_docker_container_name']
-        regex: '/(.*)'
-        target_label: 'container'
-      - source_labels: ['__meta_docker_container_log_stream']
-        target_label: 'logstream'
-      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
-        target_label: 'service'
-      - source_labels: ['__meta_docker_container_label_com_docker_compose_project']
-        target_label: 'project'
-        replacement: 'milk-management'
-
+      - source_labels: ["__meta_docker_container_name"]
+        regex: "/(.*)"
+        target_label: "container"
+      - source_labels: ["__meta_docker_container_log_stream"]
+        target_label: "logstream"
+      - source_labels:
+          ["__meta_docker_container_label_com_docker_compose_service"]
+        target_label: "service"
+      - source_labels:
+          ["__meta_docker_container_label_com_docker_compose_project"]
+        target_label: "project"
+        replacement: "milk-management"
