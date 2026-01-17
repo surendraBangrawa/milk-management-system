@@ -1,24 +1,11 @@
-/**
- * Central Logging Utility for Frontend
- *
- * This logger:
- * - Logs to console (development)
- * - Stores logs locally (AsyncStorage) for offline scenarios
- * - Sends logs to backend API for centralized logging
- * - Batches logs to reduce API calls
- *
- * Usage:
- *   import logger from './lib/logger';
- *   logger.info('User logged in');
- *   logger.error('API call failed', error);
- */
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 import axios from "axios";
 import { Platform } from "react-native";
 
-const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL || "";
+// Hardcoded API URL with fallback to environment variable
+const API_BASE_URL =
+  Constants.expoConfig?.extra?.API_BASE_URL || "https://api.digidairy.site";
 const APP_ENV = Constants.expoConfig?.extra?.APP_ENV || "dev";
 
 // Debug: Log API_BASE_URL on initialization

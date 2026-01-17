@@ -5,7 +5,9 @@ import Toast from "react-native-toast-message";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import logger from "./logger";
 
-const { API_BASE_URL } = Constants.expoConfig?.extra || {};
+// Hardcoded API URL with fallback to environment variable
+const API_BASE_URL =
+  Constants.expoConfig?.extra?.API_BASE_URL || "https://api.digidairy.site";
 
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -361,10 +363,10 @@ axiosInstance.interceptors.response.use(
     // Handle network errors
     if (!error.response) {
       // Enhanced logging for network errors
-      const fullUrl = error.config?.baseURL 
-        ? `${error.config.baseURL}${error.config.url || ""}` 
+      const fullUrl = error.config?.baseURL
+        ? `${error.config.baseURL}${error.config.url || ""}`
         : error.config?.url || "unknown";
-      
+
       logger.error(
         `Network Error: ${error.config?.method?.toUpperCase()} ${fullUrl}`,
         error,
@@ -374,10 +376,11 @@ axiosInstance.interceptors.response.use(
           code: error.code,
           baseURL: API_BASE_URL,
           fullUrl: fullUrl,
-          suggestion: "Check if API_BASE_URL is correct and server is accessible",
+          suggestion:
+            "Check if API_BASE_URL is correct and server is accessible",
         }
       );
-      
+
       console.error("🌐 Network Error Details:", {
         API_BASE_URL: API_BASE_URL,
         fullUrl: fullUrl,
@@ -389,7 +392,7 @@ axiosInstance.interceptors.response.use(
           baseURL: error.config?.baseURL,
         },
       });
-      
+
       Toast.show({
         type: "error",
         text1: "Connection Error",

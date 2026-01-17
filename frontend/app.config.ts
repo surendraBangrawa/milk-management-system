@@ -28,8 +28,8 @@ export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
       : baseBundleIdentifier; // e.g., com.yourcompany.digidairy
 
   // Get API_BASE_URL from environment (EAS build sets this from eas.json)
-  // Fallback to process.env.API_BASE_URL for local development
-  const API_BASE_URL = process.env.API_BASE_URL || "";
+  // Fallback to hardcoded production URL
+  const API_BASE_URL = process.env.API_BASE_URL || "https://api.digidairy.site";
 
   return {
     ...originalConfig,
