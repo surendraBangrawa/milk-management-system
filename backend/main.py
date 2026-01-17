@@ -62,6 +62,18 @@ app = FastAPI(
 # Custom exception handler for structured errors
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
+    # Log all HTTP exceptions including 404s for debugging
+    logger.warning(
+        f"HTTP {exc.status_code}: {exc.detail}",
+        extra={
+            "status_code": exc.status_code,
+            "path": request.url.path,
+            "method": request.method,
+            "detail": str(exc.detail),
+            "query_params": dict(request.query_params),
+        }
+    )
+    
     # Check if the detail is a structured error (dict with error_code)
     if isinstance(exc.detail, dict) and "error_code" in exc.detail:
         return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})

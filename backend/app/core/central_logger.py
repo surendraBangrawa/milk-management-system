@@ -52,7 +52,7 @@ class CentralLogFormatter(logging.Formatter):
             "module": record.module,
             "function": record.funcName,
             "line": record.lineno,
-            "service": self.service_name,
+            "service": self.service_name,  # Default service name
             "thread": record.threadName,
             "process": record.process,
         }
@@ -61,8 +61,9 @@ class CentralLogFormatter(logging.Formatter):
         if record.exc_info:
             log_entry["exception"] = self.formatException(record.exc_info)
 
-        # Add extra context if present
+        # Add extra context if present (this will override default service if provided)
         if hasattr(record, "extra_fields"):
+            # Update log entry with extra fields (extra_fields can override service)
             log_entry.update(record.extra_fields)
 
         return json.dumps(log_entry, ensure_ascii=False)

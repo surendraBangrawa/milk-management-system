@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
+    "start:prod": "APP_ENV=prod expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "sync-translations": "node ../scripts/sync-translations.js",
     "android": "APP_ENV=prod expo run:android",

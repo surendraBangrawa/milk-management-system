@@ -21,15 +21,21 @@ import { Platform } from "react-native";
 const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL || "";
 const APP_ENV = Constants.expoConfig?.extra?.APP_ENV || "dev";
 
+// Debug: Log API_BASE_URL on initialization
+console.log(
+  "🔧 Logger initialized with API_BASE_URL:",
+  API_BASE_URL || "NOT SET"
+);
+console.log("🔧 APP_ENV:", APP_ENV);
+
 // Configuration
 const LOG_STORAGE_KEY = "@milk_management_logs";
 const MAX_LOCAL_LOGS = 1000; // Maximum logs to keep locally
 const BATCH_SIZE = 10; // Send logs in batches
 const BATCH_INTERVAL = 30000; // Send batch every 30 seconds
-const MAX_RETRY_ATTEMPTS = 3;
 
 // Log levels
-export enum LogLevel {
+enum LogLevel {
   DEBUG = "DEBUG",
   INFO = "INFO",
   WARNING = "WARNING",
@@ -58,7 +64,7 @@ interface LogEntry {
 
 // Pending logs queue
 let pendingLogs: LogEntry[] = [];
-let batchTimer: NodeJS.Timeout | null = null;
+let batchTimer: ReturnType<typeof setTimeout> | null = null;
 let isSending = false;
 let sessionId: string = generateSessionId();
 
@@ -132,6 +138,9 @@ async function saveLogLocally(entry: LogEntry): Promise<void> {
 // Send logs to backend API
 async function sendLogsToBackend(logs: LogEntry[]): Promise<boolean> {
   if (!API_BASE_URL || logs.length === 0) {
+    if (!API_BASE_URL) {
+      console.warn("⚠️ Cannot send logs: API_BASE_URL is not set");
+    }
     return false;
   }
 
@@ -143,21 +152,61 @@ async function sendLogsToBackend(logs: LogEntry[]): Promise<boolean> {
       userId,
     }));
 
+    const logEndpoint = `${API_BASE_URL}/logs/frontend`;
+    console.log(
+      "📤 Sending logs to:",
+      logEndpoint,
+      "Count:",
+      logsWithUserId.length
+    );
+
     const response = await axios.post(
-      `${API_BASE_URL}/logs/frontend`,
+      logEndpoint,
       { logs: logsWithUserId },
       {
-        timeout: 5000, // 5 second timeout
+        timeout: 10000, // Increase timeout to 10 seconds
         headers: {
           "Content-Type": "application/json",
         },
       }
     );
 
+    console.log(
+      "✅ Logs sent successfully:",
+      response.status,
+      "logs:",
+      logsWithUserId.length
+    );
     return response.status === 200;
-  } catch (error) {
-    // Silently fail - don't break app if API call fails
-    console.error("Failed to send logs to backend:", error);
+  } catch (error: any) {
+    // Enhanced error logging - show in console with full details
+    const errorDetails = {
+      error: error.message,
+      code: error.code,
+      response: error.response?.data,
+      status: error.response?.status,
+      url: `${API_BASE_URL}/logs/frontend`,
+      apiBaseUrl: API_BASE_URL,
+      logsCount: logs.length,
+    };
+
+    console.error(
+      "❌ Failed to send logs to backend:",
+      JSON.stringify(errorDetails, null, 2)
+    );
+
+    // Also log to console with full error
+    if (error.response) {
+      console.error("Response status:", error.response.status);
+      console.error("Response data:", error.response.data);
+    } else if (error.request) {
+      console.error("No response received. Network error or CORS issue.");
+      console.error("Request URL:", `${API_BASE_URL}/logs/frontend`);
+      console.error("Error details:", error.message);
+    } else {
+      console.error("Error setting up request:", error.message);
+    }
+
     return false;
   }
 }
@@ -270,6 +319,22 @@ class Logger {
   async flush(): Promise<void> {
     if (pendingLogs.length > 0) {
       await processPendingLogs();
+    }
+  }
+
+  // Force send all pending logs immediately (for testing/debugging)
+  async forceSend(): Promise<void> {
+    console.log("🔄 Force sending logs. Pending:", pendingLogs.length);
+    if (pendingLogs.length > 0) {
+      // Clear timer and send immediately
+      if (batchTimer) {
+        clearTimeout(batchTimer);
+        batchTimer = null;
+      }
+      await processPendingLogs();
+      console.log("✅ Force send complete. Remaining:", pendingLogs.length);
+    } else {
+      console.log("ℹ️ No pending logs to send");
     }
   }
 
