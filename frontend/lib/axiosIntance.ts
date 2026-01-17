@@ -360,10 +360,40 @@ axiosInstance.interceptors.response.use(
 
     // Handle network errors
     if (!error.response) {
+      // Enhanced logging for network errors
+      const fullUrl = error.config?.baseURL 
+        ? `${error.config.baseURL}${error.config.url || ""}` 
+        : error.config?.url || "unknown";
+      
+      logger.error(
+        `Network Error: ${error.config?.method?.toUpperCase()} ${fullUrl}`,
+        error,
+        {
+          errorType: "NETWORK_ERROR",
+          message: error.message,
+          code: error.code,
+          baseURL: API_BASE_URL,
+          fullUrl: fullUrl,
+          suggestion: "Check if API_BASE_URL is correct and server is accessible",
+        }
+      );
+      
+      console.error("🌐 Network Error Details:", {
+        API_BASE_URL: API_BASE_URL,
+        fullUrl: fullUrl,
+        errorMessage: error.message,
+        errorCode: error.code,
+        config: {
+          method: error.config?.method,
+          url: error.config?.url,
+          baseURL: error.config?.baseURL,
+        },
+      });
+      
       Toast.show({
         type: "error",
         text1: "Connection Error",
-        text2: "Please check your internet connection and try again",
+        text2: `Cannot reach server. API: ${API_BASE_URL || "NOT SET"}`,
       });
       return Promise.reject(error);
     }

@@ -3,7 +3,8 @@ import { ExpoConfig } from "expo/config";
 
 const APP_ENV = process.env.APP_ENV || "dev";
 
-// Load environment variables based on APP_ENV
+// Load environment variables based on APP_ENV (for local development)
+// During EAS build, environment variables from eas.json are available directly
 require("dotenv").config({
   path: `.env.${APP_ENV}`,
 });
@@ -26,6 +27,10 @@ export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
       ? `${baseBundleIdentifier}.dev` // e.g., com.yourcompany.digidairy.dev
       : baseBundleIdentifier; // e.g., com.yourcompany.digidairy
 
+  // Get API_BASE_URL from environment (EAS build sets this from eas.json)
+  // Fallback to process.env.API_BASE_URL for local development
+  const API_BASE_URL = process.env.API_BASE_URL || "";
+
   return {
     ...originalConfig,
 
@@ -36,7 +41,7 @@ export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
         projectId: "ae84bce9-8bf9-4114-be17-a42d0137a42e",
       },
       APP_ENV: APP_ENV,
-      API_BASE_URL: process.env.API_BASE_URL,
+      API_BASE_URL: API_BASE_URL,
     },
 
     slug: originalConfig.slug || "frontend",
