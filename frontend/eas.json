@@ -8,7 +8,7 @@
       "distribution": "store",
       "env": {
         "APP_ENV": "production",
-        "API_BASE_URL": "https://digidiary-1faq.onrender.com"
+        "API_BASE_URL": "https://api.betterbundle.site"
       },
       "android": {
         "buildType": "apk"
@@ -22,7 +22,7 @@
       "distribution": "internal",
       "env": {
         "APP_ENV": "dev",
-        "API_BASE_URL": "https://digidiary-1faq.onrender.com"
+        "API_BASE_URL": "https://api.betterbundle.site"
       },
       "android": {
         "buildType": "apk"
