@@ -40,6 +40,21 @@ services:
 
   # ==================== REDIS ====================
 
+  adminer:
+    image: adminer:latest
+    container_name: milk_adminer_prod
+    restart: always
+    networks:
+      - milk_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
   redis:
     image: redis/redis-stack:7.2.0-v18
     container_name: milk_redis_prod
